@@ -1,12 +1,7 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { scryptSync, timingSafeEqual, createHash } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { createPublicClient } from '@/lib/supabase/public'
 
 function getClientIp(req: Request): string {
   const forwarded = req.headers.get('x-forwarded-for')
@@ -115,6 +110,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Contraseña requerida.' }, { status: 400 })
   }
 
+  const supabase = createPublicClient()
   const { data: tienda, error: queryError } = await supabase
     .from('tiendas')
     .select('id, nombre_tienda, esta_activa, onboarding_completo, password_hash, dispositivo_id_hash, ultima_ip, telefono_socio, whatsapp_num')
