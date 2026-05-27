@@ -594,14 +594,8 @@ export default function DashboardLayout({
     <OrderAlertContext.Provider value={{ showAlert }}>
       <div className="min-h-screen flex md:overflow-x-hidden">
         {/* Mobile header */}
-        <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-xl border-b border-slate-800/60 px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-[var(--primary)] flex items-center justify-center">
-              <span className="text-white font-bold text-xs">N</span>
-            </div>
-            <span className="text-sm font-bold text-white">Nexus Core</span>
-          </div>
-          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 text-slate-300 hover:text-white">
+        <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-xl border-b border-slate-800/60 px-4 h-14 flex items-center gap-3">
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 -ml-2 text-slate-300 hover:text-white">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {mobileMenuOpen ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
@@ -610,6 +604,12 @@ export default function DashboardLayout({
               )}
             </svg>
           </button>
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-[var(--primary)] flex items-center justify-center">
+              <span className="text-white font-bold text-xs">N</span>
+            </div>
+            <span className="text-sm font-bold text-white">Nexus Core</span>
+          </div>
         </div>
 
         {/* Mobile sidebar overlay */}
