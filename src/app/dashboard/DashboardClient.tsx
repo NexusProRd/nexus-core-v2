@@ -177,12 +177,16 @@ export default function DashboardClient({ tiendaId, nombreTienda, userEmail, cat
     refrescarTodo()
   }, [refrescarTodo])
 
+  const cardClass = 'bg-white/70 dark:bg-[#121216]/60 backdrop-blur-lg border border-white/30 dark:border-white/[0.06] shadow-lg shadow-black/[0.02] dark:shadow-black/20 rounded-2xl'
+  const cardHoverClass = `${cardClass} p-4 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 hover:bg-white/80 dark:hover:bg-[#121216]/70`
+  const cardInnerClass = 'bg-white/50 dark:bg-white/[0.03] rounded-xl border border-white/30 dark:border-white/[0.06]'
+
   return (
     <div className="max-w-full overflow-x-hidden px-3 sm:px-5 py-4 sm:py-6 space-y-4 sm:space-y-5">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">{nombreTienda}</h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">{userEmail}</p>
+          <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-500 mt-0.5">{userEmail}</p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <StoreToggle tiendaId={tiendaId} abierta={tiendaAbierta} />
@@ -190,7 +194,7 @@ export default function DashboardClient({ tiendaId, nombreTienda, userEmail, cat
       </div>
 
       {tokensDisponibles === 0 && fechaVencimiento && (
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl px-4 sm:px-5 py-3.5 flex items-start gap-3">
+        <div className="bg-amber-50/80 dark:bg-amber-900/20 backdrop-blur-lg border border-amber-200/60 dark:border-amber-800 rounded-2xl px-4 sm:px-5 py-3.5 flex items-start gap-3">
           <span className="text-lg shrink-0 mt-0.5">💡</span>
           <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
             Periodo de Prueba Activo: Te quedan <strong className="font-extrabold">{diasRestantes(fechaVencimiento)}</strong> días de servicio gratuito. Recuerda recargar tokens en el panel de soporte para evitar la suspensión de tu catálogo en la calle.
@@ -199,7 +203,7 @@ export default function DashboardClient({ tiendaId, nombreTienda, userEmail, cat
       )}
 
       {tipoNegocio === 'ropa' && tallasStockBajo.length > 0 && (
-        <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-2xl px-4 sm:px-5 py-3.5 flex items-start gap-3">
+        <div className="bg-rose-50/80 dark:bg-rose-900/20 backdrop-blur-lg border border-rose-200/60 dark:border-rose-800 rounded-2xl px-4 sm:px-5 py-3.5 flex items-start gap-3">
           <span className="text-lg shrink-0 mt-0.5">⚠️</span>
           <div className="flex-1 min-w-0">
             <p className="text-sm text-rose-800 dark:text-rose-200 leading-relaxed">
@@ -223,26 +227,26 @@ export default function DashboardClient({ tiendaId, nombreTienda, userEmail, cat
       )}
 
       {/* Suscripción - siempre primero */}
-      <div className={`rounded-2xl p-4 sm:p-5 border ${
+      <div className={`${cardClass} p-4 sm:p-5 ${
         fechaVencimiento && diasRestantes(fechaVencimiento) <= 3 && tokensDisponibles <= 0
-          ? 'bg-amber-50 border-amber-200'
-          : 'bg-white border-slate-200 dark:border-slate-800'
+          ? 'border-amber-200/60 dark:border-amber-800'
+          : ''
       }`}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="space-y-1.5">
             {tokensDisponibles > 0 && (
-              <p className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
                 <span>🪙</span>
                 {tokensDisponibles} token(s) — {tokensDisponibles} mes(es) de servicio
               </p>
             )}
             {fechaVencimiento ? (
-              <p className={`text-xs sm:text-sm font-medium ${tokensDisponibles > 0 ? 'text-slate-500' : 'text-slate-500'}`}>
-                🗓️ Vence el <span className="font-semibold text-slate-700">{formatearFecha(fechaVencimiento)}</span>
+              <p className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">
+                🗓️ Vence el <span className="font-semibold text-slate-700 dark:text-slate-300">{formatearFecha(fechaVencimiento)}</span>
                 {tokensDisponibles <= 0 && ` (${diasRestantes(fechaVencimiento)} día(s))`}
               </p>
             ) : (
-              <p className="text-xs sm:text-sm text-slate-400">Sin fecha de vencimiento registrada</p>
+              <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-500">Sin fecha de vencimiento registrada</p>
             )}
           </div>
           {fechaVencimiento && diasRestantes(fechaVencimiento) <= 3 && tokensDisponibles <= 0 && (
@@ -260,7 +264,7 @@ export default function DashboardClient({ tiendaId, nombreTienda, userEmail, cat
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-        <div className="md:col-span-2 lg:col-span-2 bg-[var(--primary)] rounded-2xl p-5 sm:p-7 text-white shadow-sm">
+        <div className="md:col-span-2 lg:col-span-2 bg-gradient-to-br from-[var(--primary)] to-[var(--primary)]/80 rounded-2xl p-5 sm:p-7 text-white shadow-lg shadow-[var(--primary)]/10">
           <p className="text-white/70 text-xs font-semibold uppercase tracking-wide">Ventas de Hoy</p>
           <p className={`text-xl sm:text-2xl font-bold text-white mt-1 whitespace-nowrap overflow-hidden text-ellipsis ${isLoading ? 'animate-pulse' : ''}`}>
             {isLoading ? 'RD$0' : `RD$${formatearPrecio(metricas.ingresosHoy)}`}
@@ -269,7 +273,7 @@ export default function DashboardClient({ tiendaId, nombreTienda, userEmail, cat
             <span>{stats.pendientes} pendiente(s)</span>
             <span>{metricas.pedidosHoyCount} pedido(s) hoy</span>
             {stats.regalosPendientes > 0 && (
-              <span className="inline-flex items-center gap-1.5 bg-amber-400/20 text-amber-200 text-xs font-semibold px-3 py-1 rounded-full">
+              <span className="inline-flex items-center gap-1.5 bg-white/10 text-white/80 text-xs font-semibold px-3 py-1 rounded-full border border-white/10">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
                 {stats.regalosPendientes} regalo(s) pendiente(s) de pago
               </span>
@@ -282,12 +286,12 @@ export default function DashboardClient({ tiendaId, nombreTienda, userEmail, cat
           <QrButton url={publicUrl} />
         </div>
 
-        <div className="md:col-span-2 lg:col-span-3 bg-white rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5">
+        <div className={`md:col-span-2 lg:col-span-3 ${cardClass} p-4 sm:p-5`}>
           <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
             <div className="min-w-0 flex-1 w-full">
-              <h3 className="font-semibold text-slate-900 text-sm mb-1">Tu enlace de ventas</h3>
-              <div className="bg-slate-100 dark:bg-slate-800/50 rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700 overflow-x-auto">
-                <code className="text-xs text-slate-600 dark:text-slate-300 break-all font-mono">{publicUrl}</code>
+              <h3 className="font-semibold text-slate-900 dark:text-white text-sm mb-1">Tu enlace de ventas</h3>
+              <div className={cardInnerClass}>
+                <code className="block px-3 py-2 text-xs text-slate-600 dark:text-slate-300 break-all font-mono">{publicUrl}</code>
               </div>
             </div>
             <div className="flex gap-2 shrink-0 w-full sm:w-auto">
@@ -301,48 +305,48 @@ export default function DashboardClient({ tiendaId, nombreTienda, userEmail, cat
           </div>
         </div>
 
-        <Link href="/dashboard/pedidos" className="bg-white rounded-2xl border border-slate-200 dark:border-slate-800 p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-          <div className="w-9 h-9 rounded-xl bg-[var(--primary)]/5 flex items-center justify-center mb-2.5">
+        <Link href="/dashboard/pedidos" className={cardHoverClass}>
+          <div className="w-9 h-9 rounded-xl bg-[var(--primary)]/10 dark:bg-[var(--primary)]/20 flex items-center justify-center mb-2.5">
             <svg className="w-4.5 h-4.5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
           </div>
-          <h3 className="font-semibold text-slate-900 text-sm">Pedidos</h3>
-          <p className="text-xs text-slate-400 mt-0.5">{stats.pendientes} pendientes</p>
+          <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Pedidos</h3>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{stats.pendientes} pendientes</p>
         </Link>
 
-        <Link href="/dashboard/inventario" className="bg-white rounded-2xl border border-slate-200 dark:border-slate-800 p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-          <div className="w-9 h-9 rounded-xl bg-[var(--primary)]/5 flex items-center justify-center mb-2.5">
+        <Link href="/dashboard/inventario" className={cardHoverClass}>
+          <div className="w-9 h-9 rounded-xl bg-[var(--primary)]/10 dark:bg-[var(--primary)]/20 flex items-center justify-center mb-2.5">
             <svg className="w-4.5 h-4.5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
           </div>
-          <h3 className="font-semibold text-slate-900 text-sm">Inventario</h3>
-          <p className="text-xs text-slate-400 mt-0.5">{stats.stockBajo.length} producto(s) bajo stock</p>
+          <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Inventario</h3>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{stats.stockBajo.length} producto(s) bajo stock</p>
         </Link>
 
-        <Link href="/dashboard/analiticas" className="bg-white rounded-2xl border border-slate-200 dark:border-slate-800 p-4 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-          <div className="w-9 h-9 rounded-xl bg-[var(--primary)]/5 flex items-center justify-center mb-2.5">
+        <Link href="/dashboard/analiticas" className={cardHoverClass}>
+          <div className="w-9 h-9 rounded-xl bg-[var(--primary)]/10 dark:bg-[var(--primary)]/20 flex items-center justify-center mb-2.5">
             <svg className="w-4.5 h-4.5 text-[var(--primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
           </div>
-          <h3 className="font-semibold text-slate-900 text-sm">Analíticas</h3>
-          <p className="text-xs text-slate-400 mt-0.5">Ventas y tendencias</p>
+          <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Analíticas</h3>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Ventas y tendencias</p>
         </Link>
 
-        <div className="md:col-span-2 bg-white rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5">
-          <h3 className="font-semibold text-slate-900 text-sm mb-3">Última Actividad</h3>
+        <div className={`md:col-span-2 ${cardClass} p-4 sm:p-5`}>
+          <h3 className="font-semibold text-slate-900 dark:text-white text-sm mb-3">Última Actividad</h3>
           {stats.ultimosPedidos.length > 0 ? (
             <div className="space-y-2">
               {stats.ultimosPedidos.slice(0, 5).map(p => (
                 <div key={p.id}
-                  className={`flex items-center justify-between bg-slate-50 rounded-xl px-3.5 py-2.5 transition-all duration-500 ${
-                    animatingId === p.id ? 'animate-[slideIn_0.4s_ease-out] bg-[var(--primary)]/5' : ''
+                  className={`flex items-center justify-between ${cardInnerClass} px-3.5 py-2.5 transition-all duration-500 ${
+                    animatingId === p.id ? 'animate-[slideIn_0.4s_ease-out] bg-[var(--primary)]/10' : ''
                   }`}>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-slate-900 truncate">{p.cliente_nombre}</p>
-                    <p className="text-xs text-slate-400">RD${formatearPrecio(p.total)}</p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{p.cliente_nombre}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">RD${formatearPrecio(p.total)}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0 ml-3">
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
-                      p.estado === 'pendiente' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                      p.estado === 'confirmado' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                      'bg-rose-50 text-rose-700 border-rose-200'
+                      p.estado === 'pendiente' ? 'bg-amber-50/80 text-amber-700 border-amber-200/60' :
+                      p.estado === 'confirmado' ? 'bg-emerald-50/80 text-emerald-700 border-emerald-200/60' :
+                      'bg-rose-50/80 text-rose-700 border-rose-200/60'
                     }`}>{p.estado}</span>
                     <TicketButton pedidoId={p.id} />
                   </div>
@@ -350,21 +354,21 @@ export default function DashboardClient({ tiendaId, nombreTienda, userEmail, cat
               ))}
             </div>
           ) : (
-            <p className="text-sm text-slate-400 text-center py-6">No hay pedidos aún</p>
+            <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-6">No hay pedidos aún</p>
           )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 dark:border-slate-800 p-4">
+        <div className={cardClass + ' p-4'}>
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <h3 className="font-semibold text-slate-900 text-sm">Stock Bajo</h3>
+            <h3 className="font-semibold text-slate-900 dark:text-white text-sm">Stock Bajo</h3>
           </div>
           {stats.stockBajo.length > 0 ? (
             <div className="space-y-1.5">
               {stats.stockBajo.slice(0, 4).map(p => (
                 <div key={p.id} className="flex items-center justify-between text-sm">
-                  <span className="text-slate-700 truncate">{p.nombre}</span>
-                  <span className="text-amber-600 font-semibold ml-2 shrink-0">{p.stock} uds</span>
+                  <span className="text-slate-700 dark:text-slate-300 truncate">{p.nombre}</span>
+                  <span className="text-amber-600 dark:text-amber-400 font-semibold ml-2 shrink-0">{p.stock} uds</span>
                 </div>
               ))}
               {stats.stockBajo.length > 4 && (
@@ -372,7 +376,7 @@ export default function DashboardClient({ tiendaId, nombreTienda, userEmail, cat
               )}
             </div>
           ) : (
-            <p className="text-sm text-slate-400 text-center py-4">Todo en stock suficiente</p>
+            <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-4">Todo en stock suficiente</p>
           )}
         </div>
       </div>

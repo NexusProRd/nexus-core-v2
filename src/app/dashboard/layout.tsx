@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, createContext, useContext } from 'react'
+import { useEffect, useState, useCallback, createContext, useContext, useRef, memo } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
@@ -63,8 +63,9 @@ export function useOrderAlert() {
   return useContext(OrderAlertContext)
 }
 
-function SidebarContent({ mobileMenuOpen, setMobileMenuOpen, tiendaId, silenciado, setSilenciado, theme, toggleTheme }: any) {
+function SidebarDesktop() {
   const { esDueno, nombreColaborador, permisos } = usePermisos()
+  const pathname = usePathname()
 
   const navItems = esDueno
     ? [
@@ -92,101 +93,196 @@ function SidebarContent({ mobileMenuOpen, setMobileMenuOpen, tiendaId, silenciad
         ...(permisos?.pedidos ? [{ href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart' }] : []),
       ]
 
-  return (
-    <aside className={`${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 transition-transform duration-200 ease-in-out w-56 sidebar backdrop-blur-2xl border-r border-slate-800/60 dark:border-slate-800/60 border-slate-200 fixed h-full z-40 flex flex-col`}>
-      <div className="p-4 border-b border-slate-800/40 dark:border-slate-800/40 border-slate-200">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-[var(--primary)] flex items-center justify-center shadow-sm">
-            <span className="text-white font-bold text-xs">N</span>
-          </div>
-          <div>
-            <h1 className="text-sm font-bold text-slate-900 dark:text-white">Nexus</h1>
-            <p className="text-[10px] text-slate-400 font-medium">
-              {esDueno ? 'Panel Socio' : (
-                <span className="inline-flex items-center gap-1">
-                  Colaborador
-                  <span className="inline-block px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 text-[8px] font-bold rounded-md">{nombreColaborador}</span>
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-      </div>
+  const esActivo = (href: string) => {
+    if (href === '/dashboard') return pathname === '/dashboard'
+    return pathname.startsWith(href)
+  }
 
-      <nav className="flex-1 p-2 space-y-0.5">
-        {navItems.map(item => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center gap-3 px-3 py-2 text-slate-500 dark:text-slate-400 hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 dark:hover:bg-[var(--primary)]/10 rounded-xl transition-all text-sm font-medium group"
+  const iconSVG = (icon: string) => {
+    switch (icon) {
+      case 'home': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+      case 'chart': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+      case 'box': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+      case 'cart': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+      case 'tag': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+      case 'gift': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+      case 'window': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 2v4m8-4v4M4 10h16" /></svg>
+      case 'settings': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+      default: return null
+    }
+  }
+
+  return (
+    <aside className="hidden md:flex w-56 fixed h-full z-30 flex-col bg-[#0c0c10]/90 backdrop-blur-2xl border-r border-white/[0.06]">
+      <nav className="flex-1 p-2 space-y-0.5 pt-4">
+        {navItems.map(item => {
+          const active = esActivo(item.href)
+          return (
+          <Link key={item.href} href={item.href}
+            className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-sm font-medium no-tap-delay ${
+              active
+                ? 'text-white bg-white/8 border-l-2 border-[var(--primary)] pl-[10px]'
+                : 'text-white/40 hover:text-white/80 hover:bg-white/5 border-l-2 border-transparent pl-[10px]'
+            }`}
           >
-            {item.icon === 'home' && (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-            )}
-            {item.icon === 'chart' && (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-            )}
-            {item.icon === 'box' && (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-            )}
-            {item.icon === 'cart' && (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-            )}
-            {item.icon === 'tag' && (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-            )}
-            {item.icon === 'gift' && (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-            )}
-            {item.icon === 'window' && (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 2v4m8-4v4M4 10h16" /></svg>
-            )}
-            {item.icon === 'settings' && (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-            )}
+            {iconSVG(item.icon)}
             <span className="truncate">{item.label}</span>
           </Link>
-        ))}
+          )
+        })}
       </nav>
-
-      <div className="p-2 border-t border-slate-200 dark:border-slate-800/60 space-y-0.5">
-        <button onClick={toggleTheme}
-          className="flex items-center gap-3 px-3 py-2 w-full text-slate-500 dark:text-slate-400 hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 dark:hover:bg-[var(--primary)]/10 rounded-xl transition-all text-sm"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            {theme === 'dark' ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            )}
-          </svg>
-          {theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
-        </button>
-        <button onClick={() => setSilenciado(!silenciado)}
-          className="flex items-center gap-3 px-3 py-2 w-full text-slate-500 dark:text-slate-400 hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 dark:hover:bg-[var(--primary)]/10 rounded-xl transition-all text-sm"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            {silenciado ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.536 8.464a5 5 0 010 7.072M17.95 6.05a8 8 0 010 11.9M13 5l-4.707 4.707A1 1 0 017.586 10H4a1 1 0 00-1 1v2a1 1 0 001 1h3.586a1 1 0 01.707.293L13 19V5z" />
-            )}
-          </svg>
-          {silenciado ? 'Sonido' : 'Silenciar'}
-        </button>
-        <button onClick={() => { document.cookie = 'nx_session=; path=/; max-age=0'; document.cookie = 'nx_colaborador=; path=/; max-age=0'; window.location.href = '/login' }}
-          className="flex items-center gap-3 px-3 py-2 w-full text-slate-500 dark:text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/10 rounded-xl transition-all text-sm"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          Cerrar Sesión
-        </button>
-      </div>
     </aside>
   )
 }
+
+function BottomSheet({ moreOpen, setMoreOpen, extras, iconSVG }: any) {
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const startY = useRef(0)
+  const currentY = useRef(0)
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startY.current = e.touches[0].clientY
+    if (sheetRef.current) sheetRef.current.style.transition = 'none'
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const dy = e.touches[0].clientY - startY.current
+    if (dy < 0) return
+    currentY.current = dy
+    if (sheetRef.current) sheetRef.current.style.transform = `translateY(${dy}px)`
+  }
+
+  const handleTouchEnd = () => {
+    if (currentY.current > 120) {
+      setMoreOpen(false)
+    } else {
+      if (sheetRef.current) {
+        sheetRef.current.style.transition = 'transform .2s ease-out'
+        sheetRef.current.style.transform = 'translateY(0)'
+      }
+    }
+    currentY.current = 0
+  }
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50 animate-fade-in" onClick={() => setMoreOpen(false)}>
+        <div className="absolute inset-0 bg-black/40" />
+      </div>
+      <div ref={sheetRef}
+        className="fixed bottom-0 left-0 right-0 z-50 bg-[#0c0c10] rounded-t-2xl border border-white/[0.06] pb-8 max-h-[70vh] overflow-y-auto animate-slide-up"
+      >
+        <div className="flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing touch-none"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="w-10 h-1 rounded-full bg-white/30" />
+        </div>
+        <div className="px-3 pb-2 space-y-0.5">
+          {extras.map((item: any) => (
+            <Link key={item.href} href={item.href} onClick={() => setMoreOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/5 transition-all"
+            >
+              {iconSVG(item.icon)}
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </>
+  )
+}
+
+const BottomNav = memo(function BottomNav({ moreOpen, setMoreOpen }: any) {
+  const { esDueno, nombreColaborador, permisos } = usePermisos()
+  const pathname = usePathname()
+
+  const todosLosItems = esDueno
+    ? [
+        { href: '/dashboard', label: 'Inicio', icon: 'home' },
+        { href: '/dashboard/analiticas', label: 'Analíticas', icon: 'chart' },
+        { href: '/dashboard/inventario', label: 'Inventario', icon: 'box' },
+        { href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart' },
+        { href: '/dashboard/cupones', label: 'Cupones', icon: 'tag' },
+        { href: '/dashboard/regalos', label: 'Regalos', icon: 'gift' },
+        { href: '/dashboard/vitrina', label: 'Vitrina', icon: 'window' },
+        { href: '/dashboard/configurar', label: 'Ajustes', icon: 'settings' },
+      ]
+    : permisos?.dashboard
+    ? [
+        { href: '/dashboard', label: 'Inicio', icon: 'home' },
+        { href: '/dashboard/analiticas', label: 'Analíticas', icon: 'chart' },
+        { href: '/dashboard/inventario', label: 'Inventario', icon: 'box' },
+        { href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart' },
+        { href: '/dashboard/cupones', label: 'Cupones', icon: 'tag' },
+        { href: '/dashboard/regalos', label: 'Regalos', icon: 'gift' },
+      ]
+    : [
+        ...(permisos?.dashboard ? [{ href: '/dashboard', label: 'Inicio', icon: 'home' }] : []),
+        ...(permisos?.productos ? [{ href: '/dashboard/inventario', label: 'Inventario', icon: 'box' }] : []),
+        ...(permisos?.pedidos ? [{ href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart' }] : []),
+      ]
+
+  const inicioItem = todosLosItems.find(i => i.href === '/dashboard')
+  const otrosItems = todosLosItems.filter(i => i.href !== '/dashboard')
+  let principales: typeof todosLosItems
+  if (inicioItem) {
+    principales = [
+      inicioItem,
+      ...otrosItems.slice(0, 3),
+    ].filter(Boolean) as typeof todosLosItems
+  } else {
+    principales = otrosItems.slice(0, 4)
+  }
+  const extras = todosLosItems.filter(item => !principales.includes(item) && item.href !== '/dashboard/configurar')
+
+  const esActivo = (href: string) => {
+    if (href === '/dashboard') return pathname === '/dashboard'
+    return pathname.startsWith(href)
+  }
+
+  const iconSVG = (icon: string) => {
+    switch (icon) {
+      case 'home': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+      case 'chart': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+      case 'box': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+      case 'cart': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+      case 'tag': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+      case 'gift': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+      case 'window': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 2v4m8-4v4M4 10h16" /></svg>
+      case 'settings': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+      default: return null
+    }
+  }
+
+  return (
+    <>
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0c0c10]/90 backdrop-blur-2xl border-t border-white/[0.06] flex items-center justify-around px-2 pb-1 pt-1.5">
+        {principales.map(item => (
+          <Link key={item.href} href={item.href}
+            className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all min-w-0 no-tap-delay ${
+              esActivo(item.href) ? 'text-white' : 'text-white/40 hover:text-white/80'
+            }`}
+          >
+            {iconSVG(item.icon)}
+            <span className="text-[9px] font-medium truncate max-w-full leading-tight">{item.label}</span>
+          </Link>
+        ))}
+        <button onClick={() => setMoreOpen(true)}
+          className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all text-white/40 hover:text-white/80 min-w-0 no-tap-delay"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+          </svg>
+          <span className="text-[9px] font-medium">Más</span>
+        </button>
+      </nav>
+
+      {moreOpen && <BottomSheet moreOpen={moreOpen} setMoreOpen={setMoreOpen} extras={extras} iconSVG={iconSVG} />}
+    </>
+  )
+})
 
 export default function DashboardLayout({
   children,
@@ -202,7 +298,9 @@ export default function DashboardLayout({
   const [approvedGift, setApprovedGift] = useState<GiftAlert | null>(null)
   const [silenciado, setSilenciado] = useState(false)
   const [sendingMagicLink, setSendingMagicLink] = useState(false)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [bottomSheetOpen, setBottomSheetOpen] = useState(false)
+  const [showSettingsModal, setShowSettingsModal] = useState(false)
+  const [landingLogoUrl, setLandingLogoUrl] = useState('')
   const [anuncios, setAnuncios] = useState<NexusAnuncio[]>([])
   const [anunciosDescartados, setAnunciosDescartados] = useState<Set<string>>(new Set())
   const [bloqueado, setBloqueado] = useState(false)
@@ -317,6 +415,11 @@ export default function DashboardLayout({
             const { data: cfg } = await supabase.from('nexus_config').select('valor').eq('clave', 'whatsapp_soporte').maybeSingle()
             if (cfg?.valor) setWhatsappSoporte(cfg.valor)
           } catch {}
+
+          try {
+            const { data: logoCfg } = await supabase.from('nexus_config').select('valor').eq('clave', 'landing_logo_url').maybeSingle()
+            if (logoCfg?.valor) setLandingLogoUrl(logoCfg.valor)
+          } catch {}
       } catch {
         console.error('Error al cargar la tienda')
       } finally {
@@ -429,19 +532,21 @@ export default function DashboardLayout({
     return () => { supabase.removeChannel(canal); clearInterval(intervalo) }
   }, [])
 
+  const sectionTitles: Record<string, string> = {
+    '/dashboard': 'Inicio',
+    '/dashboard/analiticas': 'Analíticas',
+    '/dashboard/inventario': 'Inventario',
+    '/dashboard/pedidos': 'Pedidos',
+    '/dashboard/cupones': 'Cupones',
+    '/dashboard/regalos': 'Regalos',
+    '/dashboard/vitrina': 'Vitrina',
+    '/dashboard/configurar': 'Ajustes',
+  }
+  const pageTitle = sectionTitles[pathname] || 'Dashboard'
+
   useEffect(() => {
     if (!nombreTienda) return
-    const sectionTitles: Record<string, string> = {
-      '/dashboard': 'Panel de Control',
-      '/dashboard/inventario': 'Inventario',
-      '/dashboard/pedidos': 'Pedidos',
-      '/dashboard/analiticas': 'Analíticas',
-      '/dashboard/cupones': 'Cupones',
-      '/dashboard/regalos': 'Regalos',
-      '/dashboard/configurar': 'Ajustes',
-    }
-    const section = sectionTitles[pathname] || 'Dashboard'
-    document.title = `${section} | ${nombreTienda}`
+    document.title = `${pageTitle} | ${nombreTienda}`
   }, [pathname, nombreTienda])
 
   const handleGiftAction = async (giftId: string, newStatus: 'approved' | 'rejected') => {
@@ -535,21 +640,20 @@ export default function DashboardLayout({
   if (loading) {
     return (
       <OrderAlertContext.Provider value={{ showAlert }}>
-        <div className="min-h-screen flex bg-gray-50">
-          <aside className="w-56 sidebar backdrop-blur-2xl border-r border-slate-200 h-screen flex flex-col">
-            <div className="p-4 border-b border-slate-200">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-lg bg-[var(--primary)] flex items-center justify-center shadow-sm">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#0a0a0d] dark:via-[#0c0c10] dark:to-[#0e0e14]">
+          <header className="fixed top-0 left-0 right-0 z-40 bg-[#0c0c10]/80 backdrop-blur-2xl border-b border-white/[0.06] px-4 h-14 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              {landingLogoUrl ? (
+                <img src={landingLogoUrl} alt="" className="w-7 h-7 rounded-lg object-contain" />
+              ) : (
+                <div className="w-7 h-7 rounded-lg bg-[var(--primary)] flex items-center justify-center">
                   <span className="text-white font-bold text-xs">N</span>
                 </div>
-                <div>
-                  <h1 className="text-sm font-bold text-slate-900">Nexus</h1>
-                  <p className="text-[10px] text-slate-400 font-medium">Panel Socio</p>
-                </div>
-              </div>
+              )}
+              <span className="text-sm font-bold text-white/90">Dashboard | {nombreTienda || ''}</span>
             </div>
-          </aside>
-          <main className="flex-1 min-h-screen" style={{ background: 'var(--bg-body)' }}>
+          </header>
+          <main className="pt-14 pb-16 md:ml-56 min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#0a0a0d] dark:via-[#0c0c10] dark:to-[#0e0e14]">
             <div className="max-w-7xl mx-auto">{children}</div>
           </main>
         </div>
@@ -592,40 +696,51 @@ export default function DashboardLayout({
   return (
     <SessionProvider>
     <OrderAlertContext.Provider value={{ showAlert }}>
-      <div className="min-h-screen flex md:overflow-x-hidden">
-        {/* Mobile header */}
-        <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-xl border-b border-slate-800/60 px-4 h-14 flex items-center gap-3">
-          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 -ml-2 text-slate-300 hover:text-white">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {mobileMenuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-[var(--primary)] flex items-center justify-center">
-              <span className="text-white font-bold text-xs">N</span>
-            </div>
-            <span className="text-sm font-bold text-white">Nexus Core</span>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#0a0a0d] dark:via-[#0c0c10] dark:to-[#0e0e14]">
+        <style>{`@keyframes fadeIn{from{opacity:0}to{opacity:1}}.animate-fade-in{animation:fadeIn .08s ease-out}@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}.animate-slide-up{animation:slideUp .25s ease-out}.no-tap-delay{touch-action:manipulation}`}</style>
+        <SidebarDesktop />
+        {/* Top header */}
+        <header className="fixed top-0 left-0 right-0 z-40 bg-[#0c0c10]/80 backdrop-blur-2xl border-b border-white/[0.06] px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {landingLogoUrl ? (
+              <img src={landingLogoUrl} alt="" className="w-7 h-7 rounded-lg object-contain shrink-0" />
+            ) : (
+              <div className="w-7 h-7 rounded-lg bg-[var(--primary)] flex items-center justify-center shrink-0">
+                <span className="text-white font-bold text-xs">N</span>
+              </div>
+            )}
+            <span className="text-sm font-bold text-white/90 truncate">Dashboard | {nombreTienda}</span>
           </div>
-        </div>
-
-        {/* Mobile sidebar overlay */}
-        {mobileMenuOpen && (
-          <div className="md:hidden fixed inset-0 z-30" onClick={() => setMobileMenuOpen(false)}>
-            <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
+          <div className="flex items-center gap-1">
+            <button onClick={() => setShowSettingsModal(true)} className="p-2 text-white/40 hover:text-white/80 rounded-xl hover:bg-white/5 transition-all">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+            <button onClick={toggleTheme} className="p-2 text-white/40 hover:text-white/80 rounded-xl hover:bg-white/5 transition-all">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {theme === 'dark' ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                )}
+              </svg>
+            </button>
+            <button onClick={() => { document.cookie = 'nx_session=; path=/; max-age=0'; document.cookie = 'nx_colaborador=; path=/; max-age=0'; window.location.href = '/login' }}
+              className="p-2 text-white/40 hover:text-rose-400 rounded-xl hover:bg-rose-500/10 transition-all">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </button>
           </div>
-        )}
+        </header>
 
-        <SidebarContent mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} tiendaId={tiendaId} silenciado={silenciado} setSilenciado={setSilenciado} theme={theme} toggleTheme={toggleTheme} />
-
-        <main className="flex-1 md:ml-56 pt-14 md:pt-0 min-h-screen" style={{ background: 'var(--bg-body)' }}>
+        <main className="pt-14 pb-16 md:ml-56 min-h-screen">
           {anuncios.filter(a => a.activo && !anunciosDescartados.has(a.id)).map(a => {
             const t = TIPOS.find(t => t.value === a.tipo)
             return (
-              <div key={a.id} className={`px-4 py-2.5 flex items-center gap-3 text-sm border-b ${t?.color === 'purple' ? 'bg-purple-50 border-purple-200 text-purple-800' : t?.color === 'amber' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-rose-50 border-rose-200 text-rose-800'}`}>
+              <div key={a.id} className={`px-4 py-2.5 flex items-center gap-3 text-sm border-b ${t?.color === 'purple' ? 'bg-purple-50/80 border-purple-200 text-purple-800' : t?.color === 'amber' ? 'bg-amber-50/80 border-amber-200 text-amber-800' : 'bg-rose-50/80 border-rose-200 text-rose-800'}`}>
                 <span className="text-base">{t?.icon || '📢'}</span>
                 <div className="flex-1 min-w-0">
                   <span className="font-semibold">{a.titulo}</span>
@@ -640,16 +755,73 @@ export default function DashboardLayout({
               </div>
             )
           })}
-          <div className="max-w-7xl mx-auto">
+          <div key={pathname} className="max-w-7xl mx-auto animate-fade-in">
             {children}
           </div>
         </main>
 
+        <div className="md:hidden">
+          <BottomNav moreOpen={bottomSheetOpen} setMoreOpen={setBottomSheetOpen} />
+        </div>
+
+        {showSettingsModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setShowSettingsModal(false)}>
+            <div className="bg-white/90 dark:bg-[#121216]/90 backdrop-blur-2xl rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-white/30 dark:border-white/[0.06]" onClick={e => e.stopPropagation()}>
+              <div className="px-5 py-4 border-b border-white/30 dark:border-white/[0.06] flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Ajustes</h3>
+                <button onClick={() => setShowSettingsModal(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white/80 rounded-lg hover:bg-white/5 transition-all">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="p-3 space-y-1">
+                <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-sm font-medium text-slate-700 dark:text-white/70 hover:text-slate-900 dark:hover:text-white transition-all">
+                  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {theme === 'dark' ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    )}
+                  </svg>
+                  {theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro'}
+                </button>
+                <button onClick={() => { setSilenciado(!silenciado); setShowSettingsModal(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-sm font-medium text-slate-700 dark:text-white/70 hover:text-slate-900 dark:hover:text-white transition-all">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {silenciado ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    )}
+                  </svg>
+                  {silenciado ? 'Activar Sonido' : 'Silenciar Sonido'}
+                </button>
+                <Link href="/dashboard/configurar" onClick={() => setShowSettingsModal(false)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-sm font-medium text-slate-700 dark:text-white/70 hover:text-slate-900 dark:hover:text-white transition-all">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Configuración Avanzada
+                </Link>
+                <div className="border-t border-white/30 dark:border-white/[0.06] my-1" />
+                <button onClick={() => { document.cookie = 'nx_session=; path=/; max-age=0'; document.cookie = 'nx_colaborador=; path=/; max-age=0'; window.location.href = '/login' }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-rose-500/10 text-sm font-medium text-rose-600 hover:text-rose-700 transition-all">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Cerrar Sesión
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showGiftModal && giftPendientes.length > 0 && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setShowGiftModal(false)}>
-            <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="bg-white/90 dark:bg-[#121216]/90 backdrop-blur-2xl rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-white/30 dark:border-white/[0.06]" onClick={e => e.stopPropagation()}>
               {/* Ticket header */}
-              <div className="bg-[var(--primary)] px-5 py-4 text-center relative">
+              <div className="bg-gradient-to-br from-[var(--primary)] to-[var(--primary)]/80 px-5 py-4 text-center relative">
                 <div className="absolute -bottom-2 left-0 right-0 flex justify-between px-2">
                   <div className="w-4 h-4 bg-black/50 rounded-full" />
                   <div className="w-4 h-4 bg-black/50 rounded-full" />
@@ -671,58 +843,58 @@ export default function DashboardLayout({
                     <>
                       <div className="flex justify-between items-center">
                         <div>
-                          <p className="text-xs text-slate-400 uppercase tracking-wider">De</p>
-                          <p className="text-sm font-bold text-slate-900">{g.sender_name}</p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider">De</p>
+                          <p className="text-sm font-bold text-slate-900 dark:text-white">{g.sender_name}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs text-slate-400 uppercase tracking-wider">Para</p>
-                          <p className="text-sm font-bold text-slate-900">{g.receiver_name}</p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider">Para</p>
+                          <p className="text-sm font-bold text-slate-900 dark:text-white">{g.receiver_name}</p>
                         </div>
                       </div>
 
-                      <div className="bg-slate-50 rounded-xl px-3 py-2 text-center">
-                        <p className="text-xs text-slate-400 uppercase tracking-wider mb-0.5">Código</p>
+                      <div className="bg-white/50 dark:bg-white/[0.03] rounded-xl px-3 py-2 text-center border border-white/30 dark:border-white/[0.06]">
+                        <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">Código</p>
                         <p className="text-lg font-bold font-mono tracking-wider text-[var(--primary)]">{g.gift_code}</p>
                       </div>
 
                       {g.personal_message && (
                         <div className="border-l-2 border-[var(--primary)]/30 pl-3">
-                          <p className="text-xs text-slate-400 uppercase tracking-wider mb-0.5">Mensaje</p>
-                          <p className="text-sm italic text-slate-600">"{g.personal_message}"</p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-0.5">Mensaje</p>
+                          <p className="text-sm italic text-slate-600 dark:text-slate-300">"{g.personal_message}"</p>
                         </div>
                       )}
 
                       {g.items_list && g.items_list.length > 0 && (
                         <div>
-                          <p className="text-xs text-slate-400 uppercase tracking-wider mb-1.5">Productos</p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">Productos</p>
                           <div className="space-y-1.5">
                             {g.items_list.map((item, i) => (
-                              <div key={i} className="flex items-center gap-2.5 bg-slate-50 rounded-lg px-2.5 py-1.5">
-                                <div className="w-7 h-7 rounded-md bg-white flex-shrink-0 overflow-hidden">
+                              <div key={i} className="flex items-center gap-2.5 bg-white/50 dark:bg-white/[0.03] rounded-lg px-2.5 py-1.5 border border-white/30 dark:border-white/[0.06]">
+                                <div className="w-7 h-7 rounded-md bg-white/80 dark:bg-white/5 flex-shrink-0 overflow-hidden">
                                   {item.imagen_url ? (
                                     <img src={item.imagen_url} alt={item.nombre} className="w-full h-full object-cover" />
                                   ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                    <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-slate-600">
                                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                                       </svg>
                                     </div>
                                   )}
                                 </div>
-                                <span className="text-sm text-slate-700 truncate flex-1">{item.nombre}</span>
-                                <span className="text-xs font-medium text-slate-500 flex-shrink-0">RD${item.precio.toFixed(2)}</span>
+                                <span className="text-sm text-slate-700 dark:text-slate-300 truncate flex-1">{item.nombre}</span>
+                                <span className="text-xs font-medium text-slate-500 dark:text-slate-400 flex-shrink-0">RD${item.precio.toFixed(2)}</span>
                               </div>
                             ))}
                           </div>
-                          <div className="flex justify-between items-center pt-2 mt-1 border-t border-slate-200">
-                            <span className="text-xs font-semibold text-slate-500 uppercase">Total cupón</span>
+                          <div className="flex justify-between items-center pt-2 mt-1 border-t border-white/30 dark:border-white/[0.06]">
+                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Total cupón</span>
                             <span className="text-base font-bold text-[var(--primary)]">RD${g.items_list.reduce((s, i) => s + i.precio, 0).toFixed(2)}</span>
                           </div>
                         </div>
                       )}
 
                       {giftPendientes.length > 1 && (
-                        <p className="text-xs text-center text-slate-400">
+                        <p className="text-xs text-center text-slate-400 dark:text-slate-500">
                           +{giftPendientes.length - 1} ticket{giftPendientes.length - 1 !== 1 ? 's' : ''} más pendiente{giftPendientes.length - 1 !== 1 ? 's' : ''}
                         </p>
                       )}
@@ -734,11 +906,11 @@ export default function DashboardLayout({
               {/* Actions */}
               <div className="px-5 pb-4 flex gap-2.5">
                 <button onClick={() => handleGiftAction(giftPendientes[0].id, 'rejected')}
-                  className="flex-1 px-3 py-2.5 bg-rose-500 text-white rounded-xl text-sm font-medium hover:bg-rose-600 transition-colors">
+                  className="flex-1 px-3 py-2.5 bg-rose-500/90 backdrop-blur-sm text-white rounded-xl text-sm font-medium hover:bg-rose-600 transition-all border border-white/10">
                   Rechazar
                 </button>
                 <button onClick={() => handleGiftAction(giftPendientes[0].id, 'approved')}
-                  className="flex-1 px-3 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors">
+                  className="flex-1 px-3 py-2.5 bg-emerald-600/90 backdrop-blur-sm text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-all border border-white/10">
                   Aprobar Ticket
                 </button>
               </div>
@@ -748,16 +920,16 @@ export default function DashboardLayout({
 
         {approvedGift && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
-              <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-emerald-100 flex items-center justify-center">
-                <svg className="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-white/90 dark:bg-[#121216]/90 backdrop-blur-2xl rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center border border-white/30 dark:border-white/[0.06]">
+              <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-emerald-100/80 dark:bg-emerald-500/10 flex items-center justify-center">
+                <svg className="w-7 h-7 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-1">✅ Ticket aprobado</h3>
-              <p className="text-xs text-slate-500 mb-4">Stock reservado. Comparte el enlace con el destinatario.</p>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">✅ Ticket aprobado</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Stock reservado. Comparte el enlace con el destinatario.</p>
               {!approvedGift.sender_phone && (
-                <div className="mb-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700">
+                <div className="mb-3 px-3 py-2 bg-amber-50/80 border border-amber-200/60 rounded-xl text-xs text-amber-700">
                   No se puede enviar: falta el número del comprador
                 </div>
               )}
@@ -780,12 +952,12 @@ export default function DashboardLayout({
                   }
                   setApprovedGift(null)
                 }}
-                className="w-full px-4 py-3 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition-colors flex items-center justify-center gap-2 mb-2">
+                className="w-full px-4 py-3 bg-emerald-600/90 backdrop-blur-sm text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 mb-2 border border-white/10">
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c 0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                 Enviar Ticket al Comprador
               </button>
               <button onClick={() => setApprovedGift(null)}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+                className="w-full px-4 py-2.5 border border-white/30 dark:border-white/[0.06] bg-white/50 dark:bg-white/[0.03] rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-white/80 dark:hover:bg-white/[0.06] transition-all">
                 Cerrar
               </button>
             </div>
@@ -794,22 +966,22 @@ export default function DashboardLayout({
 
         {pedidosPendientes.length > 0 && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setPedidosPendientes([])}>
-            <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-              <div className="p-4 border-b flex items-center justify-between shrink-0">
+            <div className="bg-white/90 dark:bg-[#121216]/90 backdrop-blur-2xl rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] flex flex-col border border-white/30 dark:border-white/[0.06]" onClick={e => e.stopPropagation()}>
+              <div className="px-4 py-3.5 border-b border-white/30 dark:border-white/[0.06] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-10 h-10 bg-green-100/80 dark:bg-green-500/10 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                       Tienes {pedidosPendientes.length} pedido{pedidosPendientes.length !== 1 ? 's' : ''} nuevo{pedidosPendientes.length !== 1 ? 's' : ''}
                     </h3>
-                    <p className="text-sm text-slate-500">Pendientes de revisión</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Pendientes de revisión</p>
                   </div>
                 </div>
-                <button onClick={() => setPedidosPendientes([])} className="text-slate-400 hover:text-slate-600">
+                <button onClick={() => setPedidosPendientes([])} className="text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
@@ -820,40 +992,40 @@ export default function DashboardLayout({
                 {pedidosPendientes.map((pedido) => {
                   const codigoReal = pedido.order_id || pedido.id.slice(0, 8).toUpperCase()
                   return (
-                  <div key={pedido.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div key={pedido.id} className="bg-white/50 dark:bg-white/[0.03] rounded-xl p-4 border border-white/30 dark:border-white/[0.06]">
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <p className="font-medium text-slate-900">{pedido.cliente_nombre}</p>
-                        <p className="text-xs text-slate-500">{new Date(pedido.creado_at).toLocaleString('es-DO')}</p>
+                        <p className="font-medium text-slate-900 dark:text-white">{pedido.cliente_nombre}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(pedido.creado_at).toLocaleString('es-DO')}</p>
                       </div>
-                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full font-medium">Nuevo</span>
+                      <span className="text-xs bg-yellow-100/80 dark:bg-yellow-500/10 text-yellow-800 dark:text-yellow-300 px-2 py-0.5 rounded-full font-medium">Nuevo</span>
                     </div>
 
                     {pedido.detalles_pedido && pedido.detalles_pedido.length > 0 && (
                       <div className="space-y-1 mb-2">
                         {pedido.detalles_pedido.map((d: DetallePedido) => (
                           <div key={d.id} className="flex justify-between text-sm">
-                            <span className="text-slate-600">{d.producto} x{d.cantidad}</span>
-                            <span className="font-medium text-slate-900">RD${formatearPrecio(d.precio_unitario * d.cantidad)}</span>
+                            <span className="text-slate-600 dark:text-slate-400">{d.producto} x{d.cantidad}</span>
+                            <span className="font-medium text-slate-900 dark:text-white">RD${formatearPrecio(d.precio_unitario * d.cantidad)}</span>
                           </div>
                         ))}
                       </div>
                     )}
 
-                    <p className="text-lg font-bold text-green-600 mb-2">Total: RD${formatearPrecio(pedido.total)}</p>
+                    <p className="text-lg font-bold text-green-600 dark:text-green-400 mb-2">Total: RD${formatearPrecio(pedido.total)}</p>
 
                     {pedido.is_gift && pedido.estado === 'confirmado' ? (
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleSendMagicLink(pedido)}
                           disabled={sendingMagicLink}
-                          className="flex-1 bg-purple-600 text-white py-1.5 px-3 rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors text-sm font-medium"
+                          className="flex-1 bg-purple-600/90 backdrop-blur-sm text-white py-1.5 px-3 rounded-xl hover:bg-purple-700 disabled:opacity-50 transition-all text-sm font-medium border border-white/10"
                         >
                           🪄 {sendingMagicLink ? 'Enviando...' : 'Enviar Enlace Mágico'}
                         </button>
                         <button
                           onClick={() => setPedidosPendientes(prev => prev.filter(p => p.id !== pedido.id))}
-                          className="flex-1 bg-slate-200 text-slate-700 py-1.5 px-3 rounded-lg hover:bg-slate-300 transition-colors text-sm font-medium"
+                          className="flex-1 bg-white/50 dark:bg-white/[0.03] text-slate-700 dark:text-slate-300 py-1.5 px-3 rounded-xl hover:bg-white/80 dark:hover:bg-white/[0.06] transition-all text-sm font-medium border border-white/30 dark:border-white/[0.06]"
                         >
                           Cerrar
                         </button>
@@ -862,13 +1034,13 @@ export default function DashboardLayout({
                       <div className="flex gap-2">
                         <button
                           onClick={() => actualizarEstado(pedido.id, 'rechazado')}
-                          className="flex-1 bg-red-600 text-white py-1.5 px-3 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                          className="flex-1 bg-rose-500/90 backdrop-blur-sm text-white py-1.5 px-3 rounded-xl hover:bg-rose-600 transition-all text-sm font-medium border border-white/10"
                         >
                           Rechazar
                         </button>
                         <button
                           onClick={() => actualizarEstado(pedido.id, 'confirmado')}
-                          className="flex-1 bg-green-600 text-white py-1.5 px-3 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                          className="flex-1 bg-emerald-600/90 backdrop-blur-sm text-white py-1.5 px-3 rounded-xl hover:bg-emerald-700 transition-all text-sm font-medium border border-white/10"
                         >
                           Aprobar
                         </button>
@@ -885,13 +1057,13 @@ export default function DashboardLayout({
                             }
                             actualizarEstado(pedido.id, 'en_camino')
                           }}
-                          className="flex-1 bg-purple-600 text-white py-1.5 px-3 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium flex items-center justify-center gap-1.5"
+                          className="flex-1 bg-purple-600/90 backdrop-blur-sm text-white py-1.5 px-3 rounded-xl hover:bg-purple-700 transition-all text-sm font-medium flex items-center justify-center gap-1.5 border border-white/10"
                         >
                           🛵 Marcar como En Camino
                         </button>
                         <button
                           onClick={() => setPedidosPendientes(prev => prev.filter(p => p.id !== pedido.id))}
-                          className="flex-1 bg-slate-200 text-slate-700 py-1.5 px-3 rounded-lg hover:bg-slate-300 transition-colors text-sm font-medium"
+                          className="flex-1 bg-white/50 dark:bg-white/[0.03] text-slate-700 dark:text-slate-300 py-1.5 px-3 rounded-xl hover:bg-white/80 dark:hover:bg-white/[0.06] transition-all text-sm font-medium border border-white/30 dark:border-white/[0.06]"
                         >
                           Cerrar
                         </button>
@@ -908,30 +1080,30 @@ export default function DashboardLayout({
                             }
                             actualizarEstado(pedido.id, 'entregado')
                           }}
-                          className="flex-1 bg-emerald-600 text-white py-1.5 px-3 rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium flex items-center justify-center gap-1.5"
+                          className="flex-1 bg-emerald-600/90 backdrop-blur-sm text-white py-1.5 px-3 rounded-xl hover:bg-emerald-700 transition-all text-sm font-medium flex items-center justify-center gap-1.5 border border-white/10"
                         >
                           ✅ Marcar como Entregado
                         </button>
                         <button
                           onClick={() => setPedidosPendientes(prev => prev.filter(p => p.id !== pedido.id))}
-                          className="flex-1 bg-slate-200 text-slate-700 py-1.5 px-3 rounded-lg hover:bg-slate-300 transition-colors text-sm font-medium"
+                          className="flex-1 bg-white/50 dark:bg-white/[0.03] text-slate-700 dark:text-slate-300 py-1.5 px-3 rounded-xl hover:bg-white/80 dark:hover:bg-white/[0.06] transition-all text-sm font-medium border border-white/30 dark:border-white/[0.06]"
                         >
                           Cerrar
                         </button>
                       </div>
                     ) : (
                       <>
-                        {/* Cuadro verde de previsualización de mensaje universal para cualquier pedido entrante */}
-                        <div className="bg-white border border-gray-200 rounded-lg p-3 mb-3 text-xs text-gray-900 leading-relaxed text-left shadow-sm">
-                          <p className="font-semibold text-gray-700 text-[10px] uppercase tracking-wide mb-1">🛍️ Vista previa del mensaje (WhatsApp)</p>
-                          <p className="font-mono whitespace-pre-wrap text-gray-900 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                        {/* Cuadro de previsualización de mensaje universal para cualquier pedido entrante */}
+                        <div className="bg-white/30 dark:bg-white/[0.02] border border-white/30 dark:border-white/[0.06] rounded-xl p-3 mb-3 text-xs text-gray-900 dark:text-slate-300 leading-relaxed text-left">
+                          <p className="font-semibold text-gray-700 dark:text-slate-400 text-[10px] uppercase tracking-wide mb-1">🛍️ Vista previa del mensaje (WhatsApp)</p>
+                          <p className="font-mono whitespace-pre-wrap text-gray-900 dark:text-slate-200 bg-white/50 dark:bg-black/20 p-2 rounded-lg border border-white/30 dark:border-white/[0.06]">
                             🛍️ *¡Hola, {pedido.cliente_nombre}!* Tu pedido *#{pedido.order_id || pedido.id.slice(0, 8).toUpperCase()}* ya fue recibido y lo estamos preparando en *{nombreTienda || 'nuestra tienda'}*. 🚀 En breve te avisaremos cuando vaya de camino. ¡Muchas gracias por tu confianza! 🙏✨
                           </p>
                         </div>
                         <div className="flex gap-2">
                           <button
                             onClick={() => actualizarEstado(pedido.id, 'rechazado')}
-                            className="flex-1 bg-red-600 text-white py-1.5 px-3 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
+                            className="flex-1 bg-rose-500/90 backdrop-blur-sm text-white py-1.5 px-3 rounded-xl hover:bg-rose-600 transition-all text-sm font-medium border border-white/10"
                           >
                             Rechazar
                           </button>
@@ -941,7 +1113,7 @@ export default function DashboardLayout({
                               const msg = `🛍️ *¡Hola, ${pedido.cliente_nombre}!* Tu pedido *#${codigoReal}* ya fue recibido y lo estamos preparando. 🚀 En breve te avisaremos cuando vaya de camino. ¡Muchas gracias por tu confianza! 🙏✨`
                               window.open(`https://api.whatsapp.com/send?phone=${(pedido.cliente_telefono || '').replace(/\D/g, '')}&text=${encodeURIComponent(msg)}`, '_blank')
                             }}
-                            className="flex-1 bg-green-600 text-white py-1.5 px-3 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                            className="flex-1 bg-emerald-600/90 backdrop-blur-sm text-white py-1.5 px-3 rounded-xl hover:bg-emerald-700 transition-all text-sm font-medium border border-white/10"
                           >
                             Aprobar
                           </button>

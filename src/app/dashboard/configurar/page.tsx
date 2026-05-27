@@ -280,8 +280,8 @@ export default function ConfigurarPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-slate-600">Cargando...</p>
+      <div className="flex items-center justify-center h-64">
+        <div className="w-6 h-6 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -292,10 +292,7 @@ export default function ConfigurarPage() {
         <div className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <div>
-              <a href="/dashboard" className="text-[var(--primary)] hover:underline text-sm font-medium">
-                ← Volver al Dashboard
-              </a>
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
                 Configurar Mi Tienda
               </h1>
             </div>

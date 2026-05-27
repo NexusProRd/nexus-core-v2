@@ -103,8 +103,7 @@ export default function CuponesPage() {
     <div className="min-h-screen">
       <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
-          <Link href="/dashboard" className="text-[var(--primary)] hover:underline text-sm font-medium">← Volver al Dashboard</Link>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-1">Cupones de Descuento</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Cupones de Descuento</h1>
         </div>
       </header>
 
@@ -172,7 +171,7 @@ export default function CuponesPage() {
           )}
 
           {loading ? (
-            <p className="text-sm text-slate-400 text-center py-8">Cargando...</p>
+            <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" /></div>
           ) : cupones.length === 0 ? (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 text-center">
               <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-slate-100 flex items-center justify-center">

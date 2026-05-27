@@ -57,8 +57,7 @@ export default function RegalosPage() {
     <div className="min-h-screen">
       <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
-          <Link href="/dashboard" className="text-[var(--primary)] hover:underline text-sm font-medium">← Volver al Dashboard</Link>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-1">Regalos y Cupones</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Regalos y Cupones</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Historial de cupones de regalo y experiencias de regalo</p>
         </div>
       </header>

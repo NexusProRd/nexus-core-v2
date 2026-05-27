@@ -48,10 +48,7 @@ export default async function PedidosPage() {
         <div className="max-w-7xl mx-auto py-5 px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
             <div>
-              <Link href="/dashboard" className="text-[var(--primary)] hover:brightness-110 text-sm font-medium transition-colors">
-                ← Volver al Dashboard
-              </Link>
-              <div className="flex items-center gap-3 mt-1">
+              <div className="flex items-center gap-3">
                 <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Pedidos</h1>
                 <ClearAllButton />
               </div>

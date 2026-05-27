@@ -99,8 +99,7 @@ export default function AnaliticasContent({ pedidosIniciales, tiendaId, tipoNego
       <div className="min-h-screen">
         <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
           <div className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
-            <Link href="/dashboard" className="text-[var(--primary)] hover:underline text-sm font-medium">← Volver al Dashboard</Link>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-1">Analíticas</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Analíticas</h1>
           </div>
         </header>
 

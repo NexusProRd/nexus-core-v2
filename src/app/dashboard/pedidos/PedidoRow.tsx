@@ -153,7 +153,7 @@ export default function PedidoRow({ pedido }: { pedido: Pedido }) {
       {abierto && (
         <div className="px-4 sm:px-6 pb-4 border-t border-slate-100">
           {cargando ? (
-            <p className="text-sm text-gray-900 font-medium py-3">Cargando...</p>
+            <div className="flex justify-center py-3"><div className="w-4 h-4 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin" /></div>
           ) : items.length > 0 ? (
             <div className="pt-4 space-y-2">
               {items.map(d => (
