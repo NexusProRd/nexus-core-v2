@@ -18,11 +18,16 @@ export function useTheme() {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('light')
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof document !== 'undefined') {
+      return (document.documentElement.getAttribute('data-theme') as Theme) || 'light'
+    }
+    return 'light'
+  })
 
   useEffect(() => {
     const saved = localStorage.getItem('nexus-theme') as Theme | null
-    if (saved) setTheme(saved)
+    if (saved && saved !== theme) setTheme(saved)
   }, [])
 
   useEffect(() => {

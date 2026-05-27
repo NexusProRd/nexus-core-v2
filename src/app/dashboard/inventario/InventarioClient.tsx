@@ -204,20 +204,20 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input type="text" placeholder="Buscar producto..." value={busqueda} onChange={e => setBusqueda(e.target.value)}
-                className="w-full pl-9 pr-3 py-2.5 text-sm text-slate-900 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none bg-white" />
+                className="w-full pl-9 pr-3 py-2.5 text-sm text-slate-900 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none bg-white dark:bg-slate-800" />
             </div>
             {categorias.length > 0 && (
               <select value={filtroCategoria} onChange={e => setFiltroCategoria(e.target.value)}
-                className="px-3 py-2.5 text-sm text-slate-900 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none bg-white">
-                <option value="">Todas las categorías</option>
-                {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+                className="px-3 py-2.5 text-sm text-slate-900 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none bg-white dark:bg-slate-800">
+                <option value="" className="dark:bg-slate-800 dark:text-white">Todas las categorías</option>
+                {categorias.map(c => <option key={c} value={c} className="dark:bg-slate-800 dark:text-white">{c}</option>)}
               </select>
             )}
             {tipoNegocio === 'ropa' && todasLasTallas.length > 0 && (
               <select value={filtroTalla} onChange={e => setFiltroTalla(e.target.value)}
-                className="px-3 py-2.5 text-sm text-slate-900 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none bg-white">
-                <option value="">Todas las tallas</option>
-                {todasLasTallas.map(t => <option key={t} value={t}>{t}</option>)}
+                className="px-3 py-2.5 text-sm text-slate-900 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none bg-white dark:bg-slate-800">
+                <option value="" className="dark:bg-slate-800 dark:text-white">Todas las tallas</option>
+                {todasLasTallas.map(t => <option key={t} value={t} className="dark:bg-slate-800 dark:text-white">{t}</option>)}
               </select>
             )}
             <div className="flex gap-2">

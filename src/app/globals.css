@@ -86,8 +86,7 @@ html[data-theme="dark"] .text-slate-500,
 html[data-theme="dark"] .text-slate-400,
 html[data-theme="dark"] .text-gray-600,
 html[data-theme="dark"] .text-gray-700,
-html[data-theme="dark"] .text-gray-900,
-html[data-theme="dark"] .text-rose-600 { color: #94a3b8; }
+html[data-theme="dark"] .text-gray-900 { color: #94a3b8; }
 
 html[data-theme="dark"] .text-slate-300,
 html[data-theme="dark"] .text-gray-500,
@@ -117,6 +116,9 @@ html[data-theme="dark"] .text-red-700 { color: #fca5a5; }
 html[data-theme="dark"] .text-red-500 { color: #fca5a5; }
 
 html[data-theme="dark"] .text-rose-500 { color: #fda4af; }
+html[data-theme="dark"] .text-rose-600 { color: #fb7185; }
+html[data-theme="dark"] .text-violet-400 { color: #a78bfa; }
+html[data-theme="dark"] .text-violet-500 { color: #8b5cf6; }
 
 html[data-theme="dark"] .text-pink-600 { color: #f9a8d4; }
 
@@ -214,6 +216,9 @@ html[data-theme="dark"] .bg-indigo-500 { background-color: #4338ca; }
 html[data-theme="dark"] .bg-indigo-600 { background-color: #3730a3; }
 
 html[data-theme="dark"] .bg-violet-50 { background-color: #2e1065; }
+html[data-theme="dark"] .has-\[\:checked\]\:bg-violet-50:has(:checked) { background-color: #2e1065; }
+html[data-theme="dark"] .has-\[\:checked\]\:border-violet-600:has(:checked) { border-color: #5b21b6; }
+html[data-theme="dark"] .has-\[\:checked\]\:ring-violet-600\/20:has(:checked) { --tw-ring-color: rgba(91, 33, 182, 0.2); }
 
 html[data-theme="dark"] .bg-violet-500 { background-color: #6d28d9; }
 
@@ -222,6 +227,10 @@ html[data-theme="dark"] .bg-violet-600 { background-color: #5b21b6; }
 html[data-theme="dark"] .bg-sky-500 { background-color: #0369a1; }
 
 html[data-theme="dark"] .bg-teal-500 { background-color: #0f766e; }
+html[data-theme="dark"] .bg-teal-100 { background-color: #134e4a; }
+html[data-theme="dark"] .text-teal-100 { color: #5eead4; }
+html[data-theme="dark"] .text-teal-700 { color: #2dd4bf; }
+html[data-theme="dark"] .border-teal-200 { border-color: #134e4a; }
 
 html[data-theme="dark"] .bg-cyan-500 { background-color: #0891b2; }
 
@@ -260,6 +269,11 @@ html[data-theme="dark"] .border-green-300 { border-color: #065f46; }
 html[data-theme="dark"] .border-red-200 { border-color: #450a0a; }
 
 html[data-theme="dark"] .border-rose-200 { border-color: #450a0a; }
+html[data-theme="dark"] .border-rose-300 { border-color: #7f1d1d; }
+html[data-theme="dark"] .border-violet-200 { border-color: #3b0764; }
+html[data-theme="dark"] .border-violet-200\/60 { border-color: rgba(59, 7, 100, 0.6); }
+html[data-theme="dark"] .border-violet-200\/40 { border-color: rgba(59, 7, 100, 0.4); }
+html[data-theme="dark"] .border-violet-500 { border-color: #7c3aed; }
 
 html[data-theme="dark"] .border-purple-200 { border-color: #3b0764; }
 
@@ -342,6 +356,15 @@ html[data-theme="dark"] .hover\:text-amber-700:hover { color: #fbbf24; }
 
 html[data-theme="dark"] .hover\:text-red-700:hover { color: #fca5a5; }
 
+html[data-theme="dark"] .hover\:text-rose-600:hover { color: #fb7185; }
+html[data-theme="dark"] .hover\:text-violet-600:hover { color: #a78bfa; }
+html[data-theme="dark"] .hover\:border-rose-300:hover { border-color: #7f1d1d; }
+html[data-theme="dark"] .hover\:border-violet-200:hover { border-color: #4c1d95; }
+html[data-theme="dark"] .hover\:border-violet-300:hover { border-color: #5b21b6; }
+html[data-theme="dark"] .hover\:bg-rose-50:hover { background-color: #450a0a; }
+html[data-theme="dark"] .hover\:bg-violet-50:hover { background-color: #2e1065; }
+html[data-theme="dark"] .hover\:bg-violet-50\/30:hover { background-color: rgba(46, 16, 101, 0.3); }
+
 html[data-theme="dark"] .hover\:bg-rose-700:hover { background-color: #881337; }
 
 html[data-theme="dark"] .hover\:bg-gray-300:hover { background-color: #475569; }
@@ -403,6 +426,13 @@ html *,
 html *::before,
 html *::after {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease, box-shadow 0.2s ease;
+}
+
+/* Dark mode baseline for all form controls (zero specificity via :where) */
+:where(html[data-theme="dark"]) :where(input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]), select, textarea) {
+  background-color: #1e293b;
+  color: #f1f5f9;
+  border-color: #475569;
 }
 
 /* Card hover enhancement */

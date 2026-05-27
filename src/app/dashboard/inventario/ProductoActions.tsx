@@ -105,9 +105,9 @@ export default function ProductoActions({ producto, categorias = [], onDelete }:
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Categoría</label>
                 <select name="categoria" defaultValue={producto.categoria || ''}
-                  className="w-full px-3 py-2 text-slate-900 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-[var(--primary)] outline-none">
-                  <option value="">Sin categoría</option>
-                  {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+                  className="w-full px-3 py-2 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-[var(--primary)] outline-none bg-white dark:bg-slate-800">
+                  <option value="" className="dark:bg-slate-800 dark:text-white">Sin categoría</option>
+                  {categorias.map(c => <option key={c} value={c} className="dark:bg-slate-800 dark:text-white">{c}</option>)}
                 </select>
               </div>
               {!usaVariantes && (

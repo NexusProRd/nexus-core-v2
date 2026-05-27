@@ -176,10 +176,10 @@ export default function AnaliticasContent({ pedidosIniciales, tiendaId, tipoNego
 
             {/* Métricas principales */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl border border-emerald-200 p-4 min-h-[110px] flex flex-col justify-between">
-                <p className="text-[10px] sm:text-xs font-bold text-emerald-700 uppercase tracking-wide">Ventas de Hoy</p>
-                <p className={`text-xl font-bold text-emerald-700 ${isLoading ? 'animate-pulse' : ''}`}>RD${formatearPrecio(ventasHoy)}</p>
-                <p className="text-[10px] text-emerald-600">{pedidosHoyCount} pedido(s) hoy</p>
+              <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 rounded-2xl border border-emerald-200 dark:border-emerald-800 p-4 min-h-[110px] flex flex-col justify-between">
+                <p className="text-[10px] sm:text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">Ventas de Hoy</p>
+                <p className={`text-xl font-bold text-emerald-700 dark:text-emerald-300 ${isLoading ? 'animate-pulse' : ''}`}>RD${formatearPrecio(ventasHoy)}</p>
+                <p className="text-[10px] text-emerald-600 dark:text-emerald-400">{pedidosHoyCount} pedido(s) hoy</p>
               </div>
               <div className="bg-white rounded-2xl border border-slate-200 p-4 min-h-[110px] flex flex-col justify-between">
                 <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Ticket Promedio</p>

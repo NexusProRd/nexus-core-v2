@@ -56,8 +56,23 @@ export default function RootLayout({
   return (
     <html
       lang="es"
+      suppressHydrationWarning
       className={`${inter.variable} ${jetbrainsMono.variable} ${playfair.variable} ${orbitron.variable} ${pacifico.variable} ${quicksand.variable} ${bebas.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            (function(){
+              try {
+                var t = localStorage.getItem('nexus-theme');
+                if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.setAttribute('data-theme', 'dark');
+                }
+              } catch(e){}
+            })();
+          `
+        }} />
+      </head>
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
           <CartProvider>

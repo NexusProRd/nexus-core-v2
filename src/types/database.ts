@@ -3,6 +3,7 @@ export type PlanNivel = 'basico' | 'pro' | 'ilimitado';
 export interface SocioTienda {
   id: string;
   id_owner: string;
+  nombre_socio: string | null;
   nombre_tienda: string;
   whatsapp_num: string;
   pais_codigo: string;

@@ -313,9 +313,9 @@ export default function AgregarProductoForm({ tiendaId, tipoNegocio = 'estandar'
           {categorias.length > 0 && (
             <div>
               <label className="block text-sm font-bold text-slate-800 mb-1">Categoría</label>
-              <select name="categoria" className="w-full px-3 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-slate-900 text-sm">
-                <option value="">Sin categoría</option>
-                {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+              <select name="categoria" className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-slate-900 dark:text-white text-sm bg-white dark:bg-slate-800">
+                <option value="" className="dark:bg-slate-800 dark:text-white">Sin categoría</option>
+                {categorias.map(c => <option key={c} value={c} className="dark:bg-slate-800 dark:text-white">{c}</option>)}
               </select>
             </div>
           )}

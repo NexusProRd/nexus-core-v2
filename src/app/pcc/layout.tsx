@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTheme } from '@/context/ThemeContext'
 import LoginVigiladoModal from './LoginVigiladoModal'
+import PwaRegister from '@/components/PwaRegister'
+import PwaInstallPrompt from '@/components/PwaInstallPrompt'
 
 const navItems = [
   {
@@ -216,6 +218,8 @@ export default function PccLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <LoginVigiladoModal />
+      <PwaRegister swUrl="/sw-pcc.js" manifestUrl="/api/manifest/pcc" />
+      <PwaInstallPrompt />
     </div>
   )
 }

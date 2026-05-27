@@ -17,6 +17,7 @@ function generarSlug(texto: string): string {
 }
 
 export default function RegisterPage() {
+  const [nombreSocio, setNombreSocio] = useState('')
   const [nombreTienda, setNombreTienda] = useState('')
   const [slug, setSlug] = useState('')
   const [slugManual, setSlugManual] = useState(false)
@@ -146,6 +147,7 @@ export default function RegisterPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        nombre_socio: nombreSocio.trim(),
         nombre_tienda: nombreTienda.trim(),
         slug: slug.trim(),
         whatsapp: telefono.trim(),
@@ -207,6 +209,7 @@ export default function RegisterPage() {
 
           <div className="bg-slate-50 rounded-xl p-4 mb-6 text-left space-y-1.5 border border-slate-200">
             <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide">Datos de tu tienda</p>
+            <p className="text-sm text-slate-700"><span className="font-semibold">Socio:</span> {nombreSocio}</p>
             <p className="text-sm text-slate-700"><span className="font-semibold">Tienda:</span> {nombreTienda}</p>
             <p className="text-sm text-slate-700"><span className="font-semibold">Código de recuperación:</span> {codigo}</p>
             <p className="text-sm text-slate-700"><span className="font-semibold">WhatsApp:</span> {telefono}</p>
@@ -240,6 +243,18 @@ export default function RegisterPage() {
         )}
 
         <form onSubmit={handleRegister} className="space-y-4">
+          <div>
+            <label className="block text-slate-800 text-sm font-bold mb-1">Tu Nombre</label>
+            <input
+              type="text"
+              value={nombreSocio}
+              onChange={(e) => setNombreSocio(e.target.value)}
+              className="w-full px-3 py-2.5 text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Ej: Juan Pérez"
+              required
+            />
+          </div>
+
           <div>
             <label className="block text-slate-800 text-sm font-bold mb-1">Nombre de tu Tienda</label>
             <input

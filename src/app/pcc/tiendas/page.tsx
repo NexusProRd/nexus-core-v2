@@ -98,7 +98,7 @@ export default function PccTiendasPage() {
     const q = busqueda.trim().toLowerCase()
     return tiendas.filter(t => {
       if (!mostrarEliminadas && t.soft_deleted_at) return false
-      if (q && !t.nombre_tienda.toLowerCase().includes(q) && !t.whatsapp_num?.includes(q)) return false
+      if (q && !t.nombre_tienda.toLowerCase().includes(q) && !(t.nombre_socio || '').toLowerCase().includes(q) && !t.whatsapp_num?.includes(q)) return false
       if (filtroPlan && t.plan_nivel !== filtroPlan) return false
       return true
     })
@@ -573,6 +573,7 @@ export default function PccTiendasPage() {
                   </td>
                   <td className="p-4">
                     <button onClick={() => abrirDetalle(t.id)} className="text-sm font-semibold text-gray-900 hover:text-indigo-600 transition-colors text-left">{t.nombre_tienda}</button>
+                    <p className="text-[11px] text-gray-400 mt-0.5">👤 {t.nombre_socio || 'Sin nombre'}</p>
                     {t.whatsapp_num && (
                       <a href={`https://wa.me/${t.whatsapp_num.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
                         className="block text-xs text-emerald-600 hover:text-emerald-700 font-medium mt-1.5">📱 {t.whatsapp_num}</a>
@@ -725,6 +726,7 @@ export default function PccTiendasPage() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <button onClick={() => abrirDetalle(t.id)} className="text-sm font-bold text-gray-900 hover:text-indigo-600 transition-colors text-left">{t.nombre_tienda}</button>
+                      <p className="text-[11px] text-gray-400 mt-0.5">👤 {t.nombre_socio || 'Sin nombre'}</p>
                       {t.whatsapp_num && (
                         <a href={`https://wa.me/${t.whatsapp_num.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer"
                           className="block text-xs text-emerald-600 font-medium mt-1">📱 {t.whatsapp_num}</a>

@@ -129,19 +129,19 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-50 py-10 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-blue-50 dark:from-slate-900 dark:to-slate-800 py-10 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-6">
           <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-sm">
             <span className="text-white font-bold text-lg">N</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800">Configura tu Tienda</h1>
-          <p className="text-sm text-slate-500 mt-1">Personaliza la identidad operativa de tu negocio y activa tu catálogo digital</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 dark:text-white">Configura tu Tienda</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Personaliza la identidad operativa de tu negocio y activa tu catálogo digital</p>
         </div>
 
-        <form action={guardarTienda} className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 p-6 sm:p-8 space-y-5">
-          <div className="border-b border-slate-200 pb-1">
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Información General</h3>
+        <form action={guardarTienda} className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-slate-900/80 p-6 sm:p-8 space-y-5">
+          <div className="border-b border-slate-200 dark:border-slate-700 pb-1">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wide">Información General</h3>
           </div>
 
           <div>
@@ -161,21 +161,21 @@ export default async function OnboardingPage() {
             <div>
               <label className="block text-sm font-bold text-slate-800 mb-1">País</label>
               <select name="pais_codigo" defaultValue="DO"
-                className="w-full px-3 py-2.5 text-slate-900 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="DO">República Dominicana</option>
-                <option value="US">Estados Unidos</option>
-                <option value="MX">México</option>
-                <option value="CO">Colombia</option>
-                <option value="AR">Argentina</option>
+                className="w-full px-3 py-2.5 text-slate-900 dark:text-white bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="DO" className="dark:bg-slate-800 dark:text-white">República Dominicana</option>
+                <option value="US" className="dark:bg-slate-800 dark:text-white">Estados Unidos</option>
+                <option value="MX" className="dark:bg-slate-800 dark:text-white">México</option>
+                <option value="CO" className="dark:bg-slate-800 dark:text-white">Colombia</option>
+                <option value="AR" className="dark:bg-slate-800 dark:text-white">Argentina</option>
               </select>
             </div>
           </div>
 
-          <div className="border-b border-slate-200 pb-1 pt-2">
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">📋 Tipo de Negocio</h3>
+          <div className="border-b border-slate-200 dark:border-slate-700 pb-1 pt-2">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wide">📋 Tipo de Negocio</h3>
           </div>
 
-          <p className="text-xs text-slate-500 -mt-3">Selecciona el tipo de negocio. Esto determina la configuración de tu inventario.</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 -mt-3">Selecciona el tipo de negocio. Esto determina la configuración de tu inventario.</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
@@ -198,8 +198,8 @@ export default async function OnboardingPage() {
             ))}
           </div>
 
-          <div className="border-b border-slate-200 pb-1 pt-2">
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">🖼️ Marca y Logotipo</h3>
+          <div className="border-b border-slate-200 dark:border-slate-700 pb-1 pt-2">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wide">🖼️ Marca y Logotipo</h3>
           </div>
 
           <div>
@@ -207,8 +207,8 @@ export default async function OnboardingPage() {
             <LogoUpload />
           </div>
 
-          <div className="border-b border-slate-200 pb-1 pt-2">
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">📍 Datos Fiscales y Ubicación</h3>
+          <div className="border-b border-slate-200 dark:border-slate-700 pb-1 pt-2">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wide">📍 Datos Fiscales y Ubicación</h3>
           </div>
 
           <div>
@@ -225,8 +225,8 @@ export default async function OnboardingPage() {
               placeholder="Ej: 1-31-XXXXX-X" />
           </div>
 
-          <div className="border-b border-slate-200 pb-1 pt-2">
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">🏷️ Perfil Comercial</h3>
+          <div className="border-b border-slate-200 dark:border-slate-700 pb-1 pt-2">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wide">🏷️ Perfil Comercial</h3>
           </div>
 
           <div>
@@ -250,8 +250,8 @@ export default async function OnboardingPage() {
               placeholder="Cuéntanos la historia y el propósito de tu marca..." />
           </div>
 
-          <div className="border-b border-slate-200 pb-1 pt-2">
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">🕒 Horarios de Atención</h3>
+          <div className="border-b border-slate-200 dark:border-slate-700 pb-1 pt-2">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wide">🕒 Horarios de Atención</h3>
           </div>
 
           <div>
@@ -260,8 +260,8 @@ export default async function OnboardingPage() {
               placeholder={"Lunes a Viernes: 9:00 AM - 6:00 PM\nSábado: 9:00 AM - 2:00 PM\nDomingo: Cerrado"} />
           </div>
 
-          <div className="border-b border-slate-200 pb-1 pt-2">
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">🎨 Apariencia y Estilo del Catálogo</h3>
+          <div className="border-b border-slate-200 dark:border-slate-700 pb-1 pt-2">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wide">🎨 Apariencia y Estilo del Catálogo</h3>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -207,9 +207,9 @@ export default function ImportadorCSV({ tiendaId, categorias = [], onClose }: { 
                         </td>
                         <td className="px-3 py-2">
                           <select value={f.categoria} onChange={e => updateCell(f.id, 'categoria', e.target.value)}
-                            className="w-full px-2 py-1 border border-slate-200 rounded-lg text-sm text-slate-900 focus:ring-2 focus:ring-[var(--primary)] outline-none">
-                            <option value="">Sin categoría</option>
-                            {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+                            className="w-full px-2 py-1 border border-slate-200 dark:border-slate-600 rounded-lg text-sm text-slate-900 dark:text-white bg-white dark:bg-slate-800 focus:ring-2 focus:ring-[var(--primary)] outline-none">
+                            <option value="" className="dark:bg-slate-800 dark:text-white">Sin categoría</option>
+                            {categorias.map(c => <option key={c} value={c} className="dark:bg-slate-800 dark:text-white">{c}</option>)}
                           </select>
                         </td>
                         <td className="px-3 py-2">

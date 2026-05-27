@@ -43,9 +43,9 @@ async function slugDisponible(supabase: any, slug: string, tiendaId?: string): P
 
 export async function POST(req: Request) {
   try {
-    const { nombre_tienda, slug: slugInput, whatsapp, password, preguntas } = await req.json()
+    const { nombre_socio, nombre_tienda, slug: slugInput, whatsapp, password, preguntas } = await req.json()
 
-    if (!nombre_tienda?.trim() || !whatsapp?.trim() || !password?.trim()) {
+    if (!nombre_socio?.trim() || !nombre_tienda?.trim() || !whatsapp?.trim() || !password?.trim()) {
       return NextResponse.json({ error: 'Todos los campos son obligatorios.' }, { status: 400 })
     }
 
@@ -98,6 +98,7 @@ export async function POST(req: Request) {
     const fechaElim = new Date(ahora.getTime() + 30 * 24 * 60 * 60 * 1000)
 
     const { error: insertError } = await supabase!.from('tiendas').insert({
+      nombre_socio: nombre_socio.trim(),
       nombre_tienda: nombre_tienda.trim(),
       slug,
       whatsapp_num: whatsapp.trim(),
