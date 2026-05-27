@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useInsertionEffect } from 'react'
 
 export default function PwaRegister({ swUrl, manifestUrl }: { swUrl: string; manifestUrl?: string }) {
-  useEffect(() => {
+  useInsertionEffect(() => {
     if (manifestUrl) {
       const existing = document.querySelector('link[rel="manifest"]')
       if (!existing) {
@@ -13,11 +13,13 @@ export default function PwaRegister({ swUrl, manifestUrl }: { swUrl: string; man
         document.head.appendChild(link)
       }
     }
+  }, [manifestUrl])
 
+  useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register(swUrl).catch(() => {})
     }
-  }, [swUrl, manifestUrl])
+  }, [swUrl])
 
   return null
 }

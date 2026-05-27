@@ -238,8 +238,7 @@ export default function PccLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <LoginVigiladoModal />
-      <link rel="manifest" href="/api/manifest/pcc" />
-      <PwaRegister swUrl="/sw-pcc.js" />
+      <PwaRegister swUrl="/sw-pcc.js" manifestUrl="/api/manifest/pcc" />
       <PwaInstallPrompt />
     </div>
   )
