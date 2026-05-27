@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTheme } from '@/context/ThemeContext'
+import { createClient } from '@/lib/supabase'
 import LoginVigiladoModal from './LoginVigiladoModal'
 import PwaRegister from '@/components/PwaRegister'
 import PwaInstallPrompt from '@/components/PwaInstallPrompt'
@@ -43,6 +44,7 @@ export default function PccLayout({ children }: { children: React.ReactNode }) {
   const [sidebarAbierta, setSidebarAbierta] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [authorized, setAuthorized] = useState<boolean | null>(null)
+  const [landingLogo, setLandingLogo] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/auth/pcc-check')
@@ -66,6 +68,16 @@ export default function PccLayout({ children }: { children: React.ReactNode }) {
     document.cookie = 'nx_colaborador=; path=/; max-age=0'
     window.location.href = '/pcc-login'
   }
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = createClient()
+        const { data } = await supabase.from('nexus_config').select('valor').eq('clave', 'landing_logo_url').maybeSingle()
+        if (data?.valor) setLandingLogo(data.valor)
+      } catch {}
+    })()
+  }, [])
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -96,9 +108,13 @@ export default function PccLayout({ children }: { children: React.ReactNode }) {
       <aside className={`fixed top-0 left-0 z-50 h-full w-64 bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl border-r border-slate-200/80 dark:border-slate-700/80 flex flex-col transition-all duration-300 ease-out lg:translate-x-0 lg:static lg:z-auto shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 ${sidebarAbierta ? 'translate-x-0' : '-translate-x-full'}`}>
         {/* Logo */}
         <div className="flex items-center gap-3 px-5 h-16 border-b border-slate-100 dark:border-slate-700/80 shrink-0">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200/50">
-            <span className="text-white font-bold text-sm">N</span>
-          </div>
+          {landingLogo ? (
+            <img src={landingLogo} alt="Logo" className="w-9 h-9 rounded-xl object-contain" />
+          ) : (
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200/50">
+              <span className="text-white font-bold text-sm">N</span>
+            </div>
+          )}
           <div>
             <span className="text-sm font-bold text-slate-900 dark:text-white">Nexus PCC</span>
             <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Panel de Control</p>
@@ -176,9 +192,13 @@ export default function PccLayout({ children }: { children: React.ReactNode }) {
             </svg>
           </button>
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center">
-              <span className="text-white font-bold text-[10px]">N</span>
-            </div>
+            {landingLogo ? (
+              <img src={landingLogo} alt="Logo" className="w-7 h-7 rounded-lg object-contain" />
+            ) : (
+              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center">
+                <span className="text-white font-bold text-[10px]">N</span>
+              </div>
+            )}
             <span className="text-sm font-bold text-slate-900 dark:text-white">{pageTitle}</span>
           </div>
         </header>
