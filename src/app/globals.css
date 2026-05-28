@@ -468,7 +468,6 @@ html {
 /* PERFORMANCE UX PASS: Image optimization defaults */
 img, video, iframe {
   max-width: 100%;
-  height: auto;
 }
 
 /* PERFORMANCE UX PASS: Reduce motion preference */
