@@ -148,10 +148,10 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200" />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-backdrop-in" />
       <div
         onClick={e => e.stopPropagation()}
-        className="relative bg-white rounded-3xl rounded-b-none sm:rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in-95 duration-300"
+        className="relative bg-white rounded-3xl rounded-b-none sm:rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl elevation-4 mobile-scroll modal-enter"
       >
         <button
           onClick={onClose}

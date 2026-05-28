@@ -18,6 +18,7 @@ const TIPOS: { value: NexusAnuncioTipo; label: string; icon: string; color: stri
 import PwaRegister from '@/components/PwaRegister'
 import PwaInstallPrompt from '@/components/PwaInstallPrompt'
 import { SessionProvider, usePermisos } from '@/context/PermisosContext'
+import ToastProvider from '@/components/Toast'
 
 interface DetallePedido {
   id: string
@@ -67,30 +68,30 @@ function SidebarDesktop() {
   const { esDueno, nombreColaborador, permisos } = usePermisos()
   const pathname = usePathname()
 
+  // DASHBOARD STRUCTURE PASS
   const navItems = esDueno
     ? [
-        { href: '/dashboard', label: 'Inicio', icon: 'home' },
-        { href: '/dashboard/analiticas', label: 'Analíticas', icon: 'chart' },
-        { href: '/dashboard/inventario', label: 'Inventario', icon: 'box' },
-        { href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart' },
-        { href: '/dashboard/cupones', label: 'Cupones', icon: 'tag' },
-        { href: '/dashboard/regalos', label: 'Regalos', icon: 'gift' },
-        { href: '/dashboard/vitrina', label: 'Vitrina', icon: 'window' },
-        { href: '/dashboard/configurar', label: 'Ajustes', icon: 'settings' },
+        { href: '/dashboard', label: 'Inicio', icon: 'home', group: 'a' },
+        { href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart', group: 'b' },
+        { href: '/dashboard/inventario', label: 'Productos', icon: 'box', group: 'b' },
+        { href: '/dashboard/vitrina', label: 'Vitrina', icon: 'window', group: 'c' },
+        { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: 'chat', group: 'c' },
+        { href: '/dashboard/regalos', label: 'Regalos', icon: 'gift', group: 'c' },
+        { href: '/dashboard/configurar', label: 'Configuración', icon: 'settings', group: 'd' },
       ]
     : permisos?.dashboard
     ? [
-        { href: '/dashboard', label: 'Inicio', icon: 'home' },
-        { href: '/dashboard/analiticas', label: 'Analíticas', icon: 'chart' },
-        { href: '/dashboard/inventario', label: 'Inventario', icon: 'box' },
-        { href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart' },
-        { href: '/dashboard/cupones', label: 'Cupones', icon: 'tag' },
-        { href: '/dashboard/regalos', label: 'Regalos', icon: 'gift' },
+        { href: '/dashboard', label: 'Inicio', icon: 'home', group: 'a' },
+        { href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart', group: 'b' },
+        { href: '/dashboard/inventario', label: 'Productos', icon: 'box', group: 'b' },
+        { href: '/dashboard/vitrina', label: 'Vitrina', icon: 'window', group: 'c' },
+        { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: 'chat', group: 'c' },
+        { href: '/dashboard/regalos', label: 'Regalos', icon: 'gift', group: 'c' },
       ]
     : [
-        ...(permisos?.dashboard ? [{ href: '/dashboard', label: 'Inicio', icon: 'home' }] : []),
-        ...(permisos?.productos ? [{ href: '/dashboard/inventario', label: 'Inventario', icon: 'box' }] : []),
-        ...(permisos?.pedidos ? [{ href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart' }] : []),
+        ...(permisos?.dashboard ? [{ href: '/dashboard', label: 'Inicio', icon: 'home', group: 'a' }] : []),
+        ...(permisos?.productos ? [{ href: '/dashboard/inventario', label: 'Productos', icon: 'box', group: 'b' }] : []),
+        ...(permisos?.pedidos ? [{ href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart', group: 'b' }] : []),
       ]
 
   const esActivo = (href: string) => {
@@ -106,31 +107,40 @@ function SidebarDesktop() {
       case 'cart': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
       case 'tag': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
       case 'gift': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+      // UX EVOLUTION
       case 'window': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 2v4m8-4v4M4 10h16" /></svg>
+      case 'chat': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+      case 'megaphone': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
       case 'settings': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
       default: return null
     }
   }
 
   return (
-    <aside className="hidden md:flex w-56 fixed h-full z-30 flex-col bg-[#0c0c10]/90 backdrop-blur-2xl border-r border-white/[0.06]">
-      <nav className="flex-1 p-2 space-y-0.5 pt-4">
-        {navItems.map(item => {
-          const active = esActivo(item.href)
-          return (
-          <Link key={item.href} href={item.href}
-            className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-sm font-medium no-tap-delay ${
-              active
-                ? 'text-white bg-white/8 border-l-2 border-[var(--primary)] pl-[10px]'
-                : 'text-white/40 hover:text-white/80 hover:bg-white/5 border-l-2 border-transparent pl-[10px]'
-            }`}
-          >
-            {iconSVG(item.icon)}
-            <span className="truncate">{item.label}</span>
-          </Link>
-          )
-        })}
-      </nav>
+    // SIDEBAR NAV FIX
+    <aside className="hidden md:flex w-56 fixed h-full z-30 flex-col bg-[#0c0c10]/90 backdrop-blur-2xl border-r border-white/[0.06] pt-14 will-change-transform" style={{ contain: 'layout style paint' }}>
+      <nav className="flex-1 p-2 space-y-0.5">
+          {navItems.map((item, i) => {
+            const active = esActivo(item.href)
+            const prevGroup = i > 0 ? navItems[i-1].group : null
+            const showDivider = prevGroup && item.group !== prevGroup
+            return (
+              <div key={item.href}>
+                {showDivider && <div className="h-px bg-white/[0.06] mx-3 my-1.5" />}
+                <Link href={item.href}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-sm font-medium no-tap-delay press-scale-sm ${
+                    active
+                      ? 'text-white bg-white/[0.07] border-l-[3px] border-[var(--primary)] shadow-[inset_0_0_12px_-8px_var(--primary)] pl-[9px]'
+                      : 'text-white/40 hover:text-white/80 hover:bg-white/5 border-l-[3px] border-transparent pl-[9px]'
+                  }`}
+                >
+                  {iconSVG(item.icon)}
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              </div>
+            )
+          })}
+        </nav>
     </aside>
   )
 }
@@ -166,7 +176,7 @@ function BottomSheet({ moreOpen, setMoreOpen, extras, iconSVG }: any) {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 animate-fade-in" onClick={() => setMoreOpen(false)}>
+      <div className="fixed inset-0 z-50 animate-backdrop-in" onClick={() => setMoreOpen(false)}>
         <div className="absolute inset-0 bg-black/40" />
       </div>
       <div ref={sheetRef}
@@ -198,29 +208,29 @@ const BottomNav = memo(function BottomNav({ moreOpen, setMoreOpen }: any) {
   const { esDueno, nombreColaborador, permisos } = usePermisos()
   const pathname = usePathname()
 
+  // DASHBOARD STRUCTURE PASS
   const todosLosItems = esDueno
     ? [
         { href: '/dashboard', label: 'Inicio', icon: 'home' },
-        { href: '/dashboard/analiticas', label: 'Analíticas', icon: 'chart' },
-        { href: '/dashboard/inventario', label: 'Inventario', icon: 'box' },
         { href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart' },
-        { href: '/dashboard/cupones', label: 'Cupones', icon: 'tag' },
-        { href: '/dashboard/regalos', label: 'Regalos', icon: 'gift' },
+        { href: '/dashboard/inventario', label: 'Productos', icon: 'box' },
         { href: '/dashboard/vitrina', label: 'Vitrina', icon: 'window' },
-        { href: '/dashboard/configurar', label: 'Ajustes', icon: 'settings' },
+        { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: 'chat' },
+        { href: '/dashboard/regalos', label: 'Regalos', icon: 'gift' },
+        { href: '/dashboard/configurar', label: 'Configuración', icon: 'settings' },
       ]
     : permisos?.dashboard
     ? [
         { href: '/dashboard', label: 'Inicio', icon: 'home' },
-        { href: '/dashboard/analiticas', label: 'Analíticas', icon: 'chart' },
-        { href: '/dashboard/inventario', label: 'Inventario', icon: 'box' },
         { href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart' },
-        { href: '/dashboard/cupones', label: 'Cupones', icon: 'tag' },
+        { href: '/dashboard/inventario', label: 'Productos', icon: 'box' },
+        { href: '/dashboard/vitrina', label: 'Vitrina', icon: 'window' },
+        { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: 'chat' },
         { href: '/dashboard/regalos', label: 'Regalos', icon: 'gift' },
       ]
     : [
         ...(permisos?.dashboard ? [{ href: '/dashboard', label: 'Inicio', icon: 'home' }] : []),
-        ...(permisos?.productos ? [{ href: '/dashboard/inventario', label: 'Inventario', icon: 'box' }] : []),
+        ...(permisos?.productos ? [{ href: '/dashboard/inventario', label: 'Productos', icon: 'box' }] : []),
         ...(permisos?.pedidos ? [{ href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart' }] : []),
       ]
 
@@ -250,7 +260,10 @@ const BottomNav = memo(function BottomNav({ moreOpen, setMoreOpen }: any) {
       case 'cart': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
       case 'tag': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
       case 'gift': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+      // UX EVOLUTION
       case 'window': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 2v4m8-4v4M4 10h16" /></svg>
+      case 'chat': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+      case 'megaphone': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
       case 'settings': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
       default: return null
     }
@@ -258,24 +271,31 @@ const BottomNav = memo(function BottomNav({ moreOpen, setMoreOpen }: any) {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0c0c10]/90 backdrop-blur-2xl border-t border-white/[0.06] flex items-center justify-around px-2 pb-1 pt-1.5">
-        {principales.map(item => (
-          <Link key={item.href} href={item.href}
-            className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all min-w-0 no-tap-delay ${
-              esActivo(item.href) ? 'text-white' : 'text-white/40 hover:text-white/80'
-            }`}
-          >
-            {iconSVG(item.icon)}
-            <span className="text-[9px] font-medium truncate max-w-full leading-tight">{item.label}</span>
-          </Link>
-        ))}
+      {/* MOBILE EXPERIENCE PASS: Bottom nav with touch-friendly targets, safe areas, active indicator */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0c0c10]/90 backdrop-blur-2xl border-t border-white/[0.06] flex items-center justify-around px-1 pb-1 pt-2 will-change-transform" style={{ paddingBottom: 'calc(0.25rem + env(safe-area-inset-bottom, 0px))' }}>
+        {principales.map(item => {
+          const active = esActivo(item.href)
+          return (
+            <Link key={item.href} href={item.href}
+              className={`relative flex flex-col items-center gap-1 px-3 py-1.5 min-w-0 rounded-xl transition-all no-tap-delay touch-target press-touch ${
+                active
+                  ? 'text-white bg-white/[0.07]'
+                  : 'text-white/40 hover:text-white/80 hover:bg-white/[0.03]'
+              }`}
+            >
+              {active && <span className="absolute -top-0.5 left-[20%] right-[20%] h-[2px] rounded-full bg-[var(--primary)]" />}
+              {iconSVG(item.icon)}
+              <span className="text-[10px] font-semibold truncate max-w-full leading-tight">{item.label}</span>
+            </Link>
+          )
+        })}
         <button onClick={() => setMoreOpen(true)}
-          className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all text-white/40 hover:text-white/80 min-w-0 no-tap-delay"
+          className="relative flex flex-col items-center gap-1 px-3 py-1.5 min-w-0 rounded-xl transition-all text-white/40 hover:text-white/80 hover:bg-white/[0.03] no-tap-delay touch-target press-touch"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
           </svg>
-          <span className="text-[9px] font-medium">Más</span>
+          <span className="text-[10px] font-semibold">Más</span>
         </button>
       </nav>
 
@@ -532,15 +552,15 @@ export default function DashboardLayout({
     return () => { supabase.removeChannel(canal); clearInterval(intervalo) }
   }, [])
 
+  // DASHBOARD STRUCTURE PASS
   const sectionTitles: Record<string, string> = {
     '/dashboard': 'Inicio',
-    '/dashboard/analiticas': 'Analíticas',
-    '/dashboard/inventario': 'Inventario',
     '/dashboard/pedidos': 'Pedidos',
-    '/dashboard/cupones': 'Cupones',
-    '/dashboard/regalos': 'Regalos',
+    '/dashboard/inventario': 'Productos',
     '/dashboard/vitrina': 'Vitrina',
-    '/dashboard/configurar': 'Ajustes',
+    '/dashboard/whatsapp': 'WhatsApp',
+    '/dashboard/regalos': 'Regalos',
+    '/dashboard/configurar': 'Configuración',
   }
   const pageTitle = sectionTitles[pathname] || 'Dashboard'
 
@@ -641,7 +661,7 @@ export default function DashboardLayout({
     return (
       <OrderAlertContext.Provider value={{ showAlert }}>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#0a0a0d] dark:via-[#0c0c10] dark:to-[#0e0e14]">
-          <header className="fixed top-0 left-0 right-0 z-40 bg-[#0c0c10]/80 backdrop-blur-2xl border-b border-white/[0.06] px-4 h-14 flex items-center justify-between">
+        <header className="fixed top-0 left-0 right-0 z-40 bg-[#0c0c10]/80 backdrop-blur-2xl border-b border-white/[0.06] px-4 h-14 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               {landingLogoUrl ? (
                 <img src={landingLogoUrl} alt="" className="w-7 h-7 rounded-lg object-contain" />
@@ -696,8 +716,9 @@ export default function DashboardLayout({
   return (
     <SessionProvider>
     <OrderAlertContext.Provider value={{ showAlert }}>
+      <ToastProvider>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#0a0a0d] dark:via-[#0c0c10] dark:to-[#0e0e14]">
-        <style>{`@keyframes fadeIn{from{opacity:0}to{opacity:1}}.animate-fade-in{animation:fadeIn .08s ease-out}@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}.animate-slide-up{animation:slideUp .25s ease-out}.no-tap-delay{touch-action:manipulation}`}</style>
+        {/* MOTION SYSTEM PASS: Animations moved to globals.css — no inline style block needed */}
         <SidebarDesktop />
         {/* Top header */}
         <header className="fixed top-0 left-0 right-0 z-40 bg-[#0c0c10]/80 backdrop-blur-2xl border-b border-white/[0.06] px-4 h-14 flex items-center justify-between">
@@ -712,13 +733,13 @@ export default function DashboardLayout({
             <span className="text-sm font-bold text-white/90 truncate">Dashboard | {nombreTienda}</span>
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={() => setShowSettingsModal(true)} className="p-2 text-white/40 hover:text-white/80 rounded-xl hover:bg-white/5 transition-all">
+            <button onClick={() => setShowSettingsModal(true)} className="p-2 text-white/40 hover:text-white/80 rounded-xl hover:bg-white/5 transition-all press-scale-sm">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
             </button>
-            <button onClick={toggleTheme} className="p-2 text-white/40 hover:text-white/80 rounded-xl hover:bg-white/5 transition-all">
+            <button onClick={toggleTheme} className="p-2 text-white/40 hover:text-white/80 rounded-xl hover:bg-white/5 transition-all press-scale-sm">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {theme === 'dark' ? (
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -728,7 +749,7 @@ export default function DashboardLayout({
               </svg>
             </button>
             <button onClick={() => { document.cookie = 'nx_session=; path=/; max-age=0'; document.cookie = 'nx_colaborador=; path=/; max-age=0'; window.location.href = '/login' }}
-              className="p-2 text-white/40 hover:text-rose-400 rounded-xl hover:bg-rose-500/10 transition-all">
+              className="p-2 text-white/40 hover:text-rose-400 rounded-xl hover:bg-rose-500/10 transition-all press-scale-sm">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
@@ -736,7 +757,7 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        <main className="pt-14 pb-16 md:ml-56 min-h-screen">
+        <main className="pt-14 pb-20 md:ml-56 min-h-screen scroll-container mobile-scroll">
           {anuncios.filter(a => a.activo && !anunciosDescartados.has(a.id)).map(a => {
             const t = TIPOS.find(t => t.value === a.tipo)
             return (
@@ -755,7 +776,8 @@ export default function DashboardLayout({
               </div>
             )
           })}
-          <div key={pathname} className="max-w-7xl mx-auto animate-fade-in">
+          {/* MOTION SYSTEM PASS: Page enter with spring easing */}
+          <div key={pathname} className="max-w-7xl mx-auto animate-page-enter content-visibility-auto">
             {children}
           </div>
         </main>
@@ -765,8 +787,8 @@ export default function DashboardLayout({
         </div>
 
         {showSettingsModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setShowSettingsModal(false)}>
-            <div className="bg-white/90 dark:bg-[#121216]/90 backdrop-blur-2xl rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-white/30 dark:border-white/[0.06]" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-backdrop-in" onClick={() => setShowSettingsModal(false)}>
+            <div className="bg-white/90 dark:bg-[#121216]/90 backdrop-blur-2xl rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-white/30 dark:border-white/[0.06] animate-scale-in" onClick={e => e.stopPropagation()}>
               <div className="px-5 py-4 border-b border-white/30 dark:border-white/[0.06] flex items-center justify-between">
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white">Ajustes</h3>
                 <button onClick={() => setShowSettingsModal(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-white/80 rounded-lg hover:bg-white/5 transition-all">
@@ -776,7 +798,7 @@ export default function DashboardLayout({
                 </button>
               </div>
               <div className="p-3 space-y-1">
-                <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-sm font-medium text-slate-700 dark:text-white/70 hover:text-slate-900 dark:hover:text-white transition-all">
+                <button onClick={toggleTheme} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-sm font-medium text-slate-700 dark:text-white/70 hover:text-slate-900 dark:hover:text-white transition-all press-scale-sm">
                   <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     {theme === 'dark' ? (
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -786,7 +808,7 @@ export default function DashboardLayout({
                   </svg>
                   {theme === 'dark' ? 'Modo Claro' : 'Modo Oscuro'}
                 </button>
-                <button onClick={() => { setSilenciado(!silenciado); setShowSettingsModal(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-sm font-medium text-slate-700 dark:text-white/70 hover:text-slate-900 dark:hover:text-white transition-all">
+                <button onClick={() => { setSilenciado(!silenciado); setShowSettingsModal(false) }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-sm font-medium text-slate-700 dark:text-white/70 hover:text-slate-900 dark:hover:text-white transition-all press-scale-sm">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     {silenciado ? (
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
@@ -797,7 +819,7 @@ export default function DashboardLayout({
                   {silenciado ? 'Activar Sonido' : 'Silenciar Sonido'}
                 </button>
                 <Link href="/dashboard/configurar" onClick={() => setShowSettingsModal(false)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-sm font-medium text-slate-700 dark:text-white/70 hover:text-slate-900 dark:hover:text-white transition-all">
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5 text-sm font-medium text-slate-700 dark:text-white/70 hover:text-slate-900 dark:hover:text-white transition-all press-scale-sm">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -806,7 +828,7 @@ export default function DashboardLayout({
                 </Link>
                 <div className="border-t border-white/30 dark:border-white/[0.06] my-1" />
                 <button onClick={() => { document.cookie = 'nx_session=; path=/; max-age=0'; document.cookie = 'nx_colaborador=; path=/; max-age=0'; window.location.href = '/login' }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-rose-500/10 text-sm font-medium text-rose-600 hover:text-rose-700 transition-all">
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-rose-500/10 text-sm font-medium text-rose-600 hover:text-rose-700 transition-all press-scale-sm">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
@@ -818,8 +840,8 @@ export default function DashboardLayout({
         )}
 
         {showGiftModal && giftPendientes.length > 0 && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4" onClick={() => setShowGiftModal(false)}>
-            <div className="bg-white/90 dark:bg-[#121216]/90 backdrop-blur-2xl rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-white/30 dark:border-white/[0.06]" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-backdrop-in" onClick={() => setShowGiftModal(false)}>
+            <div className="bg-white/90 dark:bg-[#121216]/90 backdrop-blur-2xl rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-white/30 dark:border-white/[0.06] animate-scale-in" onClick={e => e.stopPropagation()}>
               {/* Ticket header */}
               <div className="bg-gradient-to-br from-[var(--primary)] to-[var(--primary)]/80 px-5 py-4 text-center relative">
                 <div className="absolute -bottom-2 left-0 right-0 flex justify-between px-2">
@@ -1128,6 +1150,7 @@ export default function DashboardLayout({
           </div>
         )}
       </div>
+      </ToastProvider>
       <PwaRegister swUrl="/sw-dashboard.js" manifestUrl={tiendaId ? `/api/manifest/dashboard/${tiendaId}` : undefined} />
       <PwaInstallPrompt />
     </OrderAlertContext.Provider>

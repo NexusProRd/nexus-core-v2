@@ -4,11 +4,14 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
+import { getSessionFromCookieValue } from '@/lib/auth/get-session'
 import { generarSlug } from '@/lib/slug'
 
 async function getTiendaIdFromServerCookies(): Promise<string | null> {
   const cookieStore = await cookies()
-  return cookieStore.get('nx_session')?.value ?? null
+  const rawSession = cookieStore.get('nx_session')?.value
+  const session = await getSessionFromCookieValue(rawSession)
+  return session.valid ? (session.tiendaId ?? null) : null
 }
 
 export async function crearProducto(formData: FormData) {
@@ -90,11 +93,11 @@ export async function eliminarProducto(productoId: string) {
   revalidatePath('/dashboard/inventario')
 }
 
-export async function actualizarProducto(formData: FormData) {
+export async function actualizarProducto(formData: FormData): Promise<{ success?: boolean; error?: string }> {
   const admin = createAdminClient()
-  if (!admin.supabase) return
+  if (!admin.supabase) return { error: 'Error de configuración' }
   const tiendaId = await getTiendaIdFromServerCookies()
-  if (!tiendaId) return
+  if (!tiendaId) return { error: 'No autenticado' }
   const id = formData.get('id') as string
   const enOferta = formData.get('en_oferta_checkbox') === 'true'
   const precioOfertaRaw = formData.get('precio_oferta') as string
@@ -111,7 +114,7 @@ export async function actualizarProducto(formData: FormData) {
   const codigoBarraUpdate = formData.get('codigo_barra') as string || ''
   const slugUpdate = await generarSlug(nombreUpdate, codigoBarraUpdate, admin.supabase, tiendaId, id)
 
-  await admin.supabase.from('productos').update({
+  const { error: updateError } = await admin.supabase.from('productos').update({
     nombre: nombreUpdate,
     slug: slugUpdate,
     descripcion: formData.get('descripcion') as string,
@@ -123,5 +126,9 @@ export async function actualizarProducto(formData: FormData) {
     tipo_articulo: formData.get('tipo_articulo') as string || null,
     tallas: usaVariantes ? tallas : [],
   }).eq('id', id).eq('id_tienda', tiendaId)
+
+  if (updateError) return { error: updateError.message }
+
   revalidatePath('/dashboard/inventario')
+  return { success: true }
 }

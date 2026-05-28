@@ -18,6 +18,13 @@ interface Pedido {
   notas?: string | null
 }
 
+const STAT_LABELS: Record<string, { label: string; cls: string }> = {
+  pendiente: { label: 'Recibidos', cls: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800' },
+  en_proceso: { label: 'Preparando', cls: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800' },
+  en_camino: { label: 'En Camino', cls: 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800' },
+  entregado: { label: 'Entregados', cls: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' },
+}
+
 export default function PedidosLista({
   pedidos: initialPedidos,
   tiendaId,
@@ -82,10 +89,39 @@ export default function PedidosLista({
     })
   }, [pedidos, filtroBusqueda, filtroEstado, fechaDesde, fechaHasta])
 
+  // ORDERS UX PASS: Compute stats
+  const stats = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const p of pedidos) {
+      counts[p.estado] = (counts[p.estado] || 0) + 1
+    }
+    return Object.entries(STAT_LABELS).map(([key, cfg]) => ({
+      key,
+      label: cfg.label,
+      count: counts[key] || 0,
+      cls: cfg.cls,
+    }))
+  }, [pedidos])
+
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+    <div className="bg-white dark:bg-slate-800/40 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+      {/* ORDERS UX PASS: Stats summary bar */}
+      {stats.some(s => s.count > 0) && (
+        <div className="px-4 sm:px-5 pt-4 pb-0 flex flex-wrap gap-1.5">
+          {stats.map(s => s.count > 0 && (
+            <span key={s.key} className={`inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full border ${s.cls}`}>
+              {s.count} {s.label}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* ORDERS UX PASS: Filters header */}
       <div className="px-4 sm:px-5 py-4 border-b border-slate-100 dark:border-slate-100">
-        <h2 className="text-base font-bold text-slate-900 mb-3">Lista de Pedidos</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white">Lista de Pedidos</h2>
+          <span className="text-xs text-slate-400 dark:text-slate-500">{pedidos.length} total</span>
+        </div>
         <div className="flex flex-col gap-2">
           <div className="relative w-full">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -96,7 +132,7 @@ export default function PedidosLista({
               placeholder="Buscar por cliente, ID o monto..."
               value={filtroBusqueda}
               onChange={e => setFiltroBusqueda(e.target.value)}
-              className="w-full pl-9 pr-3 py-2.5 text-sm text-slate-900 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none bg-slate-50"
+              className="w-full pl-9 pr-3 py-2.5 text-sm text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none bg-white dark:bg-slate-800/60"
             />
           </div>
           <div className="flex flex-wrap gap-2">
@@ -104,20 +140,20 @@ export default function PedidosLista({
               type="date"
               value={fechaDesde}
               onChange={e => setFechaDesde(e.target.value)}
-              className="flex-1 min-w-0 text-sm text-slate-900 border border-slate-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-[var(--primary)] outline-none bg-slate-50"
+              className="flex-1 min-w-0 text-sm text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-[var(--primary)] outline-none bg-white dark:bg-slate-800/60"
               title="Desde"
             />
             <input
               type="date"
               value={fechaHasta}
               onChange={e => setFechaHasta(e.target.value)}
-              className="flex-1 min-w-0 text-sm text-slate-900 border border-slate-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-[var(--primary)] outline-none bg-slate-50"
+              className="flex-1 min-w-0 text-sm text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-[var(--primary)] outline-none bg-white dark:bg-slate-800/60"
               title="Hasta"
             />
             <select
               value={filtroEstado}
               onChange={e => setFiltroEstado(e.target.value)}
-              className="flex-1 min-w-0 text-sm text-slate-900 border border-slate-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-[var(--primary)] outline-none bg-slate-50"
+              className="flex-1 min-w-0 text-sm text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-[var(--primary)] outline-none bg-white dark:bg-slate-800/60"
             >
               <option value="todos" className="text-slate-700">Todos</option>
               <option value="pendiente" className="text-slate-700">Recibidos</option>
@@ -131,6 +167,7 @@ export default function PedidosLista({
         </div>
       </div>
 
+      {/* ORDERS UX PASS: Enhanced empty state */}
       {pedidosFiltrados.length > 0 ? (
         <div>
           {pedidosFiltrados.map(pedido => (
@@ -138,10 +175,26 @@ export default function PedidosLista({
           ))}
         </div>
       ) : (
-        <div className="p-6 text-center text-slate-500">
-          {pedidos.length === 0
-            ? 'No hay pedidos todavía. ¡Comparte tu catálogo para recibir pedidos!'
-            : 'No hay pedidos que coincidan con los filtros.'}
+        <div className="flex flex-col items-center gap-3 py-16 sm:py-20 text-center animate-fade-in">
+          <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800/60 flex items-center justify-center shadow-inner">
+            {pedidos.length === 0 ? (
+              <svg className="w-8 h-8 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+            ) : (
+              <svg className="w-8 h-8 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            )}
+          </div>
+          <div>
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+              {pedidos.length === 0
+                ? 'No hay pedidos todavía'
+                : 'Sin resultados'}
+            </p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5 max-w-xs mx-auto">
+              {pedidos.length === 0
+                ? 'Comparte tu catálogo con clientes para recibir tu primer pedido. Cuando llegue un pedido nuevo, aparecerá aquí automáticamente.'
+                : 'Ningún pedido coincide con los filtros actuales. Intenta ajustar la búsqueda o los filtros.'}
+            </p>
+          </div>
         </div>
       )}
     </div>

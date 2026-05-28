@@ -420,12 +420,65 @@ html[data-theme="dark"] ::-webkit-scrollbar-track { background: #0f172a; }
 html[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; }
 html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #475569; }
 
-/* Smooth dark/light transition */
+/* PERFORMANCE UX PASS: Optimize paint and layout */
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Smooth dark/light transition — only animatable properties */
 html,
 html *,
 html *::before,
 html *::after {
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease, box-shadow 0.2s ease;
+}
+
+/* FLOATING CART FIX: Only contain layout+style, NOT paint — paint clips overflow children (e.g. floating cart button) */
+.fixed, .sticky {
+  contain: layout style;
+}
+
+/* PERFORMANCE UX PASS: Content visibility for below-fold sections */
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 500px;
+}
+
+/* PERFORMANCE UX PASS: Optimize animated elements */
+.will-change-transform {
+  will-change: transform;
+}
+
+/* PERFORMANCE UX PASS: Mobile tap highlight and overscroll */
+html {
+  overscroll-behavior: none;
+}
+
+/* PERFORMANCE UX PASS: Optimize scroll containers */
+.scroll-container {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+}
+
+/* PERFORMANCE UX PASS: Image optimization defaults */
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+/* PERFORMANCE UX PASS: Reduce motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Dark mode baseline for all form controls (zero specificity via :where) */
@@ -445,6 +498,71 @@ html[data-theme="dark"] .placeholder\:text-slate-400::placeholder { color: #4755
 html[data-theme="dark"] .placeholder\:text-slate-500::placeholder { color: #475569; }
 
 html[data-theme="dark"] .placeholder\:text-gray-400::placeholder { color: #475569; }
+
+/* MOBILE EXPERIENCE PASS: Touch-friendly form inputs */
+@media (hover: none) and (pointer: coarse) {
+  input, select, textarea, button, a {
+    font-size: 16px !important; /* prevents iOS zoom on focus */
+  }
+}
+
+/* MOBILE EXPERIENCE PASS: Minimum touch target */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* MOBILE EXPERIENCE PASS: Active press feedback for all interactive */
+@media (hover: none) {
+  .press-touch:active {
+    transform: scale(0.97);
+    opacity: 0.9;
+    transition: transform 0.1s, opacity 0.1s;
+  }
+}
+
+/* MOBILE EXPERIENCE PASS: Input focus improvements */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.2);
+  border-color: var(--primary);
+}
+
+/* MOBILE EXPERIENCE PASS: Safe area utility */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* MOBILE EXPERIENCE PASS: Better scroll momentum */
+.mobile-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+
+/* MOBILE EXPERIENCE PASS: Sticky bottom actions */
+.sticky-bottom {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+
+/* MOBILE EXPERIENCE PASS: Card mobile padding */
+.card-mobile {
+  padding: 1rem;
+}
+
+@media (max-width: 480px) {
+  .card-mobile {
+    padding: 0.75rem;
+  }
+}
 
 /* Slide-up animation for install prompt */
 @keyframes slide-up {
@@ -469,6 +587,145 @@ html[data-theme="dark"] .theme-icon-sun { display: none; }
 html[data-theme="dark"] .theme-icon-moon { display: inline; }
 .theme-icon-sun { display: inline; }
 .theme-icon-moon { display: none; }
+
+/* MOTION SYSTEM PASS: Design tokens — elegant spring-like easings */
+:root {
+  --motion-fast: 150ms;
+  --motion-normal: 250ms;
+  --motion-slow: 400ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 0.68, 0.06);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* MOTION SYSTEM PASS: Page transition — fade + subtle scale */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(6px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-page-enter {
+  animation: page-enter var(--motion-normal) var(--ease-out);
+}
+
+/* MOTION SYSTEM PASS: Scale-in for modals */
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in {
+  animation: scale-in var(--motion-normal) var(--ease-out);
+}
+
+/* MOTION SYSTEM PASS: Slide-in from right for drawers */
+@keyframes slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.animate-slide-in-right {
+  animation: slide-in-right var(--motion-normal) var(--ease-out);
+}
+
+/* MOTION SYSTEM PASS: Fade-in backdrop */
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-backdrop-in {
+  animation: backdrop-in var(--motion-normal) ease-out;
+}
+
+/* MOTION SYSTEM PASS: Skeleton shimmer overlay (works on any background color) */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.12) 50%, transparent 75%);
+  transform: translateX(-100%);
+  animation: shimmer 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* MOTION SYSTEM PASS: Tab indicator spring slide */
+.tab-indicator {
+  transition: left var(--motion-normal) var(--ease-spring), right var(--motion-normal) var(--ease-spring), width var(--motion-normal) var(--ease-spring);
+}
+
+/* MOTION SYSTEM PASS: Consistent active press */
+.press-spring:active {
+  transform: scale(0.96);
+  transition: transform var(--motion-fast) var(--ease-spring);
+}
+
+/* MOTION SYSTEM PASS: Touch no-delay + press-scale + hover-lift utilities */
+.no-tap-delay { touch-action: manipulation; }
+.press-scale:active { transform: scale(0.97); }
+.press-scale-sm:active { transform: scale(0.95); }
+.hover-lift { transition: transform var(--motion-normal) var(--ease-out), box-shadow var(--motion-normal) var(--ease-out); }
+.hover-lift:hover { transform: translateY(-2px); box-shadow: 0 8px 25px -8px rgba(0,0,0,0.1); }
+
+/* NATIVE FEEL PASS: Consistent elevation shadows for depth perception */
+.elevation-1 { box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04); }
+.elevation-2 { box-shadow: 0 4px 12px -4px rgba(0,0,0,0.08), 0 1px 4px -1px rgba(0,0,0,0.04); }
+.elevation-3 { box-shadow: 0 8px 25px -8px rgba(0,0,0,0.1), 0 2px 8px -2px rgba(0,0,0,0.06); }
+.elevation-4 { box-shadow: 0 16px 40px -12px rgba(0,0,0,0.15), 0 4px 12px -4px rgba(0,0,0,0.08); }
+
+/* NATIVE FEEL PASS: Tactile native-press feedback — instant micro-scale on tap, GPU-friendly */
+.native-press:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease-out;
+}
+.native-press-light:active {
+  transform: scale(0.985);
+  transition: transform 0.1s ease-out;
+}
+
+/* NATIVE FEEL PASS: Card press with shadow elevation shift */
+.card-press {
+  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  will-change: transform, box-shadow;
+}
+.card-press:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px -8px rgba(0,0,0,0.1), 0 2px 8px -2px rgba(0,0,0,0.06);
+}
+.card-press:active {
+  transform: scale(0.985);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+/* NATIVE FEEL PASS: Sheet slide-up for mobile modals */
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+.animate-sheet-up {
+  animation: sheet-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* NATIVE FEEL PASS: Modal entry – sheet on mobile, scale on desktop */
+.modal-enter {
+  animation: sheet-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (min-width: 640px) {
+  .modal-enter {
+    animation: scale-in var(--motion-normal) var(--ease-out);
+  }
+}
+
+/* NATIVE FEEL PASS: Scroll momentum for mobile — applied to content areas */
+.mobile-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
 
 /* PCC Animations */
 @keyframes fade-in-up {

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { getSessionFromCookieValue } from '@/lib/auth/get-session'
 import { gestionarStock } from '@/lib/stock'
 
 function generateTicketCode(): string {
@@ -31,8 +32,10 @@ function parseGiftDetails(notas: string | null): { sender_name: string; recipien
 export async function actualizarEstado(formData: FormData) {
   const supabase = await createClient()
   const cookieStore = await cookies()
-  const sessionId = cookieStore.get('nx_session')?.value
-  if (!sessionId) return
+  const rawSession = cookieStore.get('nx_session')?.value
+  const session = await getSessionFromCookieValue(rawSession)
+  if (!session.valid || !session.tiendaId) return
+  const sessionId = session.tiendaId
 
   const pedidoId = formData.get('pedidoId') as string
   const nuevoEstado = formData.get('estado') as string
@@ -126,8 +129,10 @@ export async function actualizarEstado(formData: FormData) {
 export async function eliminarTodosLosPedidos() {
   const supabase = await createClient()
   const cookieStore = await cookies()
-  const sessionId = cookieStore.get('nx_session')?.value
-  if (!sessionId) return
+  const rawSession = cookieStore.get('nx_session')?.value
+  const session = await getSessionFromCookieValue(rawSession)
+  if (!session.valid || !session.tiendaId) return
+  const sessionId = session.tiendaId
 
   const { data: pedidos } = await supabase.from('pedidos').select('id').eq('id_tienda', sessionId)
   if (!pedidos || pedidos.length === 0) { redirect('/dashboard/pedidos'); return }

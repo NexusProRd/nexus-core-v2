@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { cookies } from 'next/headers'
+import { getSessionFromCookieValue } from '@/lib/auth/get-session'
 import AnaliticasContent from './AnaliticasContent'
 
 export const dynamic = 'force-dynamic'
@@ -19,8 +20,10 @@ export default async function AnaliticasPage() {
   if (!supabase) return <div className="p-8 text-center text-slate-500">Error de conexión</div>
 
   const cookieStore = await cookies()
-  const tiendaId = cookieStore.get('nx_session')?.value
-  if (!tiendaId) return <div className="p-8 text-center text-slate-500">Sesión no válida</div>
+  const rawSession = cookieStore.get('nx_session')?.value
+  const session = await getSessionFromCookieValue(rawSession)
+  if (!session.valid || !session.tiendaId) return <div className="p-8 text-center text-slate-500">Sesión no válida</div>
+  const tiendaId = session.tiendaId
 
   const [pedidosRes, tiendaRes, productosRes] = await Promise.all([
     supabase.from('pedidos').select('*').eq('id_tienda', tiendaId).order('creado_at', { ascending: false }),

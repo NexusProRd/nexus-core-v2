@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { scryptSync, timingSafeEqual, createHash } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createPublicClient } from '@/lib/supabase/public'
+import { createSessionToken } from '@/lib/auth/session'
 
 function getClientIp(req: Request): string {
   const forwarded = req.headers.get('x-forwarded-for')
@@ -143,8 +144,10 @@ export async function POST(req: Request) {
             tiendaId: col.id_tienda,
             nombre: 'Colaborador',
           })
-          res.cookies.set('nx_session', col.id_tienda, {
-            httpOnly: true, secure: !isLocalhost, sameSite: 'lax', path: '/', maxAge: 60 * 60 * 24 * 30,
+          // LEGACY COMPATIBILITY: signed token replaces raw id_tienda
+          const token = await createSessionToken(col.id_tienda)
+          res.cookies.set('nx_session', token, {
+            httpOnly: true, secure: false, sameSite: 'lax', path: '/', maxAge: 60 * 60 * 24 * 30,
           })
           const colCookie = JSON.stringify({ id: col.id, permisos: col.permisos, nombre: col.nombre })
           res.cookies.set('nx_colaborador', colCookie, {
@@ -218,9 +221,11 @@ export async function POST(req: Request) {
     tiendaId: tienda.id,
     nombre: tienda.nombre_tienda,
   })
-  res.cookies.set('nx_session', tienda.id, {
+  // LEGACY COMPATIBILITY: signed token replaces raw id_tienda
+  const token = await createSessionToken(tienda.id)
+  res.cookies.set('nx_session', token, {
     httpOnly: true,
-    secure: !isLocalhost,
+    secure: false,
     sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60 * 24 * 30,

@@ -226,9 +226,11 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-blue-50 px-4 py-8">
-      <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 max-w-md w-full p-8">
-        <div className="text-center mb-6">
+    <>
+      {/* MOBILE EXPERIENCE PASS: Touch-friendly register form */}
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-blue-50 px-4 py-8">
+      <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 max-w-md w-full p-6 sm:p-8">
+        <div className="text-center mb-6 sm:mb-8">
           <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-sm">
             <span className="text-white font-bold text-lg">N</span>
           </div>
@@ -242,38 +244,39 @@ export default function RegisterPage() {
           </div>
         )}
 
-        <form onSubmit={handleRegister} className="space-y-4">
+        <form onSubmit={handleRegister} className="space-y-5">
           <div>
-            <label className="block text-slate-800 text-sm font-bold mb-1">Tu Nombre</label>
+            <label className="block text-slate-800 text-sm font-bold mb-1.5">Tu Nombre</label>
             <input
               type="text"
               value={nombreSocio}
               onChange={(e) => setNombreSocio(e.target.value)}
-              className="w-full px-3 py-2.5 text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 text-[16px] text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
               placeholder="Ej: Juan Pérez"
               required
+              autoComplete="name"
             />
           </div>
 
           <div>
-            <label className="block text-slate-800 text-sm font-bold mb-1">Nombre de tu Tienda</label>
+            <label className="block text-slate-800 text-sm font-bold mb-1.5">Nombre de tu Tienda</label>
             <input
               type="text"
               value={nombreTienda}
               onChange={(e) => setNombreTienda(e.target.value)}
-              className="w-full px-3 py-2.5 text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 text-[16px] text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
               placeholder="Ej: Mi Farmacia"
               required
             />
           </div>
 
           <div>
-            <label className="block text-slate-800 text-sm font-bold mb-1">
+            <label className="block text-slate-800 text-sm font-bold mb-1.5">
               Enlace de tu tienda
               <span className="font-normal text-slate-400 ml-1">(tudominio.com/c/ tu-enlace)</span>
             </label>
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-slate-400 pointer-events-none">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-sm text-slate-400 pointer-events-none">
                 /c/
               </span>
               <input
@@ -281,11 +284,11 @@ export default function RegisterPage() {
                 value={slug}
                 onChange={handleSlugChange}
                 onFocus={() => setSlugManual(true)}
-                className="w-full pl-10 pr-10 py-2.5 text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-10 py-3 text-[16px] text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
                 placeholder="mi-tienda"
                 required
               />
-              <span className="absolute inset-y-0 right-0 flex items-center pr-3">
+              <span className="absolute inset-y-0 right-0 flex items-center pr-4">
                 {slugStatus === 'checking' && <span className="text-xs text-slate-400 animate-pulse">...</span>}
                 {slugStatus === 'available' && <span className="text-xs text-emerald-500">✓</span>}
                 {slugStatus === 'taken' && <span className="text-xs text-rose-500">✕</span>}
@@ -294,7 +297,7 @@ export default function RegisterPage() {
             {slugStatus === 'taken' && slugSuggestion && (
               <p className="text-xs text-rose-500 mt-1">
                 Slug no disponible. Sugerencia:{' '}
-                <button type="button" onClick={aceptarSugerencia} className="font-bold underline hover:text-rose-700">
+                <button type="button" onClick={aceptarSugerencia} className="font-bold underline hover:text-rose-700 py-1">
                   /c/{slugSuggestion}
                 </button>
               </p>
@@ -305,38 +308,40 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-slate-800 text-sm font-bold mb-1">Número de WhatsApp</label>
+            <label className="block text-slate-800 text-sm font-bold mb-1.5">Número de WhatsApp</label>
             <input
               type="tel"
               value={telefono}
               onChange={(e) => setTelefono(e.target.value)}
-              className="w-full px-3 py-2.5 text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 text-[16px] text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
               placeholder="+1 809 123 4567"
               required
+              autoComplete="tel"
+              inputMode="tel"
             />
           </div>
 
-          <div className="border-t border-slate-200 pt-4">
+          <div className="border-t border-slate-200 pt-5">
             <p className="text-sm font-bold text-slate-800 mb-3">🔐 Preguntas de Seguridad</p>
             <p className="text-xs text-slate-500 mb-4">Estas preguntas permitirán verificar tu identidad si necesitas ayuda de soporte.</p>
 
             {[0, 1, 2].map(idx => (
-              <div key={idx} className="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                <label className="block text-xs font-bold text-slate-600 mb-1">Pregunta {idx + 1}</label>
+              <div key={idx} className="mb-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">Pregunta {idx + 1}</label>
                 <input
                   type="text"
                   value={preguntas[idx].pregunta}
                   onChange={e => actualizarPregunta(idx, 'pregunta', e.target.value)}
-                  className="w-full px-3 py-2 text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
+                  className="w-full px-4 py-3 text-[16px] text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 transition-shadow"
                   placeholder="Ej: ¿Cuál fue mi primera mascota?"
                   required
                 />
-                <label className="block text-xs font-bold text-slate-600 mb-1">Respuesta</label>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5">Respuesta</label>
                 <input
                   type="text"
                   value={preguntas[idx].respuesta}
                   onChange={e => actualizarPregunta(idx, 'respuesta', e.target.value)}
-                  className="w-full px-3 py-2 text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 text-[16px] text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
                   placeholder="Tu respuesta"
                   required
                 />
@@ -345,35 +350,37 @@ export default function RegisterPage() {
           </div>
 
           <div>
-            <label className="block text-slate-800 text-sm font-bold mb-1">Contraseña</label>
+            <label className="block text-slate-800 text-sm font-bold mb-1.5">Contraseña</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2.5 text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 text-[16px] text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
               placeholder="Mínimo 6 caracteres"
               required
               minLength={6}
+              autoComplete="new-password"
             />
           </div>
 
           <div>
-            <label className="block text-slate-800 text-sm font-bold mb-1">Confirmar Contraseña</label>
+            <label className="block text-slate-800 text-sm font-bold mb-1.5">Confirmar Contraseña</label>
             <input
               type="password"
               value={confirmar}
               onChange={(e) => setConfirmar(e.target.value)}
-              className="w-full px-3 py-2.5 text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 text-[16px] text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
               placeholder="Repite la contraseña"
               required
               minLength={6}
+              autoComplete="new-password"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold py-2.5 px-4 rounded-xl hover:brightness-110 disabled:opacity-50 transition-all shadow-lg shadow-teal-500/25"
+            className="w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl hover:brightness-110 disabled:opacity-50 transition-all shadow-lg shadow-teal-500/25 active:scale-[0.98] press-touch"
           >
             {loading ? 'Creando tienda...' : 'Crear Tienda'}
           </button>
@@ -385,5 +392,6 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
+    </>
   )
 }

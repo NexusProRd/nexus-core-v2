@@ -122,19 +122,21 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
   }
 
   return (
-    <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/50" onClick={() => setIsOpen(false)} />
-      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col">
+    <>
+      {/* MOTION SYSTEM PASS: Drawer slide-in with spring easing */}
+      <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-backdrop-in" onClick={() => setIsOpen(false)} />
+      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col animate-slide-in-right" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div className="p-4 border-b flex justify-between items-center bg-[var(--primary)] text-white">
           <h2 className="text-lg font-bold">Tu Carrito ({totalItems})</h2>
-          <button onClick={() => setIsOpen(false)} className="text-white hover:text-white/70">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button onClick={() => setIsOpen(false)} className="p-2 text-white hover:text-white/70 rounded-lg touch-target native-press">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto mobile-scroll p-4">
           {items.length === 0 ? (
             <p className="text-center text-gray-500 py-8">Tu carrito está vacío</p>
           ) : (
@@ -168,19 +170,20 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
                     {item.isGift ? (
                       <p className="text-xs text-amber-600 mt-1.5 font-medium">Cantidad: 1 (canje de regalo)</p>
                     ) : (
+                      /* MOBILE EXPERIENCE PASS: Larger quantity touch targets */
                       <div className="flex items-center gap-2 mt-2">
                         <button
                           onClick={() => updateQuantity(item.id, item.cantidad - 1)}
-                          className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 text-slate-700 font-bold flex items-center justify-center"
+                          className="w-8 h-8 rounded-lg bg-gray-200 hover:bg-gray-300 text-slate-700 font-bold flex items-center justify-center active:scale-90 transition-transform"
                         >
-                          -
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 12H4" /></svg>
                         </button>
-                        <span className="text-sm font-medium text-slate-900">{item.cantidad}</span>
+                        <span className="w-8 text-center text-sm font-bold text-slate-900">{item.cantidad}</span>
                         <button
                           onClick={() => updateQuantity(item.id, item.cantidad + 1)}
-                          className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 text-slate-700 font-bold flex items-center justify-center"
+                          className="w-8 h-8 rounded-lg bg-gray-200 hover:bg-gray-300 text-slate-700 font-bold flex items-center justify-center active:scale-90 transition-transform"
                         >
-                          +
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
                         </button>
                       </div>
                     )}
@@ -199,8 +202,9 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
           )}
         </div>
 
+        {/* MOBILE EXPERIENCE PASS: Sticky checkout with touch-friendly inputs */}
         {!hideCheckout && items.length > 0 && (
-          <div className="p-4 border-t bg-gray-50">
+          <div className="p-4 border-t bg-gray-50 sticky-bottom">
             {hasGiftItems && (
               <div className="mb-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
                 <p className="text-xs font-semibold text-amber-800">🚚 Costo de envío no incluido</p>
@@ -208,37 +212,39 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
               </div>
             )}
             <div className="mb-3">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">¿A nombre de quién preparamos el pedido?</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">¿A nombre de quién preparamos el pedido?</label>
               <input type="text" value={nombreCliente} onChange={e => setNombreCliente(e.target.value)}
                 placeholder="Tu nombre"
-                className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900" />
+                className="w-full px-4 py-3 text-[16px] border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900" />
             </div>
             <div className="mb-3">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">¿Cuál es tu WhatsApp para contactarte?</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">¿Cuál es tu WhatsApp para contactarte?</label>
               <input type="tel" value={telefonoCliente} onChange={e => setTelefonoCliente(e.target.value)}
                 placeholder="+1 809 123 4567"
-                className={`w-full px-3 py-2.5 text-sm border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900 ${telefonoCliente && !telefonoValido ? 'border-red-400' : 'border-slate-200'}`} />
+                inputMode="tel"
+                autoComplete="tel"
+                className={`w-full px-4 py-3 text-[16px] border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900 ${telefonoCliente && !telefonoValido ? 'border-red-400' : 'border-slate-200'}`} />
             </div>
             <div className="mb-3">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Notas (opcional)</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Notas (opcional)</label>
               <textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2}
                 placeholder="Ej: Entregar en la recepción"
-                className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900 resize-none" />
+                className="w-full px-4 py-3 text-[16px] border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900 resize-none" />
             </div>
             <div className="flex justify-between items-center mb-4">
-              <span className="text-gray-600">Total:</span>
+              <span className="text-slate-600 font-medium">Total:</span>
               <span className="text-2xl font-bold text-[var(--primary)]">RD${formatearPrecio(totalPrice)}</span>
             </div>
             <button
               onClick={handleCheckout}
               disabled={!puedeEnviar || isSubmitting}
-              className="w-full bg-[var(--primary)] text-white py-3 rounded-lg font-bold hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[var(--primary)] text-white py-3.5 rounded-xl font-bold hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed native-press elevation-2"
             >
               {isSubmitting ? 'Enviando...' : !nombreValido ? 'Ingresa tu nombre' : !telefonoValido ? 'Ingresa un teléfono válido' : 'Enviar Pedido por WhatsApp'}
             </button>
             <button
               onClick={clearCart}
-              className="w-full mt-2 text-gray-500 text-sm hover:text-gray-700"
+              className="w-full mt-3 text-slate-500 text-sm hover:text-slate-700 py-2 touch-target"
             >
               Vaciar Carrito
             </button>
@@ -247,8 +253,8 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
       </div>
 
       {giftToRemove && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 text-center">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-4 animate-backdrop-in">
+          <div className="bg-white rounded-2xl shadow-xl elevation-3 max-w-sm w-full p-6 text-center animate-scale-in">
             <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
               <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -263,7 +269,7 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
             </p>
             <div className="flex gap-3">
               <button onClick={() => setGiftToRemove(null)}
-                className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+                className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors native-press">
                 No, mantenerlo
               </button>
               <button onClick={async () => {
@@ -281,7 +287,7 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
                   removeFromCart(giftToRemove.id)
                   setGiftToRemove(null)
                 }}
-                className="flex-1 px-4 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-medium hover:bg-rose-700 transition-colors">
+                className="flex-1 px-4 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-medium hover:bg-rose-700 transition-colors native-press">
                 Sí, quitar
               </button>
             </div>
@@ -289,5 +295,6 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
         </div>
       )}
     </div>
+    </>
   )
 }

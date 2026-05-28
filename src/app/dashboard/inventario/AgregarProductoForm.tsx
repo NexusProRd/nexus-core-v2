@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { generarSlug } from '@/lib/slug'
 import { optimizarImagen } from '@/lib/image'
+import { useToast } from '@/components/Toast'
 
 function generarCodigoAleatorio(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -14,6 +15,7 @@ function generarCodigoAleatorio(): string {
 }
 
 export default function AgregarProductoForm({ tiendaId, tipoNegocio = 'estandar', categorias = [], onSuccess }: { tiendaId: string; tipoNegocio?: string; categorias?: string[]; onSuccess?: () => void }) {
+  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [imagenPreview, setImagenPreview] = useState<string | null>(null)
@@ -59,6 +61,7 @@ export default function AgregarProductoForm({ tiendaId, tipoNegocio = 'estandar'
         reader.readAsDataURL(optimizedFile)
       } catch {
         setError('Error al optimizar la imagen')
+        toast('Error al optimizar la imagen', 'error')
         setOptimizing(false)
       }
     }
@@ -141,6 +144,7 @@ export default function AgregarProductoForm({ tiendaId, tipoNegocio = 'estandar'
 
     if (insertError) {
       setError('Error al guardar el producto: ' + insertError.message)
+      toast('Error al guardar el producto', 'error')
       setLoading(false)
       return
     }
@@ -150,6 +154,7 @@ export default function AgregarProductoForm({ tiendaId, tipoNegocio = 'estandar'
     formRef.current?.reset()
     router.refresh()
     setLoading(false)
+    toast('Producto creado correctamente', 'success')
     onSuccess?.()
   }
 
@@ -260,8 +265,13 @@ export default function AgregarProductoForm({ tiendaId, tipoNegocio = 'estandar'
         </div>
       </div>
       <button type="submit" disabled={loading || optimizing}
-        className="w-full py-2.5 bg-[var(--primary)] text-white font-semibold rounded-xl hover:brightness-110 transition-colors disabled:opacity-50 text-sm mt-2">
-        {loading ? 'Guardando...' : 'Agregar Producto'}
+        className="w-full py-2.5 bg-[var(--primary)] text-white font-semibold rounded-xl hover:brightness-110 transition-all disabled:opacity-50 text-sm mt-2 press-scale-sm">
+        {loading ? (
+          <span className="inline-flex items-center gap-2">
+            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            Guardando...
+          </span>
+        ) : 'Agregar Producto'}
       </button>
       </>) : tipoNegocio === 'ropa' ? (
         <div className="flex flex-col gap-4">
@@ -471,8 +481,13 @@ export default function AgregarProductoForm({ tiendaId, tipoNegocio = 'estandar'
             </div>
           )}
           <button type="submit" disabled={loading || optimizing}
-            className="w-full py-2.5 bg-[var(--primary)] text-white font-semibold rounded-xl hover:brightness-110 transition-colors disabled:opacity-50 text-sm mt-2">
-            {loading ? 'Guardando...' : 'Agregar Producto'}
+            className="w-full py-2.5 bg-[var(--primary)] text-white font-semibold rounded-xl hover:brightness-110 transition-all disabled:opacity-50 text-sm mt-2 press-scale-sm">
+            {loading ? (
+              <span className="inline-flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                Guardando...
+              </span>
+            ) : 'Agregar Producto'}
           </button>
         </div>
       ) : null}

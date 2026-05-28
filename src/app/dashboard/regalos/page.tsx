@@ -55,10 +55,17 @@ export default function RegalosPage() {
 
   return (
     <div className="min-h-screen">
-      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Regalos y Cupones</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Historial de cupones de regalo y experiencias de regalo</p>
+      <header className="bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600 border-b border-white/[0.08]">
+        <div className="max-w-7xl mx-auto py-6 sm:py-8 px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-white">Regalos y Cupones</h1>
+              <p className="text-sm text-white/70 mt-0.5">Historial de cupones de regalo y experiencias de regalo</p>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -85,26 +92,33 @@ export default function RegalosPage() {
           </div>
         ) : (
           <>
-            <div className="flex items-center gap-4 mb-4 text-sm text-slate-500">
-              <span>{activos} activo{activos !== 1 ? 's' : ''}</span>
-              <span className="text-slate-300">·</span>
-              <span>{canjeados} canjeado{canjeados !== 1 ? 's' : ''}</span>
-              <span className="text-slate-300">·</span>
-              <span>{items.length} total</span>
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 text-center">
+                <div className="text-2xl font-bold text-violet-600 dark:text-violet-400">{activos}</div>
+                <div className="text-xs text-slate-500 mt-0.5 font-medium">Activos</div>
+              </div>
+              <div className="bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 text-center">
+                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{canjeados}</div>
+                <div className="text-xs text-slate-500 mt-0.5 font-medium">Canjeados</div>
+              </div>
+              <div className="bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 text-center">
+                <div className="text-2xl font-bold text-slate-700 dark:text-slate-300">{items.length}</div>
+                <div className="text-xs text-slate-500 mt-0.5 font-medium">Total</div>
+              </div>
             </div>
 
             {/* Desktop table */}
             <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-slate-200">
-                  <thead className="bg-slate-50">
+                  <thead className="bg-gradient-to-r from-violet-50 to-pink-50 dark:from-violet-900/20 dark:to-pink-900/20">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Código</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Tipo</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Productos</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">De / Cliente</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Estado</th>
-                      <th className="px-4 py-3 text-left text-xs font-bold text-slate-600 uppercase">Fecha</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-violet-700 dark:text-violet-300 uppercase">Código</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-violet-700 dark:text-violet-300 uppercase">Tipo</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-violet-700 dark:text-violet-300 uppercase">Productos</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-violet-700 dark:text-violet-300 uppercase">De / Cliente</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-violet-700 dark:text-violet-300 uppercase">Estado</th>
+                      <th className="px-4 py-3 text-left text-xs font-bold text-violet-700 dark:text-violet-300 uppercase">Fecha</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">

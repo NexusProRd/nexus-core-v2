@@ -3,6 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
+import { getSessionFromCookieValue } from '@/lib/auth/get-session'
 import { PALETTES } from '@/lib/palettes'
 import LogoUpload from './LogoUpload'
 
@@ -10,8 +11,10 @@ export const dynamic = 'force-dynamic'
 
 export default async function OnboardingPage() {
   const cookieStore = await cookies()
-  const sessionId = cookieStore.get('nx_session')?.value
-  if (!sessionId) redirect('/login')
+  const rawSession = cookieStore.get('nx_session')?.value
+  const session = await getSessionFromCookieValue(rawSession)
+  if (!session.valid || !session.tiendaId) redirect('/login')
+  const sessionId = session.tiendaId
 
   const supabase = await createClient()
 
@@ -26,8 +29,10 @@ export default async function OnboardingPage() {
     const supabase = await createClient()
     const { supabase: adminSupabase, error: adminError } = createAdminClient()
     const cookieStore = await cookies()
-    const sessionId = cookieStore.get('nx_session')?.value
-    if (!sessionId) redirect('/login')
+    const rawSession = cookieStore.get('nx_session')?.value
+    const session = await getSessionFromCookieValue(rawSession)
+    if (!session.valid || !session.tiendaId) redirect('/login')
+    const sessionId = session.tiendaId
 
     const nombre_tienda = formData.get('nombre_tienda') as string
     const whatsapp_num = formData.get('whatsapp_num') as string

@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { getSessionFromCookieValue } from '@/lib/auth/get-session'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const session = request.cookies.get('nx_session')?.value
+  const rawSession = request.cookies.get('nx_session')?.value
+  const session = await getSessionFromCookieValue(rawSession)
 
-  if (!session) {
+  if (!session.valid) {
     if (pathname.startsWith('/dashboard')) {
       return NextResponse.redirect(new URL('/login', request.url))
     }

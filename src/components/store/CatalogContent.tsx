@@ -207,9 +207,9 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
         </div>
       </aside>
 
-      {/* ===== MOBILE THEME TOGGLE (floating) ===== */}
+      {/* MOBILE EXPERIENCE PASS: Theme toggle with better position above nav */}
       <button onClick={toggleTheme}
-        className="md:hidden fixed bottom-20 right-4 z-50 w-10 h-10 rounded-full shadow-lg backdrop-blur-md flex items-center justify-center border"
+        className="md:hidden fixed bottom-24 right-4 z-50 w-11 h-11 rounded-full shadow-lg backdrop-blur-xl flex items-center justify-center border active:scale-90 transition-transform touch-target"
         style={{ backgroundColor: 'var(--bg-sidebar)', color: 'var(--text-secondary)', borderColor: 'var(--border-light)' }}>
         {dark ? (
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

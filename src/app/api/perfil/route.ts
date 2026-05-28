@@ -1,8 +1,16 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
+import { getSession } from '@/lib/auth/get-session'
+
+// CONFIG ACCESS FIX: resolve signed token to UUID
+async function getTiendaId(req: NextRequest): Promise<string | null> {
+  const session = await getSession(req)
+  if (!session.valid || !session.tiendaId) return null
+  return session.tiendaId
+}
 
 export async function GET(req: NextRequest) {
-  const sessionId = req.cookies.get('nx_session')?.value
+  const sessionId = await getTiendaId(req)
   if (!sessionId) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
   const { supabase, error } = createAdminClient()
@@ -18,7 +26,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const sessionId = req.cookies.get('nx_session')?.value
+  const sessionId = await getTiendaId(req)
   if (!sessionId) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
   const { supabase, error } = createAdminClient()

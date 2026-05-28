@@ -92,8 +92,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-blue-50 px-4">
-      <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 max-w-md w-full p-8">
-        <div className="text-center mb-6">
+      {/* MOBILE EXPERIENCE PASS: Touch-friendly form spacing and inputs */}
+      <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/50 max-w-md w-full p-6 sm:p-8">
+        <div className="text-center mb-6 sm:mb-8">
           <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center shadow-sm">
             <span className="text-white font-bold text-lg">N</span>
           </div>
@@ -113,54 +114,57 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-slate-800 text-sm font-bold mb-1">Número de WhatsApp</label>
+            <label className="block text-slate-800 text-sm font-bold mb-1.5">Número de WhatsApp</label>
             <input
               type="tel"
               value={whatsapp}
               onChange={(e) => setWhatsapp(e.target.value)}
-              className="w-full px-3 py-2.5 text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 text-[16px] text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
               placeholder="+1 809 123 4567"
               required
+              autoComplete="tel"
+              inputMode="tel"
             />
           </div>
 
           <div>
-            <label className="block text-slate-800 text-sm font-bold mb-1">Contraseña</label>
+            <label className="block text-slate-800 text-sm font-bold mb-1.5">Contraseña</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2.5 text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 text-[16px] text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
               placeholder="Tu contraseña"
               required
+              autoComplete="current-password"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold py-2.5 px-4 rounded-xl hover:brightness-110 disabled:opacity-50 transition-all shadow-lg shadow-teal-500/25"
+            className="w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl hover:brightness-110 disabled:opacity-50 transition-all shadow-lg shadow-teal-500/25 active:scale-[0.98]"
           >
             {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
         </form>
 
-        <div className="mt-4 text-center">
+        <div className="mt-5 text-center">
           <button
             type="button"
             onClick={handleForgotPassword}
             disabled={forgotLoading}
-            className="text-sm text-slate-500 hover:text-blue-600 underline transition-colors disabled:opacity-50"
+            className="text-sm text-slate-500 hover:text-blue-600 underline transition-colors disabled:opacity-50 py-2 touch-target"
           >
             {forgotLoading ? 'Enviando...' : '¿Olvidaste tu contraseña? Contacta a soporte técnico'}
           </button>
         </div>
 
-        <p className="text-sm text-slate-500 text-center mt-4">
+        <p className="text-sm text-slate-500 text-center mt-5">
           ¿No tienes cuenta?{' '}
-          <Link href="/register" className="text-blue-600 font-semibold hover:underline">Regístrate aquí</Link>
+          <Link href="/register" className="text-blue-600 font-semibold hover:underline py-2">Regístrate aquí</Link>
         </p>
       </div>
     </div>

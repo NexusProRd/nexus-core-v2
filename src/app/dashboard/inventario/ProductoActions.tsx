@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useActionState } from 'react'
 import { useRouter } from 'next/navigation'
 import { actualizarProducto, eliminarProducto } from './actions'
 import { formatearPrecio } from '@/lib/utils'
@@ -50,6 +50,17 @@ export default function ProductoActions({ producto, categorias = [], onDelete }:
     }
   }, [editando, producto.tallas])
 
+  const [updateState, updateFormAction] = useActionState(
+    async (_prev: { success?: boolean; error?: string } | null, formData: FormData) => {
+      return await actualizarProducto(formData)
+    },
+    null
+  )
+
+  useEffect(() => {
+    if (updateState?.success) setEditando(false)
+  }, [updateState])
+
   const agregarVariante = () => {
     const talla = nuevaVarianteTalla.trim()
     if (!talla) return
@@ -67,13 +78,13 @@ export default function ProductoActions({ producto, categorias = [], onDelete }:
     <>
       <div className="flex gap-1">
         <button onClick={() => setEditando(true)}
-          className="p-2 sm:p-1.5 text-slate-400 dark:text-slate-500 hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 rounded-lg transition-colors" title="Editar">
+          className="p-2 sm:p-1.5 text-slate-400 dark:text-slate-500 hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 rounded-lg transition-all press-scale-sm" title="Editar">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
         </button>
         <button onClick={() => setConfirmDelete(true)}
-          className="p-2 sm:p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors" title="Eliminar">
+          className="p-2 sm:p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-all press-scale-sm" title="Eliminar">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
@@ -85,7 +96,7 @@ export default function ProductoActions({ producto, categorias = [], onDelete }:
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white dark:bg-[#121216] rounded-2xl shadow-xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Editar Producto</h3>
-            <form action={actualizarProducto} className="space-y-4">
+            <form action={updateFormAction} className="space-y-4">
               <input type="hidden" name="id" value={producto.id} />
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nombre</label>
@@ -280,11 +291,11 @@ export default function ProductoActions({ producto, categorias = [], onDelete }:
               )}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setEditando(false)}
-                  className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                  className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-all press-scale-sm">
                   Cancelar
                 </button>
                 <button type="submit"
-                  className="flex-1 px-4 py-2.5 bg-[var(--primary)] text-white rounded-xl text-sm font-medium hover:brightness-110 transition-colors">
+                  className="flex-1 px-4 py-2.5 bg-[var(--primary)] text-white rounded-xl text-sm font-medium hover:brightness-110 transition-all press-scale-sm">
                   Guardar
                 </button>
               </div>
@@ -306,7 +317,7 @@ export default function ProductoActions({ producto, categorias = [], onDelete }:
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-5">{producto.nombre} se eliminará permanentemente.</p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmDelete(false)}
-                className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-all press-scale-sm">
                 Cancelar
               </button>
               <button onClick={async () => {
@@ -315,7 +326,7 @@ export default function ProductoActions({ producto, categorias = [], onDelete }:
                 onDelete?.(producto.id)
                 router.refresh()
               }}
-                className="w-full px-4 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-medium hover:bg-rose-700 transition-colors">
+                className="w-full px-4 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-medium hover:bg-rose-700 transition-all press-scale-sm">
                 Eliminar
               </button>
             </div>

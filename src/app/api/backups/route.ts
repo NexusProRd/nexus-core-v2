@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-
-function getTiendaId(req: Request): string | null {
-  const cookies = req.headers.get('cookie') || ''
-  const match = cookies.match(/(?:^|;\s*)nx_session=([^;]*)/)
-  return match?.[1] || null
-}
+import { getSession } from '@/lib/auth/get-session'
 
 export async function GET(req: Request) {
   try {
-    const tiendaId = getTiendaId(req)
-    if (!tiendaId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    const session = await getSession(req)
+    if (!session.valid || !session.tiendaId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    const tiendaId = session.tiendaId
 
     const { supabase, error: adminError } = createAdminClient()
     if (adminError || !supabase) return NextResponse.json({ error: 'Error de configuración' }, { status: 500 })
@@ -32,8 +28,9 @@ export async function GET(req: Request) {
 
 export async function POST(req: NextRequest) {
   try {
-    const tiendaId = getTiendaId(req)
-    if (!tiendaId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    const session = await getSession(req)
+    if (!session.valid || !session.tiendaId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    const tiendaId = session.tiendaId
 
     const { supabase, error: adminError } = createAdminClient()
     if (adminError || !supabase) return NextResponse.json({ error: 'Error de configuración' }, { status: 500 })

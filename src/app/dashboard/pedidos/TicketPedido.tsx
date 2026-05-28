@@ -139,7 +139,7 @@ export default function TicketPedido({ pedido, detalles }: { pedido: Pedido; det
 
       <button
         onClick={imprimir}
-        className="inline-flex items-center gap-1.5 text-slate-500 hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors"
+        className="inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all press-scale-sm"
         title="Imprimir ticket"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

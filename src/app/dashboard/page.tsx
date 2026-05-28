@@ -1,14 +1,17 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { cookies, headers } from 'next/headers'
+import { getSessionFromCookieValue } from '@/lib/auth/get-session'
 import DashboardClient from './DashboardClient'
 
 export default async function DashboardPage() {
   const { supabase } = createAdminClient()
   if (!supabase) redirect('/login')
   const cookieStore = await cookies()
-  const sessionId = cookieStore.get('nx_session')?.value
-  if (!sessionId) redirect('/login')
+  const rawSession = cookieStore.get('nx_session')?.value
+  const session = await getSessionFromCookieValue(rawSession)
+  if (!session.valid || !session.tiendaId) redirect('/login')
+  const sessionId = session.tiendaId
 
   const { data: tienda } = await supabase
     .from('tiendas')
@@ -24,7 +27,7 @@ export default async function DashboardPage() {
 
   const { data: perfil } = await supabase
     .from('perfil_tienda')
-    .select('nombre_comercial')
+    .select('nombre_comercial, whatsapp_numero')
     .eq('id_tienda', tienda.id)
     .single()
 
@@ -92,6 +95,7 @@ export default async function DashboardPage() {
   }
 
   const nombreTienda = perfil?.nombre_comercial || tienda.nombre_tienda || 'Mi Tienda'
+  const whatsappNumero = perfil?.whatsapp_numero || null
   const catalogoUrl = tienda.slug
     ? `${proto}://${host}/c/${tienda.slug}`
     : `${proto}://${host}/catalogo/${tienda.id}`
@@ -101,6 +105,7 @@ export default async function DashboardPage() {
     <DashboardClient
       tiendaId={tienda.id}
       nombreTienda={nombreTienda}
+      whatsappNumero={whatsappNumero}
       catalogoUrl={catalogoUrl}
       tiendaSlug={tienda.slug || null}
       tiendaAbierta={tiendaAbierta}

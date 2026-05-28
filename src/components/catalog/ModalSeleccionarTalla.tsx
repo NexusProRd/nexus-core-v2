@@ -44,8 +44,8 @@ export default function ModalSeleccionarTalla({ producto, monedaSimbolo = 'RD$',
   const tienePrecioEspecial = selectedVariant?.precio != null && selectedVariant.precio !== precioBase
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-backdrop-in" onClick={onClose}>
+      <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl elevation-3 animate-scale-in" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-slate-900">Seleccionar {label}</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors">

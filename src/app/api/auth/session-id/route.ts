@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
+import { getSession } from '@/lib/auth/get-session'
 
 export async function GET(req: Request) {
-  const cookies = req.headers.get('cookie') || ''
-  const match = cookies.match(/(?:^|;\s*)nx_session=([^;]*)/)
-  const tiendaId = match?.[1] || null
-  return NextResponse.json({ tiendaId })
+  const session = await getSession(req)
+  return NextResponse.json({ tiendaId: session.tiendaId || null })
 }
