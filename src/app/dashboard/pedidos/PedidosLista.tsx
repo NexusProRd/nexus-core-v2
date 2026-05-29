@@ -25,6 +25,42 @@ const STAT_LABELS: Record<string, { label: string; cls: string }> = {
   entregado: { label: 'Entregados', cls: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' },
 }
 
+const STATUS_MAP: Record<string, string> = {
+  en_proceso: 'confirmado',
+  en_camino: 'en_camino',
+  entregado: 'entregado',
+}
+
+const DEFAULT_MSGS: Record<string, string> = {
+  confirmado: '¡Hola {cliente}! 🎉 Tu pedido {pedido} ha sido confirmado. En breve comenzaremos a prepararlo.',
+  en_camino: '¡Hola {cliente}! 🚴‍♂️ Tu pedido {pedido} va en camino. Pronto lo recibirás.',
+  entregado: '¡Hola {cliente}! ✅ Tu pedido {pedido} ha sido entregado. ¡Gracias por confiar en {tienda}! 🙌',
+}
+
+export function reemplazarVars(texto: string, datos: {
+  cliente: string; pedido: string; tienda: string;
+  detalles: string; total: string; fecha: string;
+}): string {
+  return texto
+    .replace(/{cliente}/g, datos.cliente)
+    .replace(/{pedido}/g, datos.pedido)
+    .replace(/{tienda}/g, datos.tienda)
+    .replace(/{detalles}/g, datos.detalles)
+    .replace(/{productos}/g, datos.detalles)
+    .replace(/{total}/g, datos.total)
+    .replace(/{fecha}/g, datos.fecha)
+}
+
+export function generarMensaje(
+  plantillas: Record<string, string>,
+  templateKey: string,
+  defaultMsg: string,
+  vars: Parameters<typeof reemplazarVars>[1]
+): string {
+  const raw = plantillas[templateKey] || defaultMsg
+  return reemplazarVars(raw, vars)
+}
+
 export default function PedidosLista({
   pedidos: initialPedidos,
   tiendaId,
@@ -37,10 +73,47 @@ export default function PedidosLista({
   const [filtroEstado, setFiltroEstado] = useState('todos')
   const [fechaDesde, setFechaDesde] = useState('')
   const [fechaHasta, setFechaHasta] = useState('')
+  const [plantillas, setPlantillas] = useState<Record<string, string>>({})
+  const [tiendaNombre, setTiendaNombre] = useState('')
 
   useEffect(() => {
     setPedidos(initialPedidos)
   }, [initialPedidos])
+
+  useEffect(() => {
+    if (!tiendaId) { console.log('[WHATSAPP_TEMPLATES] tiendaId vacío, abortando'); return }
+    console.log('[WHATSAPP_TEMPLATES] tiendaId:', tiendaId)
+    const supabase = createClient()
+    supabase.from('whatsapp_templates')
+      .select('confirmado, preparando, en_camino, entregado')
+      .eq('store_id', tiendaId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        console.log('[WHATSAPP_TEMPLATES] data:', data)
+        console.log('[WHATSAPP_TEMPLATES] error:', error)
+        console.log('[WHATSAPP_TEMPLATES] registros encontrados:', data ? 1 : 0)
+        if (error) {
+          console.error('[WHATSAPP_TEMPLATES]', error)
+          return
+        }
+        if (data) {
+          const cargadas = {
+            confirmado: data.confirmado || '',
+            preparando: data.preparando || '',
+            en_camino: data.en_camino || '',
+            entregado: data.entregado || '',
+          }
+          setPlantillas(cargadas)
+          console.log('[WHATSAPP_TEMPLATES] plantillas cargadas:', cargadas)
+        } else {
+          console.log('[WHATSAPP_TEMPLATES] consulta sin filas — plantillas queda como {}')
+        }
+      })
+    supabase.from('tiendas').select('nombre_tienda').eq('id', tiendaId).single()
+      .then(({ data }) => {
+        if (data) setTiendaNombre(data.nombre_tienda || '')
+      })
+  }, [tiendaId])
 
   useEffect(() => {
     if (!tiendaId) return
@@ -171,7 +244,7 @@ export default function PedidosLista({
       {pedidosFiltrados.length > 0 ? (
         <div>
           {pedidosFiltrados.map(pedido => (
-            <PedidoRow key={pedido.id} pedido={pedido} />
+            <PedidoRow key={pedido.id} pedido={pedido} plantillas={plantillas} tiendaNombre={tiendaNombre} />
           ))}
         </div>
       ) : (

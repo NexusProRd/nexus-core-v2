@@ -2,12 +2,16 @@
 // UX EVOLUTION — vitrina como diferenciador creativo de Nexus
 'use client'
 
+// DYNAMIC DASHBOARD FIX: Prevent static prerender — requires runtime Supabase session
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase'
 import { toPng } from 'html-to-image'
 import { PlantillaPreview, ICONOS_ANUNCIO } from '@/components/catalog/CatalogoModal'
 import type { CatalogoModalConfig, TemplateKey } from '@/components/catalog/CatalogoModal'
 import { optimizarImagen } from '@/lib/image'
+import DisenosLibrary from './DisenosLibrary'
 
 interface HistorialEntry {
   id: string
@@ -186,6 +190,10 @@ export default function CatalogoModalPage() {
   const [previewImg, setPreviewImg] = useState<string | null>(null)
   const [vistaPrevia, setVistaPrevia] = useState(false)
 
+  // DisenosLibrary state
+  const [statusConfigActual, setStatusConfigActual] = useState<any>(null)
+  const statusPreviewRef = useRef<HTMLDivElement>(null)
+
   const previewRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -253,6 +261,23 @@ export default function CatalogoModalPage() {
       setCargandoHistorial(false)
     })()
   }, [])
+
+  // Keep DisenosLibrary config in sync with current generator state
+  useEffect(() => {
+    if (!generated || !statusProductId) {
+      setStatusConfigActual(null)
+      return
+    }
+    const prod = todosProductos.find(p => p.id === statusProductId)
+    setStatusConfigActual({
+      productId: statusProductId,
+      style: statusStyle,
+      productName: prod?.nombre || '',
+      productPrice: prod?.precio || 0,
+      productOfferPrice: prod?.precio_oferta || 0,
+      productImage: prod?.imagen_url || null,
+    })
+  }, [generated, statusProductId, statusStyle, todosProductos])
 
   const productoSeleccionado = productosOferta.find(p => p.id === productoId)
 
@@ -487,6 +512,31 @@ export default function CatalogoModalPage() {
       guardarEnHistorial(body, histImgUrl)
     }
     setSaving(false)
+  }
+
+  const handleReuseDiseno = (config: any) => {
+    if (config.productId) setStatusProductId(config.productId)
+    if (config.style) setStatusStyle(config.style)
+    setGenerated(true)
+    // Scroll to generator section
+    document.getElementById('status-generator')?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const capturarStatusPreview = async (): Promise<string | null> => {
+    if (!statusPreviewRef.current || !generated) return null
+    try {
+      const dataUrl = await toPng(statusPreviewRef.current, { pixelRatio: 2, quality: 0.8 })
+      // Upload to storage for persistence
+      const res = await fetch(dataUrl)
+      const blob = await res.blob()
+      const file = new File([blob], `diseno-${Date.now()}.png`, { type: 'image/png' })
+      const supabase = createClient()
+      const filePath = `disenos/${Date.now()}-${Math.random().toString(36).substring(7)}.png`
+      const { error: uploadError } = await supabase.storage.from('img_products').upload(filePath, file)
+      if (uploadError) return null
+      const { data: urlData } = supabase.storage.from('img_products').getPublicUrl(filePath)
+      return urlData.publicUrl
+    } catch { return null }
   }
 
   const handleMiniaturaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -755,7 +805,7 @@ export default function CatalogoModalPage() {
 
               {/* Preview */}
               <div className="w-full lg:w-72 shrink-0 mx-auto">
-                <div className="relative aspect-[9/16] rounded-2xl overflow-hidden bg-gradient-to-b shadow-xl mx-auto max-w-[280px]"
+                <div ref={statusPreviewRef} className="relative aspect-[9/16] rounded-2xl overflow-hidden bg-gradient-to-b shadow-xl mx-auto max-w-[280px]"
                   style={generated && prodSel ? {} : undefined}
                 >
                   {generated && prodSel ? (
@@ -825,6 +875,18 @@ export default function CatalogoModalPage() {
             </div>
           )
         })()}
+      </div>
+
+      {/* ======================================================================= */}
+      {/* VITRINA DESIGN LIBRARY — Biblioteca de diseños guardados                            */}
+      {/* ======================================================================= */}
+      <div id="disenos-library" className="pt-3 sm:pt-6">
+        <DisenosLibrary
+          onReuse={handleReuseDiseno}
+          currentConfig={statusConfigActual}
+          capturarPreview={capturarStatusPreview}
+          saveLabel="Guardar estado actual"
+        />
       </div>
 
       {/* ======================================================================= */}

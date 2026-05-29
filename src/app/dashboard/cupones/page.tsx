@@ -5,6 +5,9 @@ import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 import { getTiendaIdFromCookie } from '@/lib/cookie-utils'
 
+// DYNAMIC DASHBOARD FIX: Prevent static prerender — requires runtime Supabase session
+export const dynamic = 'force-dynamic'
+
 interface Cupon {
   id: string
   store_id: string

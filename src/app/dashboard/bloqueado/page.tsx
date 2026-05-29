@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react'
 
+// DYNAMIC DASHBOARD FIX: Prevent static prerender — requires runtime Supabase session
+export const dynamic = 'force-dynamic'
+
 export default function BloqueadoPage() {
   const [whatsapp, setWhatsapp] = useState('18299999999')
 

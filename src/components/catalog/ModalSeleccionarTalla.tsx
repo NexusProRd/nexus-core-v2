@@ -82,13 +82,13 @@ export default function ModalSeleccionarTalla({ producto, monedaSimbolo = 'RD$',
                 <button
                   onClick={() => !agotado && setSeleccionada(v.talla)}
                   disabled={agotado}
-                  className={`px-4 py-2.5 text-sm font-semibold rounded-xl border-2 transition-all ${
-                    seleccion
-                      ? 'bg-violet-600 text-white border-violet-600 shadow-md'
-                      : agotado
-                        ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed line-through'
-                        : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300 hover:text-violet-600'
-                  }`}
+                   className={`px-4 py-2.5 text-sm font-semibold rounded-xl border-2 transition-all ${
+                     seleccion
+                       ? 'bg-[var(--primary)] text-white border-[var(--primary)] shadow-md'
+                       : agotado
+                         ? 'bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed line-through'
+                         : 'bg-white text-slate-600 border-slate-200 hover:border-[var(--primary)]/40 hover:text-[var(--primary)]'
+                   }`}
                 >
                   {esCalzado ? `#${v.talla}` : v.talla}
                 </button>
@@ -106,7 +106,7 @@ export default function ModalSeleccionarTalla({ producto, monedaSimbolo = 'RD$',
         <button
           onClick={() => seleccionada && onConfirm(seleccionada, selectedVariant?.precio ?? null)}
           disabled={!seleccionada || variants.length === 0}
-          className="w-full py-3 rounded-xl bg-violet-600 text-white font-bold text-sm hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
+          className="w-full py-3 rounded-xl bg-[var(--primary)] text-white font-bold text-sm hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
         >
           {seleccionada
             ? `Confirmar y Añadir (${label}: ${seleccionada})`

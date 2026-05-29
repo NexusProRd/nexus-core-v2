@@ -9,6 +9,9 @@ import { getTiendaIdFromCookie } from '@/lib/cookie-utils'
 import { usePermisos } from '@/context/PermisosContext'
 import { optimizarImagen } from '@/lib/image'
 
+// DYNAMIC DASHBOARD FIX: Prevent static prerender — requires runtime Supabase session
+export const dynamic = 'force-dynamic'
+
 async function apiPerfil(method: 'GET' | 'POST', body?: any) {
   const res = await fetch('/api/perfil', {
     method,

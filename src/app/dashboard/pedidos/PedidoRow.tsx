@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { actualizarEstado } from './actions'
 import { formatearPrecio } from '@/lib/utils'
 import TicketPedido from './TicketPedido'
 import { usePermisos } from '@/context/PermisosContext'
 import { useToast } from '@/components/Toast'
+import { reemplazarVars } from './PedidosLista'
 
 interface DetallePedido {
   id: string
@@ -50,23 +51,27 @@ const STEPS = [
   { key: 'entregado', label: 'Entregado', icon: '✅' },
 ]
 
-const STATUS_ACTIONS: Record<string, { label: string; estado: string; cls: string; icon: string; waMsg?: (p: Pedido, codigo: string) => string }> = {
+const STATUS_ACTIONS: Record<string, { label: string; estado: string; cls: string; icon: string; templateKey?: string; defaultMsg?: string }> = {
   pendiente: {
     label: 'Aceptar', estado: 'en_proceso',
     cls: 'bg-emerald-600 hover:bg-emerald-700 text-white',
     icon: '✓',
-    waMsg: (p, c) => `🛍️ *¡Hola!* Tu pedido *#${c}* ya fue recibido y lo estamos preparando. 🚀 En breve te avisaremos cuando vaya de camino... 🙌🔥`,
+    templateKey: 'confirmado',
+    defaultMsg: '¡Hola {cliente}! 🎉 Tu pedido {pedido} ha sido confirmado. En breve comenzaremos a prepararlo.',
   },
   en_proceso: {
     label: 'En Camino', estado: 'en_camino',
     cls: 'bg-purple-600 hover:bg-purple-700 text-white',
     icon: '🛵',
-    waMsg: (p, c) => `🛍️ *¡Hola, ${p.cliente_nombre}!* Tu pedido *#${c}* ya va en camino. 🛵 El mensajero se pondrá en contacto contigo muy pronto para la entrega. ¡Gracias por elegirnos! 🙌✨`,
+    templateKey: 'en_camino',
+    defaultMsg: '¡Hola {cliente}! 🚴‍♂️ Tu pedido {pedido} va en camino. Pronto lo recibirás.',
   },
   en_camino: {
     label: 'Entregar', estado: 'entregado',
     cls: 'bg-emerald-600 hover:bg-emerald-700 text-white',
     icon: '✅',
+    templateKey: 'entregado',
+    defaultMsg: '¡Hola {cliente}! ✅ Tu pedido {pedido} ha sido entregado. ¡Gracias por confiar en {tienda}! 🙌',
   },
   entregado: {
     label: 'Devolver', estado: 'devuelto',
@@ -75,13 +80,14 @@ const STATUS_ACTIONS: Record<string, { label: string; estado: string; cls: strin
   },
 }
 
-export default function PedidoRow({ pedido }: { pedido: Pedido }) {
+export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido: Pedido; plantillas?: Record<string, string>; tiendaNombre?: string }) {
   const { permisos } = usePermisos()
   const { toast } = useToast()
   const [abierto, setAbierto] = useState(false)
   const [detalles, setDetalles] = useState<DetallePedido[] | null>(null)
   const [cargando, setCargando] = useState(false)
   const [accionando, setAccionando] = useState<string | null>(null)
+  const formResubmitRef = useRef(false)
 
   const cfg = STATUS_CONFIG[pedido.estado as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pendiente
 
@@ -112,6 +118,7 @@ export default function PedidoRow({ pedido }: { pedido: Pedido }) {
 
   const items = detalles || []
   const totalDetalles = items.reduce((s, d) => s + d.precio_unitario * d.cantidad, 0)
+  const detallesStr = items.map(d => `${d.cantidad}x ${d.productos?.nombre || d.producto}`).join(', ')
 
   const handleSendMagicLink = async () => {
     if (!pedido.cliente_telefono) { toast('Este pedido no tiene número de teléfono', 'warning'); return }
@@ -317,20 +324,37 @@ export default function PedidoRow({ pedido }: { pedido: Pedido }) {
             <div className="flex gap-2 mt-4 flex-wrap">
               {pedido.estado === 'pendiente' ? (
                 <>
-                  <form action={actualizarEstado}>
-                    <input type="hidden" name="pedidoId" value={pedido.id} />
-                    <input type="hidden" name="estado" value="en_proceso" />
-                    <button type="submit" onClick={() => {
+                  <button
+                    onClick={async () => {
+                      setAccionando('en_proceso')
                       const telefono = pedido.cliente_telefono?.replace(/\D/g, '')
-                      if (!telefono) return
-                      window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(`🛍️ *¡Hola!* Tu pedido *#${codigoReal}* ya fue recibido y lo estamos preparando. 🚀 En breve te avisaremos cuando vaya de camino... 🙌🔥`)}`, '_blank')
+                      if (telefono) {
+                        const raw = plantillas?.confirmado || '¡Hola {cliente}! 🎉 Tu pedido {pedido} ha sido confirmado. En breve comenzaremos a prepararlo.'
+                        const msg = reemplazarVars(raw, {
+                          cliente: pedido.cliente_nombre,
+                          pedido: `#${codigoReal}`,
+                          tienda: tiendaNombre || '',
+                          detalles: detallesStr,
+                          total: `RD$${formatearPrecio(pedido.total)}`,
+                          fecha: new Date(pedido.creado_at).toLocaleDateString('es-DO'),
+                        })
+                        window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(msg)}`, '_blank')
+                      }
+                      const supabase = createClient()
+                      await supabase.from('pedidos').update({ estado: 'en_proceso' }).eq('id', pedido.id)
+                      setAccionando(null)
+                      toast('Pedido marcado como «Preparando»', 'success')
                     }}
-                      className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition-all press-scale-sm shadow-sm shadow-emerald-600/20"
-                    >
+                    disabled={accionando === 'en_proceso'}
+                    className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition-all press-scale-sm shadow-sm shadow-emerald-600/20 disabled:opacity-50"
+                  >
+                    {accionando === 'en_proceso' ? (
+                      <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                    ) : (
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                      Aceptar
-                    </button>
-                  </form>
+                    )}
+                    {accionando === 'en_proceso' ? 'Aceptando...' : 'Aceptar'}
+                  </button>
                   <form action={actualizarEstado}>
                     <input type="hidden" name="pedidoId" value={pedido.id} />
                     <input type="hidden" name="estado" value="rechazado" />
@@ -357,8 +381,17 @@ export default function PedidoRow({ pedido }: { pedido: Pedido }) {
                     onClick={async () => {
                       setAccionando(action.estado)
                       const telefono = pedido.cliente_telefono?.replace(/\D/g, '')
-                      if (telefono && action.waMsg) {
-                        window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(action.waMsg(pedido, codigoReal))}`, '_blank')
+                      if (telefono) {
+                        const raw = plantillas?.[action.templateKey || ''] || action.defaultMsg || ''
+                        const msg = reemplazarVars(raw, {
+                          cliente: pedido.cliente_nombre,
+                          pedido: `#${codigoReal}`,
+                          tienda: tiendaNombre || '',
+                          detalles: detallesStr,
+                          total: `RD$${formatearPrecio(pedido.total)}`,
+                          fecha: new Date(pedido.creado_at).toLocaleDateString('es-DO'),
+                        })
+                        window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(msg)}`, '_blank')
                       }
                       const supabase = createClient()
                       await supabase.from('pedidos').update({ estado: action.estado }).eq('id', pedido.id)
@@ -376,7 +409,25 @@ export default function PedidoRow({ pedido }: { pedido: Pedido }) {
                     {accionando === action.estado ? 'Actualizando...' : action.label}
                   </button>
                 ) : (
-                  <form action={actualizarEstado}>
+                  <form action={actualizarEstado} onSubmit={async (e) => {
+                    if (formResubmitRef.current) { formResubmitRef.current = false; return }
+                    e.preventDefault()
+                    const telefono = pedido.cliente_telefono?.replace(/\D/g, '')
+                    if (telefono) {
+                      const raw = plantillas?.[action.templateKey || ''] || action.defaultMsg || ''
+                      const msg = reemplazarVars(raw, {
+                        cliente: pedido.cliente_nombre,
+                        pedido: `#${codigoReal}`,
+                        tienda: tiendaNombre || '',
+                        detalles: detallesStr,
+                        total: `RD$${formatearPrecio(pedido.total)}`,
+                        fecha: new Date(pedido.creado_at).toLocaleDateString('es-DO'),
+                      })
+                      window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(msg)}`, '_blank')
+                    }
+                    formResubmitRef.current = true
+                    setTimeout(() => { (e.target as HTMLFormElement).requestSubmit() }, 300)
+                  }}>
                     <input type="hidden" name="pedidoId" value={pedido.id} />
                     <input type="hidden" name="estado" value={action.estado} />
                     <button type="submit"

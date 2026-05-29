@@ -8,6 +8,7 @@ interface ConfigContextType {
   colorSecundario: string
   logoUrl: string | null
   bannerUrl: string | null
+  slogan: string
   nombreTienda: string
   mensajeBienvenida: string
   whatsappNumber: string
@@ -43,6 +44,7 @@ interface ConfigProviderProps {
     nombre_comercial: string | null
     logo_url: string | null
     banner_url: string | null
+    slogan?: string | null
     color_primario: string | null
     mensaje_bienvenida: string | null
     whatsapp_numero: string | null
@@ -65,6 +67,7 @@ export function ConfigProvider({ children, idTienda, initialConfig, monedaSimbol
   const [colorSecundario, setColorSecundario] = useState('#8B5CF6')
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [bannerUrl, setBannerUrl] = useState<string | null>(null)
+  const [slogan, setSlogan] = useState('')
   const [nombreTienda, setNombreTienda] = useState('Mi Tienda')
   const [mensajeBienvenida, setMensajeBienvenida] = useState('¡Bienvenido a nuestra tienda!')
   const [whatsappNumber, setWhatsappNumber] = useState('')
@@ -106,6 +109,9 @@ export function ConfigProvider({ children, idTienda, initialConfig, monedaSimbol
       }
       if (initialConfig.banner_url) {
         setBannerUrl(initialConfig.banner_url)
+      }
+      if (initialConfig.slogan) {
+        setSlogan(initialConfig.slogan)
       }
       if (initialConfig.mensaje_bienvenida) {
         setMensajeBienvenida(initialConfig.mensaje_bienvenida)
@@ -151,6 +157,7 @@ export function ConfigProvider({ children, idTienda, initialConfig, monedaSimbol
     colorSecundario: mounted ? colorSecundario : '#8B5CF6',
     logoUrl: mounted ? logoUrl : null,
     bannerUrl: mounted ? bannerUrl : null,
+    slogan: mounted ? slogan : '',
     nombreTienda: mounted ? nombreTienda : 'Mi Tienda',
     mensajeBienvenida: mounted ? mensajeBienvenida : '¡Bienvenido!',
     whatsappNumber: mounted ? whatsappNumber : '',

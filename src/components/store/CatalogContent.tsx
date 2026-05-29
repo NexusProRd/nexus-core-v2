@@ -31,7 +31,7 @@ const navItems: { id: TabId; label: string; icon: string }[] = [
 ]
 
 export default function CatalogContent({ id_tienda, productos, openCart }: Props) {
-  const { logoUrl, nombreTienda, mensajeBienvenida, whatsappNumber, monedaSimbolo, instagramUrl, facebookUrl, tiktokUrl, mapsUrl, tipoNegocio } = useConfig()
+  const { logoUrl, bannerUrl, slogan, nombreTienda, mensajeBienvenida, whatsappNumber, monedaSimbolo, instagramUrl, facebookUrl, tiktokUrl, mapsUrl, tipoNegocio } = useConfig()
   const { setIsOpen, totalItems } = useCart()
 
   const searchParams = useSearchParams()
@@ -227,6 +227,8 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
         {activeTab === 'inicio' && (
           <TabInicio
             logoUrl={logoUrl}
+            bannerUrl={bannerUrl}
+            slogan={slogan}
             nombreTienda={nombreTienda}
             mensajeBienvenida={mensajeBienvenida}
             whatsappNumber={whatsappNumber}

@@ -3,27 +3,25 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 
+// DYNAMIC DASHBOARD FIX: Prevent static prerender — requires runtime Supabase session
+export const dynamic = 'force-dynamic'
+
 interface RegaloItem {
   id: string
-  store_id: string
-  tipo: 'ticket' | 'regalo'
   codigo: string
+  tipo: string
+  estado: string
+  fecha: string
   productos: string[]
   de: string
   para: string
-  mensaje: string
-  estado: 'activo' | 'canjeado' | 'pendiente' | 'vencido' | 'rechazado' | 'cancelado'
   cliente: string
-  fecha: string
 }
 
 const estadoConfig: Record<string, { label: string; cls: string }> = {
-  activo: { label: 'Activo', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
-  canjeado: { label: 'Canjeado', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  pendiente: { label: 'Pendiente', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  vencido: { label: 'Vencido', cls: 'bg-slate-100 text-slate-500 border-slate-200' },
-  rechazado: { label: 'Rechazado', cls: 'bg-rose-50 text-rose-600 border-rose-200' },
-  cancelado: { label: 'Cancelado', cls: 'bg-slate-100 text-slate-500 border-slate-200' },
+  activo: { label: 'Activo', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  canjeado: { label: 'Canjeado', cls: 'bg-slate-50 text-slate-500 border-slate-200' },
+  expirado: { label: 'Expirado', cls: 'bg-rose-50 text-rose-600 border-rose-200' },
 }
 
 export default function RegalosPage() {

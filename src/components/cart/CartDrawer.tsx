@@ -14,6 +14,7 @@ interface CartDrawerProps {
 
 export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideCheckout }: CartDrawerProps) {
   const { items, isOpen, setIsOpen, removeFromCart, updateQuantity, clearCart, totalPrice, totalItems } = useCart()
+  const { monedaSimbolo } = useConfig()
   const [nombreCliente, setNombreCliente] = useState('')
   const [telefonoCliente, setTelefonoCliente] = useState('')
   const [notas, setNotas] = useState('')
@@ -37,13 +38,13 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
         mensaje += `📅 ${item.nombre} - Reserva\n`
       } else if (item.modo_venta === 'libra' && item.peso_libras) {
         const subtotal = Number(item.precio) * item.peso_libras * item.cantidad
-        mensaje += `- ${item.nombre} (${item.peso_libras} lb - Equivalente a RD$${formatearPrecio(Number(item.precio) * item.peso_libras)}) x${item.cantidad} = RD$${formatearPrecio(subtotal)}\n`
+        mensaje += `- ${item.nombre} (${item.peso_libras} lb - Equivalente a ${monedaSimbolo}${formatearPrecio(Number(item.precio) * item.peso_libras)}) x${item.cantidad} = ${monedaSimbolo}${formatearPrecio(subtotal)}\n`
       } else {
-        mensaje += `- ${item.nombre} x${item.cantidad} = RD$${formatearPrecio(Number(item.precio) * item.cantidad)}\n`
+        mensaje += `- ${item.nombre} x${item.cantidad} = ${monedaSimbolo}${formatearPrecio(Number(item.precio) * item.cantidad)}\n`
       }
     })
 
-    mensaje += `\n*💰 Total General: RD$${formatearPrecio(totalPrice)}*`
+    mensaje += `\n*💰 Total General: ${monedaSimbolo}${formatearPrecio(totalPrice)}*`
     mensaje += `\n\n👤 *Cliente:* ${nombreCliente}`
     if (telefonoCliente) mensaje += `\n📞 *Teléfono:* ${telefonoCliente}`
     if (notas.trim()) mensaje += `\n📝 *Notas:* ${notas.trim()}`
@@ -160,9 +161,9 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
                     ) : (
                       <>
                         {item.modo_venta === 'libra' && item.peso_libras ? (
-                          <p className="text-[var(--primary)] font-bold">RD${formatearPrecio(Number(item.precio) * item.peso_libras)} <span className="text-[11px] font-normal text-slate-400">({item.peso_libras} lb)</span></p>
+                          <p className="text-[var(--primary)] font-bold">{monedaSimbolo}{formatearPrecio(Number(item.precio) * item.peso_libras)} <span className="text-[11px] font-normal text-slate-400">({item.peso_libras} lb)</span></p>
                         ) : (
-                          <p className="text-[var(--primary)] font-bold">RD${formatearPrecio(item.precio)}</p>
+                          <p className="text-[var(--primary)] font-bold">{monedaSimbolo}{formatearPrecio(item.precio)}</p>
                         )}
                         {item.variante_seleccionada && <span className="text-[11px] text-violet-600 font-medium mt-0.5 block">📏 Talla: {item.variante_seleccionada}</span>}
                       </>
@@ -233,7 +234,7 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
             </div>
             <div className="flex justify-between items-center mb-4">
               <span className="text-slate-600 font-medium">Total:</span>
-              <span className="text-2xl font-bold text-[var(--primary)]">RD${formatearPrecio(totalPrice)}</span>
+              <span className="text-2xl font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(totalPrice)}</span>
             </div>
             <button
               onClick={handleCheckout}

@@ -173,8 +173,8 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
     msg += `*Orden:* ${orderId}\n`
     msg += `*Cliente:* ${quickBuyName.trim()}\n`
     msg += `*Contacto:* ${quickBuyPhone.trim()}\n\n`
-    msg += `*Producto(s):* ${nombreConSize} (x${quantity}) = RD$${formatearPrecio(precioActivo)} c/u\n\n`
-    msg += `*Total a Cobrar: RD$${formatearPrecio(total)}*\n\n`
+    msg += `*Producto(s):* ${nombreConSize} (x${quantity}) = ${monedaSimbolo}${formatearPrecio(precioActivo)} c/u\n\n`
+    msg += `*Total a Cobrar: ${monedaSimbolo}${formatearPrecio(total)}*\n\n`
     msg += `Por favor, quedo atento para realizar la cotización del envío. ¡Muchas gracias!`
 
     setBuying(false)

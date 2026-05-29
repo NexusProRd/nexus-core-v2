@@ -7,6 +7,7 @@ interface PerfilTienda {
   nombre_comercial: string | null
   logo_url: string | null
   banner_url: string | null
+  slogan?: string | null
   color_primario: string | null
   mensaje_bienvenida: string | null
   whatsapp_numero: string | null

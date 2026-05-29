@@ -149,26 +149,36 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
 
   const margin = (p: Producto) => p.precio > 0 ? ((p.precio - (p.costo_compra || 0)) / p.precio * 100).toFixed(1) : '-'
 
-  // INVENTORY UX PASS
-  const statsResumen = useMemo(() => ({
-    total: productos.length,
-    activos: productos.filter(p => p.in_stock && p.stock > 0).length,
-    agotados: productos.filter(p => !p.in_stock || p.stock === 0).length,
-    bajoStock: productos.filter(p => p.in_stock && p.stock > 0 && p.stock <= 5).length,
-    sinImagen: productos.filter(p => !p.imagen_url).length,
-  }), [productos])
+  const kpiMetrics = useMemo(() => {
+    const activos = productos.filter(p => p.in_stock && p.stock > 0)
+    const sinStock = productos.filter(p => !p.in_stock || p.stock === 0)
+    const valorTotal = productos.reduce((sum, p) => sum + (p.precio * p.stock), 0)
+    const margenes = productos.filter(p => p.precio > 0).map(p => ((p.precio - (p.costo_compra || 0)) / p.precio) * 100)
+    const margenPromedio = margenes.length > 0 ? margenes.reduce((a, b) => a + b, 0) / margenes.length : 0
+    return { activos: activos.length, sinStock: sinStock.length, valorTotal, margenPromedio }
+  }, [productos])
+
+  const stockCritico = useMemo(() => {
+    return productos.filter(p => p.in_stock && p.stock > 0 && p.stock <= 3).slice(0, 5)
+  }, [productos])
+
+  const stockTextColor = (s: number) => {
+    if (s > 10) return 'text-emerald-600 dark:text-emerald-400'
+    if (s >= 4) return 'text-amber-600 dark:text-amber-400'
+    return 'text-rose-600 dark:text-rose-400'
+  }
 
   const renderStockCell = (p: Producto) => {
     const objects = Array.isArray(p.tallas) ? p.tallas.filter(t => typeof t === 'object') as TallaVariant[] : []
     if (objects.length === 0) {
-      return <span className={`font-semibold ${p.stock <= 5 ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>{p.stock}</span>
+      return <span className={`font-semibold ${stockTextColor(p.stock)}`}>{p.stock}</span>
     }
     if (filtroTalla) {
       const variant = objects.find(t => t.talla === filtroTalla)
       const sv = variant ? variant.stock : 0
       return (
         <div>
-          <span className={`font-semibold ${sv <= 3 ? 'text-red-600 dark:text-red-400' : 'text-slate-700 dark:text-slate-300'}`}>
+          <span className={`font-semibold ${stockTextColor(sv)}`}>
             {filtroTalla}: {sv} unids
           </span>
         </div>
@@ -177,7 +187,7 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
     return (
       <div className="text-xs leading-tight flex flex-wrap gap-x-1.5">
         {objects.map(t => (
-          <span key={t.talla} className={`${t.stock <= 0 ? 'text-slate-300 dark:text-slate-600 line-through' : t.stock <= 3 ? 'text-red-500 dark:text-red-400 font-bold' : 'text-slate-600 dark:text-slate-400'}`}>
+          <span key={t.talla} className={`${t.stock <= 0 ? 'text-slate-300 dark:text-slate-600 line-through' : stockTextColor(t.stock)}`}>
             {t.talla}({t.stock})
           </span>
         ))}
@@ -199,31 +209,87 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
     URL.revokeObjectURL(url)
   }
 
+  const stockColor = (s: number) => {
+    if (s > 10) return { dot: 'bg-emerald-500', badge: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/50' }
+    if (s >= 4) return { dot: 'bg-amber-500', badge: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/50' }
+    return { dot: 'bg-rose-500', badge: 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800/50' }
+  }
+
   return (
     <div className="min-h-screen">
-      {/* INVENTORY UX PASS */}
+      {/* Header */}
       <header className="bg-white dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-700">
-        <div className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Inventario</h1>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{productos.length} producto{productos.length !== 1 ? 's' : ''} registrado{productos.length !== 1 ? 's' : ''}</p>
+        <div className="max-w-7xl mx-auto py-4 sm:py-6 px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Inventario</h1>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{productos.length} producto{productos.length !== 1 ? 's' : ''} registrado{productos.length !== 1 ? 's' : ''}</p>
+            </div>
           </div>
-          {(permisos === null || permisos.productos) && (
-            <button onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[var(--primary)] text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shrink-0 shadow-sm press-scale-sm">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Agregar Producto
-            </button>
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3.5 shadow-sm">
+              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Productos activos</p>
+              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{kpiMetrics.activos}</p>
+            </div>
+            <div className="bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3.5 shadow-sm">
+              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Sin stock</p>
+              <p className={`text-2xl font-bold mt-1 ${kpiMetrics.sinStock > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-800 dark:text-slate-200'}`}>{kpiMetrics.sinStock}</p>
+            </div>
+            <div className="bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3.5 shadow-sm">
+              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Valor inventario</p>
+              <p className="text-2xl font-bold text-slate-800 dark:text-slate-200 mt-1">RD$ {formatearPrecio(kpiMetrics.valorTotal)}</p>
+            </div>
+            <div className="bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3.5 shadow-sm">
+              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Margen promedio</p>
+              <p className={`text-2xl font-bold mt-1 ${kpiMetrics.margenPromedio >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{kpiMetrics.margenPromedio.toFixed(1)}%</p>
+            </div>
+          </div>
+          {/* Stock Crítico Alertas */}
+          {stockCritico.length > 0 && (
+            <div className="mt-3 bg-rose-50 dark:bg-rose-900/10 border border-rose-200 dark:border-rose-800/30 rounded-xl px-4 py-3">
+              <div className="flex items-center gap-2 mb-2">
+                <svg className="w-4 h-4 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span className="text-sm font-bold text-rose-700 dark:text-rose-400">Stock Crítico</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {stockCritico.map(p => (
+                  <span key={p.id} className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-700 dark:text-rose-400 bg-white dark:bg-slate-800/60 px-2.5 py-1 rounded-lg border border-rose-200 dark:border-rose-800/50">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01" /></svg>
+                    {p.nombre} ({p.stock} unid{p.stock !== 1 ? 'ades' : 'ad'})
+                  </span>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto py-4 sm:py-6 px-3 sm:px-6 lg:px-8">
         <div className="space-y-4">
-          {/* Buscador + filtros */}
-          <div className="flex flex-wrap gap-2">
+          {/* Acciones Rápidas + Buscador + filtros */}
+          <div className="flex flex-wrap items-center gap-2">
+            {(permisos === null || permisos.productos) && (
+              <button onClick={() => setShowAddModal(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-[var(--primary)] text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shrink-0 shadow-sm press-scale-sm">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                Nuevo Producto
+              </button>
+            )}
+            {(permisos === null || permisos.productos) && (
+              <button onClick={() => setImportOpen(true)}
+                className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors shrink-0 press-scale-sm">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+                Importar
+              </button>
+            )}
+            {(permisos === null || permisos.productos) && (
+              <button onClick={exportarCSV}
+                className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors shrink-0 press-scale-sm">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                Exportar
+              </button>
+            )}
             <div className="relative flex-1 min-w-[200px]">
               <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -244,50 +310,6 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
                 <option value="" className="dark:bg-[#121216] dark:text-white">Todas las tallas</option>
                 {todasLasTallas.map(t => <option key={t} value={t} className="dark:bg-[#121216] dark:text-white">{t}</option>)}
               </select>
-            )}
-            <div className="flex gap-2">
-              {(permisos === null || permisos.productos) && <>
-              <button onClick={() => setImportOpen(true)}
-                className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors shrink-0 press-scale-sm">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-                Importar
-              </button>
-              <button onClick={exportarCSV}
-                className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors shrink-0 press-scale-sm">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                Exportar
-              </button>
-              </>}
-            </div>
-          </div>
-
-          {/* INVENTORY UX PASS: Summary stats */}
-          <div className="flex flex-wrap items-center gap-2.5 text-xs">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">
-              <span className="font-bold text-slate-900 dark:text-white">{statsResumen.total}</span>
-              <span className="text-slate-500 dark:text-slate-400">Total</span>
-            </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50">
-              <span className="font-bold text-emerald-700 dark:text-emerald-400">{statsResumen.activos}</span>
-              <span className="text-emerald-600 dark:text-emerald-500">Activos</span>
-            </div>
-            {statsResumen.agotados > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800/50">
-                <span className="font-bold text-rose-700 dark:text-rose-400">{statsResumen.agotados}</span>
-                <span className="text-rose-600 dark:text-rose-500">Agotados</span>
-              </div>
-            )}
-            {statsResumen.bajoStock > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/50">
-                <span className="font-bold text-amber-700 dark:text-amber-400">{statsResumen.bajoStock}</span>
-                <span className="text-amber-600 dark:text-amber-500">Bajo stock</span>
-              </div>
-            )}
-            {statsResumen.sinImagen > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800/50">
-                <span className="font-bold text-violet-700 dark:text-violet-400">{statsResumen.sinImagen}</span>
-                <span className="text-violet-600 dark:text-violet-500">Sin imagen</span>
-              </div>
             )}
           </div>
 
@@ -365,7 +387,7 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
             )}
           </div>
 
-          {/* INVENTORY UX PASS: Desktop table */}
+          {/* Desktop table */}
           <div className="hidden md:block bg-white dark:bg-slate-800/40 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200 dark:divide-[#1e1e26]">
@@ -388,19 +410,20 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
                 <tbody className="bg-white dark:bg-transparent divide-y divide-slate-100 dark:divide-slate-700/50">
                   {filtrados.map(p => {
                     const agotado = !p.in_stock || p.stock === 0
-                    const bajoStock = p.in_stock && p.stock > 0 && p.stock <= 5
+                    const activo = p.in_stock && p.stock > 0
+                    const sc = activo ? stockColor(p.stock) : null
                     const sinImagen = !p.imagen_url
                     return (
-                    <tr key={p.id} className={`hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors ${agotado ? 'opacity-70' : ''}`}>
-                      <td className="px-4 py-3">
+                    <tr key={p.id} className={`hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-all duration-150 ${agotado ? 'opacity-60' : ''}`}>
+                      <td className="px-4 py-2.5">
                         <input type="checkbox" checked={seleccionados.has(p.id)} onChange={() => toggleSeleccion(p.id)}
                           className="w-4 h-4 rounded border-slate-300 text-[var(--primary)] focus:ring-[var(--primary)]" />
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2.5">
                         <div className="flex items-center gap-3">
                           <div className="shrink-0 relative">
-                            {p.imagen_url ? <img src={p.imagen_url} alt={p.nombre} className="w-10 h-10 object-cover rounded-xl ring-1 ring-slate-200 dark:ring-slate-700" />
-                            : <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700/50 rounded-xl flex items-center justify-center ring-1 ring-slate-200 dark:ring-slate-700">
+                            {p.imagen_url ? <img src={p.imagen_url} alt={p.nombre} className="w-9 h-9 object-cover rounded-lg ring-1 ring-slate-200 dark:ring-slate-700" />
+                            : <div className="w-9 h-9 bg-slate-100 dark:bg-slate-700/50 rounded-lg flex items-center justify-center ring-1 ring-slate-200 dark:ring-slate-700">
                                 <svg className="w-4 h-4 text-slate-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                 {sinImagen && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-violet-400 border-2 border-white dark:border-slate-800" />}
                               </div>}
@@ -415,38 +438,41 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-sm whitespace-nowrap">
+                      <td className="px-4 py-2.5 text-sm whitespace-nowrap">
                         {p.categoria
                           ? <span className="inline-block text-[11px] font-medium text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 px-2 py-0.5 rounded-full">{p.categoria}</span>
                           : <span className="text-slate-400 dark:text-slate-500">—</span>}
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-4 py-2.5 whitespace-nowrap">
                         <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">RD$ {formatearPrecio(p.precio)}</div>
                         {p.precio_oferta && <div className="text-[11px] text-rose-600 dark:text-rose-400 font-medium">Oferta: RD$ {formatearPrecio(p.precio_oferta)}</div>}
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">RD$ {formatearPrecio(p.costo_compra || 0)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-4 py-2.5 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">RD$ {formatearPrecio(p.costo_compra || 0)}</td>
+                      <td className="px-4 py-2.5 whitespace-nowrap">
                         <span className={`text-sm font-semibold ${parseFloat(margin(p)) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{margin(p)}%</span>
                       </td>
-                      <td className="px-4 py-3 text-sm whitespace-nowrap">
+                      <td className="px-4 py-2.5 text-sm whitespace-nowrap">
                         <div className="flex items-center gap-2">
-                          {agotado && <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />}
-                          {bajoStock && !agotado && <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />}
-                          {!agotado && !bajoStock && <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />}
+                          {sc && <span className={`w-2 h-2 rounded-full ${sc.dot} shrink-0`} />}
                           {renderStockCell(p)}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-4 py-2.5 text-center">
                         <div className="flex items-center justify-center gap-2">
+                          {activo && sc && (
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${sc.badge}`}>
+                              {p.stock > 10 ? 'Stock OK' : p.stock >= 4 ? 'Stock Medio' : 'Stock Bajo'}
+                            </span>
+                          )}
+                          {agotado && <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-2 py-0.5 rounded-full">Agotado</span>}
                           <form action={toggleStock.bind(null, p.id, !p.in_stock)}>
                             <button type="submit" className={`relative w-9 h-5 rounded-full transition-colors ${p.in_stock ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}>
                               <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${p.in_stock ? 'translate-x-[18px]' : 'translate-x-0.5'}`} />
                             </button>
                           </form>
-                          {agotado && <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-500/10 px-1.5 py-0.5 rounded-full">Agotado</span>}
                         </div>
                       </td>
-                      {(permisos === null || permisos.productos) && <td className="px-4 py-3 text-center"><ProductoActions producto={p} categorias={categorias} onDelete={(id) => setProductos(prev => prev.filter(x => x.id !== id))} /></td>}
+                      {(permisos === null || permisos.productos) && <td className="px-4 py-2.5 text-center"><ProductoActions producto={p} categorias={categorias} onDelete={(id) => setProductos(prev => prev.filter(x => x.id !== id))} /></td>}
                     </tr>
                     )
                   })}

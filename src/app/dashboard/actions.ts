@@ -2,6 +2,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { cookies } from 'next/headers'
+import { calcularMetricasDashboard, calcularTodasLasMetricas } from './dashboard-metrics'
 
 export async function recalcularDashboard(tiendaId: string) {
   const cookieStore = await cookies()
@@ -13,11 +14,10 @@ export async function recalcularDashboard(tiendaId: string) {
   const { supabase } = createAdminClient()
   if (!supabase) return { error: 'Error de conexión' }
 
-  const hoy = new Date()
-  const hoyISO = hoy.toISOString().split('T')[0]
-  const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).toISOString()
+  const hoyStr = new Date().toISOString().split('T')[0]
+  const inicioHoy = `${hoyStr}T00:00:00.000Z`
 
-  const [pedidosRes, productosRes, regalosCountRes, giftsHoyRes] = await Promise.all([
+  const [pedidosRes, productosRes, perfilRes, modalRes, regalosCountRes, giftsHoyRes] = await Promise.all([
     supabase
       .from('pedidos')
       .select('id, cliente_nombre, total, estado, creado_at, detalles_pedido')
@@ -27,6 +27,16 @@ export async function recalcularDashboard(tiendaId: string) {
       .from('productos')
       .select('nombre, stock, id')
       .eq('id_tienda', tiendaId),
+    supabase
+      .from('perfil_tienda')
+      .select('whatsapp_numero')
+      .eq('id_tienda', tiendaId)
+      .maybeSingle(),
+    supabase
+      .from('nexus_catalogo_modal')
+      .select('activo')
+      .eq('id_tienda', tiendaId)
+      .maybeSingle(),
     supabase
       .from('gift_experiences')
       .select('*', { count: 'exact', head: true })
@@ -42,6 +52,8 @@ export async function recalcularDashboard(tiendaId: string) {
 
   const pedidos = pedidosRes.data || []
   const productos = productosRes.data || []
+  const perfil = perfilRes.data
+  const modalConfig = modalRes.data
   const regalosPendientes = regalosCountRes.count || 0
   const giftsAprobadosHoy = giftsHoyRes.data || []
 
@@ -50,32 +62,27 @@ export async function recalcularDashboard(tiendaId: string) {
     return sum + items.reduce((s, i) => s + Number(i.precio || 0), 0)
   }, 0)
 
-  const pedidosHoy = pedidos.filter(p => {
-    if (!p.creado_at) return false
-    const pedidoFecha = new Date(p.creado_at).toISOString().split('T')[0]
-    return pedidoFecha === hoyISO && p.estado !== 'cancelado' && p.estado !== 'rechazado'
-  })
-
-  let ventasPedidos = 0
-  for (const p of pedidosHoy) {
-    if (p.estado !== 'confirmado') continue
-    ventasPedidos += Number(p.total || 0)
-  }
-
-  const ventasHoy = ventasPedidos + ventasRegalos
-  const pendientes = pedidos.filter(p => p.estado === 'pendiente').length
-  const ultimosPedidos = pedidos.slice(0, 5)
+  const metricas = calcularMetricasDashboard(pedidos)
+  const ventasHoy = metricas.ventasHoy + ventasRegalos
   const stockBajo = productos
     .filter(p => Number(p.stock) > 0 && Number(p.stock) < 5)
     .sort((a, b) => a.stock - b.stock)
 
+  const metricasCompletas = calcularTodasLasMetricas(
+    pedidos,
+    ventasRegalos,
+    productos as { nombre: string; stock: number }[],
+    perfil?.whatsapp_numero || null,
+    modalConfig?.activo === true,
+  )
+
   return {
     ventasHoy,
-    pendientes,
-    pedidosHoy: pedidosHoy.length,
+    pendientes: metricas.pendientes,
+    pedidosHoy: metricas.pedidosHoyCount,
     regalosPendientes,
     stockBajo: stockBajo.map(p => ({ nombre: p.nombre, stock: p.stock, id: p.id })),
-    ultimosPedidos: ultimosPedidos.map(p => ({
+    ultimosPedidos: metricas.ultimosPedidos.map(p => ({
       id: p.id,
       cliente_nombre: p.cliente_nombre,
       total: p.total,
@@ -90,5 +97,7 @@ export async function recalcularDashboard(tiendaId: string) {
       creado_at: p.creado_at,
       detalles_pedido: p.detalles_pedido,
     })),
+    metricasCompletas,
+    productos: productos.map(p => ({ nombre: p.nombre, stock: p.stock })),
   }
 }

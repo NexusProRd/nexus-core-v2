@@ -2,7 +2,12 @@
 // WHATSAPP EXPERIENCE: plantillas de mensajes personalizables por estado del pedido
 'use client'
 
+// DYNAMIC DASHBOARD FIX: Prevent static prerender — requires runtime Supabase session
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { createClient } from '@/lib/supabase'
+import { getTiendaIdFromCookie } from '@/lib/cookie-utils'
 
 type EstadoPlantilla = 'confirmado' | 'preparando' | 'en_camino' | 'entregado'
 
@@ -50,10 +55,10 @@ const VARIABLES = [
   { key: '{pedido}', label: 'Pedido #', ejemplo: '#1024' },
   { key: '{tienda}', label: 'Tienda', ejemplo: 'Mi Tienda' },
   { key: '{detalles}', label: 'Detalles', ejemplo: '1x Pizza + 2x Refresco' },
+  { key: '{productos}', label: 'Productos', ejemplo: '1x Pizza + 2x Refresco' },
   { key: '{total}', label: 'Total', ejemplo: 'RD$1,500' },
+  { key: '{fecha}', label: 'Fecha', ejemplo: '15/01/2026' },
 ]
-
-const STORAGE_PREFIX = 'nexus_whatsapp_template_'
 
 function reemplazarVariables(texto: string): string {
   return texto
@@ -61,7 +66,9 @@ function reemplazarVariables(texto: string): string {
     .replace(/{pedido}/g, '#1024')
     .replace(/{tienda}/g, 'Mi Tienda')
     .replace(/{detalles}/g, '1x Pizza + 2x Refresco')
+    .replace(/{productos}/g, '1x Pizza + 2x Refresco')
     .replace(/{total}/g, 'RD$1,500')
+    .replace(/{fecha}/g, new Date().toLocaleDateString('es-DO'))
 }
 
 function iconoEstado(icon: string, className: string) {
@@ -127,26 +134,102 @@ export default function WhatsAppPage() {
   const [activa, setActiva] = useState<EstadoPlantilla>('confirmado')
   const [mensajes, setMensajes] = useState<Record<string, string>>({})
   const [copiado, setCopiado] = useState(false)
+  const [guardando, setGuardando] = useState(false)
+  const [mostrarGuardado, setMostrarGuardado] = useState(false)
+  const [tieneCambios, setTieneCambios] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const saveTimerRef = useRef<NodeJS.Timeout>(undefined)
+  const mensajesRef = useRef(mensajes)
+  mensajesRef.current = mensajes
 
-  // WHATSAPP EXPERIENCE: cargar plantillas desde localStorage
+  // WHATSAPP EXPERIENCE: cargar plantillas desde Supabase
   useEffect(() => {
-    const guardados: Record<string, string> = {}
-    for (const p of PLANTILLAS) {
-      const val = localStorage.getItem(STORAGE_PREFIX + p.id)
-      if (val) guardados[p.id] = val
-    }
-    setMensajes(guardados)
+    let cancel = false
+    ;(async () => {
+      const sid = await getTiendaIdFromCookie()
+      if (!sid || cancel) return
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('whatsapp_templates')
+        .select('confirmado, preparando, en_camino, entregado')
+        .eq('store_id', sid)
+        .maybeSingle()
+      if (cancel) return
+      const cargados: Record<string, string> = {}
+      if (data) {
+        for (const p of PLANTILLAS) {
+          if (data[p.id as keyof typeof data]) cargados[p.id] = data[p.id as keyof typeof data]
+        }
+      }
+      setMensajes(cargados)
+    })()
+    return () => { cancel = true }
   }, [])
 
-  // WHATSAPP EXPERIENCE: guardar en localStorage al editar
-  const actualizarMensaje = useCallback((id: EstadoPlantilla, texto: string) => {
-    setMensajes(prev => {
-      const next = { ...prev, [id]: texto }
-      localStorage.setItem(STORAGE_PREFIX + id, texto)
-      return next
-    })
+  const guardarTodas = useCallback(async (todas: Record<string, string>) => {
+    const sid = await getTiendaIdFromCookie()
+    if (!sid) throw new Error('No se pudo identificar la tienda')
+    const supabase = createClient()
+    const { data: existing } = await supabase
+      .from('whatsapp_templates')
+      .select('id')
+      .eq('store_id', sid)
+      .maybeSingle()
+    const payload = {
+      confirmado: todas.confirmado || '',
+      preparando: todas.preparando || '',
+      en_camino: todas.en_camino || '',
+      entregado: todas.entregado || '',
+      updated_at: new Date().toISOString(),
+    }
+    if (existing) {
+      const { error } = await supabase.from('whatsapp_templates').update(payload).eq('store_id', sid)
+      if (error) throw error
+    } else {
+      const { error } = await supabase.from('whatsapp_templates').insert({ store_id: sid, ...payload })
+      if (error) throw error
+    }
   }, [])
+
+  // WHATSAPP EXPERIENCE: guardar en Supabase al editar (debounced)
+  const actualizarMensaje = useCallback((id: EstadoPlantilla, texto: string) => {
+    const next = { ...mensajesRef.current, [id]: texto }
+    setMensajes(next)
+    setTieneCambios(true)
+    setSaveError(null)
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    saveTimerRef.current = setTimeout(async () => {
+      setGuardando(true)
+      try {
+        await guardarTodas(next)
+        setGuardando(false)
+        setTieneCambios(false)
+        setMostrarGuardado(true)
+        setTimeout(() => setMostrarGuardado(false), 2000)
+      } catch (e) {
+        setGuardando(false)
+        setSaveError('Error al guardar')
+      }
+    }, 500)
+  }, [guardarTodas])
+
+  const guardarAhora = useCallback(async () => {
+    if (guardando || !tieneCambios) return
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+    setGuardando(true)
+    setSaveError(null)
+    try {
+      await guardarTodas(mensajesRef.current)
+      setGuardando(false)
+      setTieneCambios(false)
+      setMostrarGuardado(true)
+      setTimeout(() => setMostrarGuardado(false), 2000)
+    } catch (e) {
+      setGuardando(false)
+      setSaveError('Error al guardar')
+    }
+  }, [guardarTodas, guardando, tieneCambios])
 
   // WHATSAPP EXPERIENCE: insertar variable en textarea
   const insertarVariable = useCallback((varKey: string) => {
@@ -267,9 +350,37 @@ export default function WhatsAppPage() {
                 </>
               )}
             </button>
-            <span className="text-[11px] text-slate-400 dark:text-slate-500">
-              Guardado automáticamente
-            </span>
+            {saveError ? (
+              <span className="text-[11px] text-rose-600 dark:text-rose-400 font-semibold flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Error al guardar
+              </span>
+            ) : guardando ? (
+              <span className="text-[11px] text-amber-500 flex items-center gap-1">
+                <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                Guardando…
+              </span>
+            ) : mostrarGuardado ? (
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                Guardado correctamente
+              </span>
+            ) : tieneCambios ? (
+              <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                Cambios pendientes
+              </span>
+            ) : (
+              <span className="text-[11px] text-slate-400 dark:text-slate-500">
+                Guardado automáticamente
+              </span>
+            )}
+            <button onClick={guardarAhora} disabled={guardando || !tieneCambios}
+              className="ml-auto flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 dark:disabled:bg-slate-700 text-white disabled:text-slate-400 dark:disabled:text-slate-500 text-xs font-bold transition-all shadow-sm disabled:shadow-none"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
+              Guardar Cambios
+            </button>
           </div>
         </div>
 
@@ -333,8 +444,7 @@ export default function WhatsAppPage() {
       {/* WHATSAPP EXPERIENCE: Footer info */}
       <div className="rounded-2xl bg-white/50 dark:bg-slate-800/20 border border-dashed border-slate-200 dark:border-slate-700 p-4 sm:p-5 text-center">
         <p className="text-xs text-slate-400 dark:text-slate-500">
-          Los mensajes se guardan automáticamente en el navegador. <br className="sm:hidden" />
-          La automatización real con WhatsApp API estará disponible próximamente.
+          Los mensajes se guardan automáticamente y se usan al cambiar el estado de un pedido.
         </p>
       </div>
     </div>

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { cookies, headers } from 'next/headers'
 import { getSessionFromCookieValue } from '@/lib/auth/get-session'
 import DashboardClient from './DashboardClient'
+import { calcularMetricasDashboard, calcularTodasLasMetricas } from './dashboard-metrics'
 
 export default async function DashboardPage() {
   const { supabase } = createAdminClient()
@@ -27,57 +28,64 @@ export default async function DashboardPage() {
 
   const { data: perfil } = await supabase
     .from('perfil_tienda')
-    .select('nombre_comercial, whatsapp_numero')
+    .select('nombre_comercial, whatsapp_numero, logo_url')
     .eq('id_tienda', tienda.id)
     .single()
 
-  const hoy = new Date()
-  const hoyISO = hoy.toISOString().split('T')[0]
-  const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate()).toISOString()
+  const hoyStr = new Date().toISOString().split('T')[0]
+  const inicioHoy = `${hoyStr}T00:00:00.000Z`
 
-  const { data: pedidos } = await supabase
-    .from('pedidos')
-    .select('id, cliente_nombre, total, estado, creado_at, detalles_pedido')
-    .eq('id_tienda', tienda.id)
-    .order('creado_at', { ascending: false })
+  const [pedidosRes, productosRes, modalRes, regalosCountRes, giftsHoyRes] = await Promise.all([
+    supabase
+      .from('pedidos')
+      .select('id, cliente_nombre, total, estado, creado_at, detalles_pedido')
+      .eq('id_tienda', tienda.id)
+      .order('creado_at', { ascending: false }),
+    supabase
+      .from('productos')
+      .select('nombre, stock, id')
+      .eq('id_tienda', tienda.id),
+    supabase
+      .from('nexus_catalogo_modal')
+      .select('activo')
+      .eq('id_tienda', tienda.id)
+      .maybeSingle(),
+    supabase
+      .from('gift_experiences')
+      .select('*', { count: 'exact', head: true })
+      .eq('store_id', tienda.id)
+      .eq('status', 'pending'),
+    supabase
+      .from('gift_experiences')
+      .select('items_list')
+      .eq('store_id', tienda.id)
+      .eq('status', 'approved')
+      .gte('created_at', inicioHoy),
+  ])
 
-  const { data: productos } = await supabase
-    .from('productos')
-    .select('nombre, stock, id')
-    .eq('id_tienda', tienda.id)
-
-  const { count: regalosPendientes } = await supabase
-    .from('gift_experiences')
-    .select('*', { count: 'exact', head: true })
-    .eq('store_id', tienda.id)
-    .eq('status', 'pending')
-
-  const { data: giftsAprobadosHoy } = await supabase
-    .from('gift_experiences')
-    .select('items_list')
-    .eq('store_id', tienda.id)
-    .eq('status', 'approved')
-    .gte('created_at', inicioHoy)
+  const pedidos = pedidosRes.data || []
+  const productos = productosRes.data || []
+  const modalConfig = modalRes.data
+  const regalosPendientes = regalosCountRes.count || 0
+  const giftsAprobadosHoy = giftsHoyRes.data || []
 
   const ventasRegalos = (giftsAprobadosHoy || []).reduce((sum, g) => {
     const items = (g.items_list as { precio: number }[]) || []
     return sum + items.reduce((s, i) => s + Number(i.precio || 0), 0)
   }, 0)
 
-  const pedidosHoy = pedidos?.filter(p => {
-    if (!p.creado_at) return false
-    const pedidoFecha = new Date(p.creado_at).toISOString().split('T')[0]
-    return pedidoFecha === hoyISO && p.estado !== 'cancelado' && p.estado !== 'rechazado'
-  }) || []
+  const metricas = calcularMetricasDashboard(pedidos || [])
+  const metricasCompletas = calcularTodasLasMetricas(
+    pedidos || [],
+    ventasRegalos,
+    (productos || []) as { nombre: string; stock: number }[],
+    perfil?.whatsapp_numero || null,
+    modalConfig?.activo === true,
+  )
 
-  const ventasPedidos = pedidosHoy
-    .filter(p => p.estado === 'confirmado')
-    .reduce((s, p) => s + Number(p.total || 0), 0)
-
-  const ventasHoy = ventasPedidos + ventasRegalos
-  const pendientes = pedidos?.filter(p => p.estado === 'pendiente').length || 0
-  const ultimosPedidos = pedidos?.slice(0, 5) || []
   const stockBajo = productos?.filter(p => Number(p.stock) < 5).sort((a, b) => a.stock - b.stock) || []
+  const productosActivos = productos?.filter(p => Number(p.stock) > 0).length || 0
+  const productosSinStock = productos?.filter(p => Number(p.stock) === 0).slice(0, 5) || []
 
   const tipoNegocio = tienda.tipo_negocio || 'estandar'
   let tallasStockBajo: { producto: string; tallas: string[] }[] = []
@@ -114,13 +122,17 @@ export default async function DashboardPage() {
       tipoNegocio={tipoNegocio}
       tallasStockBajo={tallasStockBajo}
       initialStats={{
-        ventasHoy,
-        pendientes,
-        pedidosHoy: pedidosHoy.length,
+        ventasHoy: metricasCompletas.ventasHoy,
+        pendientes: metricas.pendientes,
+        pedidosHoy: metricas.pedidosHoyCount,
         regalosPendientes: regalosPendientes || 0,
         stockBajo,
-        ultimosPedidos,
+        ultimosPedidos: metricas.ultimosPedidos,
+        productosActivos,
+        productosAgotados: metricasCompletas.productosAgotados,
+        productosSinStock,
       }}
+      metricasCompletas={metricasCompletas}
     />
   )
 }
