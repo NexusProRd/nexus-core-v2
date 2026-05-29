@@ -872,6 +872,39 @@ export default function PccTiendasPage() {
           </div>
         )}
 
+        {/* Token Recarga Modal */}
+        {tokenModal.abierto && (
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
+            onClick={() => setTokenModal({ abierto: false, tiendaId: '', nombreTienda: '' })}>
+            <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-slate-200/80 relative overflow-hidden" onClick={e => e.stopPropagation()}>
+              <ModalBokeh />
+              <div className="text-center mb-5">
+                <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-amber-100 flex items-center justify-center">
+                  <span className="text-2xl">🪙</span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">Recargar Tokens</h3>
+                <p className="text-sm text-gray-500 mt-1">{tokenModal.nombreTienda}</p>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Cantidad de tokens (meses)</label>
+                  <input type="number" min={1} value={tokenInput}
+                    onChange={e => setTokenInput(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-full px-4 py-3 text-center text-2xl font-extrabold text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none" />
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => setTokenModal({ abierto: false, tiendaId: '', nombreTienda: '' })}
+                    className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Cancelar</button>
+                  <button onClick={handleRecargarTokens} disabled={enviandoTokens || tokenInput <= 0}
+                    className="flex-1 py-2.5 bg-amber-600 text-white rounded-xl text-sm font-bold hover:bg-amber-700 disabled:opacity-50 transition-colors shadow-sm">
+                    {enviandoTokens ? 'Recargando...' : '🪙 Recargar'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Recuperación Modal */}
         {recuperacionModal.abierto && recuperacionModal.tienda && (
           <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
