@@ -755,7 +755,7 @@ export default function DashboardLayout({
                 )}
               </svg>
             </button>
-            <button onClick={() => { document.cookie = 'nx_session=; path=/; max-age=0'; document.cookie = 'nx_colaborador=; path=/; max-age=0'; window.location.href = '/login' }}
+            <button onClick={async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.href = '/login' }}
               className="p-2 text-white/40 hover:text-rose-400 rounded-xl hover:bg-rose-500/10 transition-all press-scale-sm">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -834,7 +834,7 @@ export default function DashboardLayout({
                   Configuración Avanzada
                 </Link>
                 <div className="border-t border-white/30 dark:border-white/[0.06] my-1" />
-                <button onClick={() => { document.cookie = 'nx_session=; path=/; max-age=0'; document.cookie = 'nx_colaborador=; path=/; max-age=0'; window.location.href = '/login' }}
+                <button onClick={async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.href = '/login' }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-rose-500/10 text-sm font-medium text-rose-600 hover:text-rose-700 transition-all press-scale-sm">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

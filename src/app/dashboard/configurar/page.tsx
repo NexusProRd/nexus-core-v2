@@ -629,7 +629,7 @@ export default function ConfigurarPage() {
               <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Cerrar Sesión</p>
               <p className="text-xs text-slate-500">Sal de tu cuenta de forma segura.</p>
             </div>
-            <button onClick={() => { document.cookie = 'nx_session=; path=/; max-age=0'; router.push('/login') }}
+            <button onClick={async () => { await fetch('/api/auth/logout', { method: 'POST' }); router.push('/login') }}
               className="px-5 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-bold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors shrink-0">
               Cerrar Sesión
             </button>
