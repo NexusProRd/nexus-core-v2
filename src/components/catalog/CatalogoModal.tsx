@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, memo } from 'react'
 
 export interface CatalogoModalConfig {
   tipo: 'personalizado' | 'plantilla'
@@ -118,7 +118,7 @@ function isDark(template: string) {
   return template !== 'premium' && template !== 'clean' && template !== 'tropical' && template !== 'rustico' && template !== 'pastel'
 }
 
-function PlantillaPreview({ config, tiendaNombre, logoUrl, onCtaClick }: {
+const PlantillaPreview = memo(function PlantillaPreview({ config, tiendaNombre, logoUrl, onCtaClick }: {
   config: CatalogoModalConfig
   tiendaNombre: string
   logoUrl: string | null
@@ -144,9 +144,10 @@ function PlantillaPreview({ config, tiendaNombre, logoUrl, onCtaClick }: {
         ) : (
           <p className="text-sm text-slate-400">Sin imagen</p>
         )}
-      </div>
-    )
-  }
+    </div>
+  )
+}
+
 
   const titleStyle: React.CSSProperties = {
     fontFamily: font,
@@ -162,10 +163,9 @@ function PlantillaPreview({ config, tiendaNombre, logoUrl, onCtaClick }: {
       style={{ boxShadow: 'inset 0 0 80px rgba(0,0,0,0.35)' }}>
       {/* Ambient glow */}
       {tmpl !== 'clean' && (
-        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full opacity-15"
+        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full"
           style={{
-            background: prim,
-            filter: 'blur(80px)',
+            background: `radial-gradient(circle, ${prim}30 0%, ${prim}10 45%, transparent 65%)`,
           }} />
       )}
 
@@ -419,7 +419,7 @@ function PlantillaPreview({ config, tiendaNombre, logoUrl, onCtaClick }: {
       </div>
     </div>
   )
-}
+})
 
 export { ICONOS_ANUNCIO }
 

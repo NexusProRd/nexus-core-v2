@@ -147,7 +147,7 @@ export async function POST(req: Request) {
           // LEGACY COMPATIBILITY: signed token replaces raw id_tienda
           const token = await createSessionToken(col.id_tienda)
           res.cookies.set('nx_session', token, {
-            httpOnly: true, secure: false, sameSite: 'lax', path: '/', maxAge: 60 * 60 * 24 * 30,
+            httpOnly: true, secure: !isLocalhost, sameSite: 'lax', path: '/', maxAge: 60 * 60 * 24 * 30,
           })
           const colCookie = JSON.stringify({ id: col.id, permisos: col.permisos, nombre: col.nombre })
           res.cookies.set('nx_colaborador', colCookie, {
@@ -225,7 +225,7 @@ export async function POST(req: Request) {
   const token = await createSessionToken(tienda.id)
   res.cookies.set('nx_session', token, {
     httpOnly: true,
-    secure: false,
+    secure: !isLocalhost,
     sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60 * 24 * 30,
