@@ -99,6 +99,7 @@ export async function actualizarProducto(formData: FormData): Promise<{ success?
   const tiendaId = await getTiendaIdFromServerCookies()
   if (!tiendaId) return { error: 'No autenticado' }
   const id = formData.get('id') as string
+  console.log('[DIAG] actualizarProducto — id:', id, '| tiendaId:', tiendaId)
   const enOferta = formData.get('en_oferta_checkbox') === 'true'
   const precioOfertaRaw = formData.get('precio_oferta') as string
   const precioOferta = enOferta && precioOfertaRaw && parseFloat(precioOfertaRaw) > 0 ? parseFloat(precioOfertaRaw) : null
@@ -114,7 +115,7 @@ export async function actualizarProducto(formData: FormData): Promise<{ success?
   const codigoBarraUpdate = formData.get('codigo_barra') as string || ''
   const slugUpdate = await generarSlug(nombreUpdate, codigoBarraUpdate, admin.supabase, tiendaId, id)
 
-  const { error: updateError } = await admin.supabase.from('productos').update({
+  const payload = {
     nombre: nombreUpdate,
     slug: slugUpdate,
     descripcion: formData.get('descripcion') as string,
@@ -125,7 +126,15 @@ export async function actualizarProducto(formData: FormData): Promise<{ success?
     stock: usaVariantes ? tallas.reduce((sum: number, v: any) => sum + (v.stock || 0), 0) : (parseInt(formData.get('stock') as string) || 0),
     tipo_articulo: formData.get('tipo_articulo') as string || null,
     tallas: usaVariantes ? tallas : [],
-  }).eq('id', id).eq('id_tienda', tiendaId)
+  }
+  console.log('[DIAG] actualizarProducto — payload:', JSON.stringify(payload))
+
+  const { data: updatedRows, error: updateError } = await admin.supabase
+    .from('productos').update(payload)
+    .eq('id', id).eq('id_tienda', tiendaId)
+    .select()
+
+  console.log('[DIAG] actualizarProducto — updateError:', updateError, '| rowsAffected:', updatedRows?.length ?? 0)
 
   if (updateError) return { error: updateError.message }
 
