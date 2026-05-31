@@ -26,7 +26,7 @@ export async function GET() {
     short_name: 'Nexus PCC',
     description: 'Panel de Control Corporativo de Nexus',
     start_url: '/pcc',
-    scope: '/pcc/',
+    scope: '/pcc',
     display: 'standalone' as const,
     orientation: 'portrait-primary' as const,
     background_color: '#0f172a',

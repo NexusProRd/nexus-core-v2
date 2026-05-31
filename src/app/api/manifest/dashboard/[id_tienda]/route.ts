@@ -51,7 +51,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id_tien
     short_name: nombre,
     description: `Panel de administración de ${nombre}`,
     start_url: '/dashboard',
-    scope: '/dashboard/',
+    scope: '/dashboard',
     display: 'standalone' as const,
     orientation: 'portrait-primary' as const,
     background_color: '#f8fafc',
