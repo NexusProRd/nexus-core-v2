@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useTheme } from '@/context/ThemeContext'
@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase'
 import LoginVigiladoModal from './LoginVigiladoModal'
 import PwaRegister from '@/components/PwaRegister'
 import PwaInstallPrompt from '@/components/PwaInstallPrompt'
+import InstallAppButton from '@/components/InstallAppButton'
 
 const navItems = [
   {
@@ -45,28 +46,6 @@ export default function PccLayout({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false)
   const [authorized, setAuthorized] = useState<boolean | null>(null)
   const [landingLogo, setLandingLogo] = useState<string | null>(null)
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
-  const [pwaInstalled, setPwaInstalled] = useState(false)
-  const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent || '') && !(window as any).MSStream
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const mq = window.matchMedia('(display-mode: standalone)')
-    if (mq.matches || (window.navigator as any).standalone) { setPwaInstalled(true); return }
-    const handler = (e: Event) => { e.preventDefault(); setDeferredPrompt(e) }
-    window.addEventListener('beforeinstallprompt', handler)
-    window.addEventListener('appinstalled', () => setPwaInstalled(true))
-    return () => window.removeEventListener('beforeinstallprompt', handler)
-  }, [])
-
-  const handleInstallPwa = useCallback(async () => {
-    if (isIOS) return
-    if (!deferredPrompt) return
-    deferredPrompt.prompt()
-    const { outcome } = await deferredPrompt.userChoice
-    if (outcome === 'accepted') setPwaInstalled(true)
-    setDeferredPrompt(null)
-  }, [deferredPrompt, isIOS])
 
   useEffect(() => {
     fetch('/api/auth/pcc-check')
@@ -191,28 +170,7 @@ export default function PccLayout({ children }: { children: React.ReactNode }) {
             </div>
             {theme === 'light' ? 'Modo Oscuro' : 'Modo Claro'}
           </button>
-          {!pwaInstalled && !isIOS && deferredPrompt && (
-            <button onClick={handleInstallPwa}
-              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-transparent transition-all duration-200 mt-1">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              Instalar App
-            </button>
-          )}
-          {isIOS && !pwaInstalled && (
-            <button onClick={() => alert('Para instalar: toca Compartir → Agregar a Inicio')}
-              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 border border-transparent transition-all duration-200 mt-1">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              Instalar App
-            </button>
-          )}
+          <InstallAppButton variant="sidebar" />
           <button onClick={handleLogout}
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-900/20 border border-transparent transition-all duration-200 mt-1">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50 dark:bg-rose-900/20 text-rose-400">

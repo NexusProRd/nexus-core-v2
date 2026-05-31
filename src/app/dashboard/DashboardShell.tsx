@@ -18,6 +18,7 @@ const TIPOS: { value: NexusAnuncioTipo; label: string; icon: string; color: stri
 
 import PwaRegister from '@/components/PwaRegister'
 import PwaInstallPrompt from '@/components/PwaInstallPrompt'
+import InstallAppButton from '@/components/InstallAppButton'
 import { SessionProvider, usePermisos } from '@/context/PermisosContext'
 import ToastProvider from '@/components/Toast'
 
@@ -144,6 +145,9 @@ function SidebarDesktop() {
             )
           })}
         </nav>
+        <div className="px-3 pb-3">
+          <InstallAppButton variant="sidebar" />
+        </div>
     </aside>
   )
 }
@@ -856,6 +860,7 @@ export default function DashboardLayout({
                   </svg>
                   Configuración Avanzada
                 </Link>
+                <InstallAppButton variant="sidebar" />
                 <div className="border-t border-white/30 dark:border-white/[0.06] my-1" />
                 <button onClick={async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.href = '/login' }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-rose-500/10 text-sm font-medium text-rose-600 hover:text-rose-700 transition-all press-scale-sm">

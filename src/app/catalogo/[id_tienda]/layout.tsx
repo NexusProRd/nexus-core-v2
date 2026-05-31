@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import PwaRegister from '@/components/PwaRegister'
 import PwaInstallPrompt from '@/components/PwaInstallPrompt'
+import InstallAppButton from '@/components/InstallAppButton'
 
 export async function generateMetadata({ params }: { params: Promise<{ id_tienda: string }> }): Promise<Metadata> {
   const { id_tienda } = await params
@@ -15,6 +16,7 @@ export default function CatalogoLayout({ children }: { children: React.ReactNode
       {children}
       <PwaRegister swUrl="/sw-catalogo.js" />
       <PwaInstallPrompt />
+      <InstallAppButton />
     </>
   )
 }
