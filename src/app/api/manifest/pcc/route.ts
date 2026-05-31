@@ -26,14 +26,18 @@ export async function GET() {
     short_name: 'Nexus PCC',
     description: 'Panel de Control Corporativo de Nexus',
     start_url: '/pcc',
+    scope: '/pcc/',
     display: 'standalone' as const,
     orientation: 'portrait-primary' as const,
     background_color: '#0f172a',
     theme_color: color,
+    prefer_related_applications: false,
     icons: [
       { src: logoUrl, sizes: '192x192', type: iconType },
       { src: logoUrl, sizes: '512x512', type: iconType },
       { src: '/pwa-icon.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'monochrome' },
+      { src: '/pwa-icon-192.png', sizes: '192x192', type: 'image/png' },
+      { src: '/pwa-icon-512.png', sizes: '512x512', type: 'image/png' },
     ],
   }
 

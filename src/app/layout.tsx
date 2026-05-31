@@ -60,6 +60,8 @@ export default function RootLayout({
       className={`${inter.variable} ${jetbrainsMono.variable} ${playfair.variable} ${orbitron.variable} ${pacifico.variable} ${quicksand.variable} ${bebas.variable} h-full antialiased`}
     >
       <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <script dangerouslySetInnerHTML={{
           __html: `
             (function(){
