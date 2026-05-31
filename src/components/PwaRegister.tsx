@@ -22,7 +22,9 @@ export default function PwaRegister({ swUrl, manifestUrl, logoUrl }: { swUrl: st
     }
     if (appleTouchIcon) {
       const existing = document.querySelector('link[rel="apple-touch-icon"]')
-      if (!existing) {
+      if (existing) {
+        existing.setAttribute('href', appleTouchIcon)
+      } else {
         const link = document.createElement('link')
         link.rel = 'apple-touch-icon'
         link.sizes = '180x180'
