@@ -7,9 +7,13 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
 
+const STORAGE_KEY = 'nexus_install_cta_dismissed_at'
+const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000
+
 export default function InstallAppButton({ variant = 'pill' }: { variant?: 'pill' | 'sidebar' }) {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [installed, setInstalled] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
   const [showModal, setShowModal] = useState(false)
 
   const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent || '') && !(window as any).MSStream
@@ -17,10 +21,21 @@ export default function InstallAppButton({ variant = 'pill' }: { variant?: 'pill
   useEffect(() => {
     if (typeof window === 'undefined') return
 
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      const time = parseInt(stored, 10)
+      if (!isNaN(time) && Date.now() - time < COOLDOWN_MS) {
+        setDismissed(true)
+        return
+      }
+      localStorage.removeItem(STORAGE_KEY)
+    }
+
     const check = () => {
       const mq = window.matchMedia('(display-mode: standalone)')
       if (mq.matches || (window.navigator as any).standalone) {
         setInstalled(true)
+        localStorage.removeItem(STORAGE_KEY)
       }
     }
 
@@ -36,7 +51,10 @@ export default function InstallAppButton({ variant = 'pill' }: { variant?: 'pill
     }
     window.addEventListener('beforeinstallprompt', handler)
 
-    const installedHandler = () => setInstalled(true)
+    const installedHandler = () => {
+      setInstalled(true)
+      localStorage.removeItem(STORAGE_KEY)
+    }
     window.addEventListener('appinstalled', installedHandler)
 
     return () => {
@@ -47,18 +65,38 @@ export default function InstallAppButton({ variant = 'pill' }: { variant?: 'pill
     }
   }, [])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const onDismiss = () => setDismissed(true)
+    window.addEventListener('nexus-cta-dismiss', onDismiss)
+    const onInstalled = () => {
+      setInstalled(true)
+      localStorage.removeItem(STORAGE_KEY)
+    }
+    window.addEventListener('appinstalled', onInstalled)
+
+    return () => {
+      window.removeEventListener('nexus-cta-dismiss', onDismiss)
+      window.removeEventListener('appinstalled', onInstalled)
+    }
+  }, [])
+
   const handleClick = useCallback(async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt()
       const { outcome } = await deferredPrompt.userChoice
-      if (outcome === 'accepted') setInstalled(true)
+      if (outcome === 'accepted') {
+        setInstalled(true)
+        localStorage.removeItem(STORAGE_KEY)
+      }
       setDeferredPrompt(null)
     } else if (isIOS) {
       setShowModal(true)
     }
   }, [deferredPrompt, isIOS])
 
-  if (installed) return null
+  if (installed || dismissed) return null
 
   const btnClass = variant === 'sidebar'
     ? 'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200'
@@ -76,7 +114,14 @@ export default function InstallAppButton({ variant = 'pill' }: { variant?: 'pill
         <svg className={variant === 'sidebar' ? 'w-4 h-4 shrink-0' : 'w-5 h-5 shrink-0'} fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
-        Instalar App
+        <span className="flex-1">Instalar App</span>
+        <span onClick={(e) => { e.stopPropagation(); setDismissed(true); localStorage.setItem(STORAGE_KEY, String(Date.now())); window.dispatchEvent(new CustomEvent('nexus-cta-dismiss')) }}
+          className="shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-[10px] cursor-pointer transition-all"
+          style={{ backgroundColor: variant === 'sidebar' ? 'transparent' : 'rgba(0,0,0,0.15)' }}
+          onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.25)' }}
+          onMouseLeave={e => { e.currentTarget.style.backgroundColor = variant === 'sidebar' ? 'transparent' : 'rgba(0,0,0,0.15)' }}>
+          ✕
+        </span>
       </button>
 
       {showModal && (
