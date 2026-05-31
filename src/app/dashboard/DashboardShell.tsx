@@ -18,6 +18,7 @@ const TIPOS: { value: NexusAnuncioTipo; label: string; icon: string; color: stri
 
 import PwaRegister from '@/components/PwaRegister'
 import InstallAppButton from '@/components/InstallAppButton'
+import PushSubscribeButton from '@/components/PushSubscribeButton'
 import { SessionProvider, usePermisos } from '@/context/PermisosContext'
 import ToastProvider from '@/components/Toast'
 
@@ -67,7 +68,7 @@ export function useOrderAlert() {
   return useContext(OrderAlertContext)
 }
 
-function SidebarDesktop() {
+function SidebarDesktop({ tiendaId }: { tiendaId?: string }) {
   const { esDueno, nombreColaborador, permisos } = usePermisos()
   const pathname = usePathname()
 
@@ -144,8 +145,9 @@ function SidebarDesktop() {
             )
           })}
         </nav>
-        <div className="px-3 pb-3">
+        <div className="px-3 pb-3 space-y-1">
           <InstallAppButton variant="sidebar" />
+          <PushSubscribeButton idTienda={tiendaId} />
         </div>
     </aside>
   )
@@ -754,7 +756,7 @@ export default function DashboardLayout({
       <ToastProvider>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#0a0a0d] dark:via-[#0c0c10] dark:to-[#0e0e14]">
         {/* MOTION SYSTEM PASS: Animations moved to globals.css — no inline style block needed */}
-        <SidebarDesktop />
+        <SidebarDesktop tiendaId={tiendaId ?? undefined} />
         {/* Top header */}
         <header className="fixed top-0 left-0 right-0 z-40 bg-[#0c0c10]/80 backdrop-blur-2xl border-b border-white/[0.06] px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">

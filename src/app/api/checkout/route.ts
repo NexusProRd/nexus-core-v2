@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { gestionarStock } from '@/lib/stock'
+import { sendPushToTienda } from '@/lib/push'
 import { NextRequest, NextResponse } from 'next/server'
 
 function idProductoReal(item: any): string | null {
@@ -258,6 +259,12 @@ export async function POST(req: NextRequest) {
         .eq('order_id', originalOrderId)
     }
   }
+
+  sendPushToTienda(idTienda, {
+    title: '¡Nuevo pedido!',
+    body: `Cliente: ${nombreCliente.trim()} — $${total.toLocaleString('es-DO')}`,
+    data: { url: '/dashboard/pedidos', id_pedido: pedido.id, id_tienda: idTienda },
+  }).catch(() => {})
 
   return NextResponse.json({ pedido: { id: pedido.id, total, order_id: orderId } })
 }

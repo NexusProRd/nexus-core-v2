@@ -54,3 +54,32 @@ self.addEventListener('fetch', (e) => {
 
   e.respondWith(fetch(req))
 })
+
+self.addEventListener('push', (e) => {
+  const data = e.data?.json() ?? {}
+
+  self.registration.showNotification(data.title || 'Nuevo pedido', {
+    body: data.body,
+    icon: data.icon || '/pwa-icon-192.png',
+    badge: '/pwa-icon-192.png',
+    data: { url: data.url || '/dashboard/pedidos' },
+    vibrate: [200, 100, 200],
+  })
+})
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close()
+
+  const url = e.notification.data?.url || '/dashboard/pedidos'
+
+  clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    for (const client of clientList) {
+      if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+        client.focus()
+        client.navigate(url)
+        return
+      }
+    }
+    clients.openWindow(self.location.origin + url)
+  })
+})

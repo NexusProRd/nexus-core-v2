@@ -168,6 +168,12 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
 
     localStorage.setItem(`nexus-last-order-${idTienda}`, pedido.id)
 
+    fetch('/api/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id_tienda: idTienda, cliente_nombre: quickBuyName.trim(), total, id_pedido: pedido.id }),
+    }).catch(() => {})
+
     const numeroLimpio = whatsappNumber?.replace(/\D/g, '') || ''
     let msg = `🛍️ *¡Nuevo Pedido desde ${nombreTienda || 'el Catálogo'}!*\n\n`
     msg += `*Orden:* ${orderId}\n`

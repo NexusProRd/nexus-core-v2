@@ -128,6 +128,12 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
 
     localStorage.setItem(`nexus-last-order-${idTienda}`, pedido.id)
 
+    fetch('/api/push/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id_tienda: idTienda, cliente_nombre: buyName.trim(), total, id_pedido: pedido.id }),
+    }).catch(() => {})
+
     const msg = `🛍️ *¡Nuevo Pedido desde ${nombreTienda || 'el Catálogo'}!*\n\n`
       + `*Orden:* ${orderId}\n`
       + `*Cliente:* ${buyName.trim()}\n`
