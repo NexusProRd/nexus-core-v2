@@ -329,6 +329,7 @@ export default function DashboardLayout({
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [landingLogoUrl, setLandingLogoUrl] = useState('')
+  const [storeLogoUrl, setStoreLogoUrl] = useState<string | null>(null)
   const [anuncios, setAnuncios] = useState<NexusAnuncio[]>([])
   const [anunciosDescartados, setAnunciosDescartados] = useState<Set<string>>(new Set())
   const [bloqueado, setBloqueado] = useState(false)
@@ -434,7 +435,7 @@ export default function DashboardLayout({
 
           const { data: pref } = await getSupabase()
             .from('perfil_tienda')
-            .select('theme_config')
+            .select('theme_config, logo_url')
             .eq('id_tienda', tienda.id)
             .maybeSingle()
           if (pref) {
@@ -442,6 +443,7 @@ export default function DashboardLayout({
               const config = pref.theme_config as { palette?: string }
               if (config.palette) applyPalette(getPalette(config.palette))
             }
+            if (pref.logo_url) setStoreLogoUrl(pref.logo_url)
           }
 
           try {
@@ -1197,7 +1199,7 @@ export default function DashboardLayout({
         )}
       </div>
       </ToastProvider>
-      <PwaRegister swUrl="/sw-dashboard.js" manifestUrl={tiendaId ? `/api/manifest/dashboard/${tiendaId}` : undefined} />
+      <PwaRegister swUrl="/sw-dashboard.js" manifestUrl={tiendaId ? `/api/manifest/dashboard/${tiendaId}` : undefined} logoUrl={storeLogoUrl} />
       <PwaInstallPrompt />
       <InstallAppButton />
     </OrderAlertContext.Provider>
