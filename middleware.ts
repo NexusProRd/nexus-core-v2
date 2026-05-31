@@ -3,11 +3,6 @@ import { getSessionFromCookieValue } from '@/lib/auth/get-session'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-
-  if (pathname === '/dashboard' || pathname === '/pcc') {
-    return NextResponse.redirect(new URL(pathname + '/', request.url))
-  }
-
   const rawSession = request.cookies.get('nx_session')?.value
   const session = await getSessionFromCookieValue(rawSession)
 
@@ -22,12 +17,12 @@ export async function middleware(request: NextRequest) {
   }
 
   if (pathname === '/login') {
-    return NextResponse.redirect(new URL('/dashboard/', request.url))
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
   return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/dashboard', '/login', '/onboarding', '/pcc', '/pcc/:path*'],
+  matcher: ['/dashboard/:path*', '/dashboard', '/login', '/onboarding'],
 }
