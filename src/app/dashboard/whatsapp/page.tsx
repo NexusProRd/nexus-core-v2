@@ -208,8 +208,9 @@ export default function WhatsAppPage() {
         setMostrarGuardado(true)
         setTimeout(() => setMostrarGuardado(false), 2000)
       } catch (e) {
+        console.error('[WHATSAPP_SAVE]', e)
         setGuardando(false)
-        setSaveError('Error al guardar')
+        setSaveError(e instanceof Error ? e.message : 'Error al guardar')
       }
     }, 500)
   }, [guardarTodas])

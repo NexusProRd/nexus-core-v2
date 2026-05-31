@@ -18,8 +18,8 @@
 | Estado | **Beta QA** — módulos funcionales, bugs conocidos, en pruebas |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | Sprint UX Inventario V2 — Fase 4 limpieza (May 30) |
-| Última verificación | 2026-05-30 — Sprint UX Inventario V2 completado |
+| Último commit | Sprint 2 Estabilización — portal, hover-lift, sticky footer, polling (May 30) |
+| Última verificación | 2026-05-30 — Sprint 2 Estabilización completado |
 
 ### Módulos
 
@@ -46,21 +46,19 @@
 
 ### Sprint completado
 
-**Sprint UX Inventario V2 — 4 fases ejecutadas**
+**Sprint UX Inventario V2 (4 fases) + Sprint 2 Estabilización**
 
 ### Estado
 
-**Completado.** Las 4 fases del Sprint UX Inventario V2 fueron implementadas y verificadas:
+**Completado.** Ambos sprints fueron ejecutados y verificados.
 
-| Fase | Objetivo | Estado |
-|------|----------|--------|
-| **Fase 1** | Auditoría UX y diseño de ProductoForm unificado | ✅ |
-| **Fase 2** | Implementación de ProductoForm + ProductoModal para crear producto | ✅ |
-| **Fase 3** | Migración de editar producto a ProductoForm(mode="edit") | ✅ |
-| **Fase 4** | Limpieza: ProductoActions → ProductoRowActions, SKU simplificado, CSV export con tallas | ✅ |
+**Sprint UX Inventario V2** — Formulario unificado, modal reutilizable, SKU autogenerado, CSV con tallas, refactor ProductoRowActions, bug P1 resuelto.
 
-### Logros
+**Sprint 2 Estabilización** — Migración completa de dependencias legacy, React Portal para modal, hover-lift removido, sticky footer simplificado, polling 30s.
 
+### Logros acumulados
+
+#### Sprint UX Inventario V2
 - **ProductoForm.tsx** — Formulario unificado crear/editar con soporte para estándar, ropa y boutique
 - **ProductoModal.tsx** — Modal reutilizable para crear y editar
 - **SKU único por producto** — SKU por variante autogenerado desde SKU principal + talla
@@ -70,13 +68,26 @@
 - **actualizarProducto** — Ahora soporta `imagen_url` en el payload (ausente antes)
 - **P1 Inventario resuelto** — El bug de edición no persistente fue corregido al migrar a ProductoForm
 
+#### Sprint 2 Estabilización
+- **FloatAddButton migrado** — Reemplazó inline modal + AgregarProductoForm por ProductoModal + ProductoForm(mode="create")
+- **QuickAddProduct migrado** — Misma migración; ahora acepta `tipoNegocio` prop
+- **AgregarProductoForm.tsx eliminado** — 496 líneas legacy removidas sin referencias
+- **DashboardClient.tsx** — Import no utilizado de QuickAddProduct removido
+- **Dashboard auto-refresh polling** — `setInterval(refrescarTodo, 30000)` como fallback junto a Supabase realtime
+- **Diagnóstico green switches completado** — Causa raíz: `hover-lift` con `translateY(-2px)` rompía `position: fixed` del modal
+- **hover-lift removido** — Eliminado de `InventarioClient.tsx:344` para evitar que cards contengan el modal fijo
+- **ProductoModal migrado a React Portal** — `createPortal(..., document.body)` libera el modal de ancestros con `transform`/`animation`. SSR seguro.
+- **Sticky footer simplificado** — Se eliminó `sticky bottom-0` del footer en ProductoForm; los botones aparecen naturalmente al final del formulario
+
 ### Próxima acción
 
-Iniciar Sprint 2 — Estabilización:
+Iniciar Sprint 3 — Pre-lanzamiento:
 1. Hooks violation P1 — investigar `React.memo(PlantillaPreview)` + React 19
-2. Dashboard auto-refresh — implementar polling cada 30s
-3. Migrar `FloatAddButton` y `QuickAddProduct` de `AgregarProductoForm` a `ProductoForm`
-4. Eliminar `AgregarProductoForm.tsx`
+2. WhatsApp templates modal — auditoría y fix
+3. Regalos historial — tabla completa con filtros
+4. PWA QA completo
+5. Cupones y Marketing — auditoría funcional
+6. E2E tests con Playwright para flujos críticos
 
 ### Bloqueadores
 
@@ -589,7 +600,25 @@ Se implementó `ProductoForm.tsx` que maneja ambos modos (`create` / `edit`) con
 | **Fecha** | Mayo 2026 (Sprint UX V2) |
 | **Decisión** | Unificar los 3 formularios de producto duplicados (AgregarProductoForm, ProductoActions inline, ProductoForm nuevo) en un solo componente `ProductoForm.tsx` con modo `create`/`edit`. |
 | **Motivo** | Eliminar duplicación de código que causaba bugs (P1 editar producto) y mantenimiento costoso. Centralizar lógica de variantes, SKU, imagen y oferta. |
-| **Impacto** | Bug P1 de edición resuelto. Código más mantenible. `ProductoRowActions.tsx` ahora es solo botones de fila. `AgregarProductoForm.tsx` legacy pendiente de migrar cuando FloatAddButton y QuickAddProduct se actualicen. |
+| **Impacto** | Bug P1 de edición resuelto. Código más mantenible. `ProductoRowActions.tsx` ahora es solo botones de fila. `AgregarProductoForm.tsx` legacy eliminado tras migrar FloatAddButton y QuickAddProduct. |
+
+### D013 — Modal en React Portal
+
+| Campo | Valor |
+|-------|-------|
+| **Fecha** | Mayo 2026 (Sprint 2 Estabilización) |
+| **Decisión** | Migrar `ProductoModal` a `createPortal(children, document.body)` en lugar de renderizar anidado en el DOM del dashboard. |
+| **Motivo** | El modal se contenía dentro de cards con `transform: translateY(-2px)` (hover-lift), lo que rompía `position: fixed`. El portal libera el modal de cualquier ancestro con `transform`, `perspective` o `filter`. |
+| **Impacto** | El modal renderiza fuera de la jerarquía del dashboard. Sin `useState`/`useEffect` (usa `typeof document !== 'undefined'` para SSR). Sin cambios en consumidores. |
+
+### D014 — hover-lift removido temporalmente
+
+| Campo | Valor |
+|-------|-------|
+| **Fecha** | Mayo 2026 (Sprint 2 Estabilización) |
+| **Decisión** | Eliminar `hover-lift:hover { transform: translateY(-2px) }` de las cards de producto en mobile (`InventarioClient.tsx:344`). |
+| **Motivo** | El efecto visual en cards mobile causaba que `position: fixed` del modal se contuviera dentro del card (el `transform` crea un nuevo stacking context). Aunque el portal resuelve el problema de raíz, se optó por eliminar también la causa directa. |
+| **Impacto** | Cards mobile pierden el efecto hover de elevación. Se eliminó temporalmente para validación; si se confirma que el portal es suficiente, no se restaurará. |
 
 ---
 
@@ -814,8 +843,10 @@ El catálogo público tiene capacidades PWA pero no se ha auditado:
 ### P2 — Regalos historial
 El módulo de regalos corporativos (`/dashboard/regalos`) solo tiene `page.tsx`. No hay historial completo, filtros ni acciones masivas.
 
-### P2 — Dashboard auto-refresh
-El dashboard no actualiza datos automáticamente. El usuario debe refrescar la página. Pendiente implementar polling o real-time subscriptions.
+### P2 — Dashboard auto-refresh (RESUELTO — Sprint 2 Estabilización)
+**Síntoma:** El dashboard no actualiza datos automáticamente. El usuario debe refrescar la página.
+**Fix:** Implementado `setInterval(refrescarTodo, 30000)` como fallback junto a la suscripción real-time de Supabase (canal `realtime_productos`). El polling garantiza actualización incluso si el canal real-time falla.
+**Estado:** ✅ Resuelto en Sprint 2 Estabilización.
 
 ### P3 — Banner Builder (post-beta)
 Feature completo pero oculto tras `BANNER_BUILDER_ENABLED=false`. Pendiente QA y habilitación.
@@ -920,7 +951,9 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 
 ## Roadmap Inmediato
 
-### Sprint completado — Sprint UX Inventario V2 (4 fases)
+### Sprint completado — Sprint UX Inventario V2 (4 fases) + Sprint 2 Estabilización
+
+**Sprint UX Inventario V2:**
 
 | Tarea | Estado |
 |-------|--------|
@@ -934,16 +967,30 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 | CSV export con columna tallas | ✅ |
 | Refactor `ProductoActions.tsx` → `ProductoRowActions.tsx` | ✅ |
 | Imagen editable en editar producto | ✅ (`imagen_url` agregado a `actualizarProducto`) |
-| Feedback visual (toast éxito/error) en crear y editar | ✅ (ya funcionaba) |
-| Migrar `FloatAddButton` y `QuickAddProduct` a ProductoForm | ⏳ Pendiente |
-| Eliminar `AgregarProductoForm.tsx` | ⏳ Pendiente (depende de migración previa) |
+| Feedback visual (toast éxito/error) en crear y editar | ✅ |
 
-### Sprint 2 — Estabilización
+**Sprint 2 Estabilización:**
+
+| Tarea | Estado |
+|-------|--------|
+| Migrar `FloatAddButton` y `QuickAddProduct` a ProductoForm | ✅ |
+| Eliminar `AgregarProductoForm.tsx` | ✅ |
+| Dashboard auto-refresh — polling 30s | ✅ |
+| ProductoModal migrado a React Portal | ✅ |
+| hover-lift removido (causa raíz green switches) | ✅ |
+| Sticky footer simplificado (Option A) | ✅ |
+| Mobile rendering fixes (margen, toggle, modal overflow) | ✅ |
+| Limpieza imports no usados en DashboardClient | ✅ |
+
+### Sprint 3 — Pre-lanzamiento
 
 1. Hooks violation P1 — investigar `React.memo(PlantillaPreview)` + React 19
 2. WhatsApp templates modal — auditoría y fix
-3. Dashboard auto-refresh — implementar polling cada 30s
-4. Regalos historial — tabla completa con filtros
+3. Regalos historial — tabla completa con filtros
+4. PWA QA completo (service worker, manifest, iOS)
+5. Cupones — auditoría funcional
+6. Marketing — auditoría funcional
+7. E2E tests con Playwright para flujos críticos
 
 ### Sprint 3 — Pre-lanzamiento
 
@@ -966,20 +1013,20 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 
 ## Technical Debt
 
-### TD1 — Formulario de producto duplicado (Media — en progreso)
+### TD1 — Formulario de producto duplicado (Media — resuelto)
 
 | Ítem | Detalle |
 |------|---------|
-| **Archivos** | `AgregarProductoForm.tsx` (496 lines) — pendiente de migrar |
+| **Archivos** | `AgregarProductoForm.tsx` (496 lines) — eliminado |
 | **Problema** | Existían 3 implementaciones del formulario de producto. `ProductoForm.tsx` unificado creado y adoptado para crear y editar. `ProductoActions.tsx` reemplazado por `ProductoRowActions.tsx` (sin form). |
-| **Impacto** | Reducido. Solo `AgregarProductoForm.tsx` persiste (usado por `FloatAddButton` y `QuickAddProduct`). |
-| **Fix** | ✅ `ProductoForm.tsx` implementado. ⏳ Migrar `FloatAddButton` y `QuickAddProduct` a `ProductoForm`, luego eliminar `AgregarProductoForm.tsx`. |
+| **Impacto** | Eliminado por completo. Ya no hay duplicación. |
+| **Fix** | ✅ `ProductoForm.tsx` implementado. ✅ `FloatAddButton` y `QuickAddProduct` migrados. ✅ `AgregarProductoForm.tsx` eliminado. |
 
 ### TD2 — Componentes monolíticos (Alta)
 
 | Ítem | Detalle |
 |------|---------|
-| **Archivos** | `InventarioClient.tsx` (518 lines), `DashboardShell.tsx` (1166 lines), `DashboardClient.tsx` (664 lines), `AgregarProductoForm.tsx` (496 lines) |
+| **Archivos** | `InventarioClient.tsx` (518 lines), `DashboardShell.tsx` (1166 lines), `DashboardClient.tsx` (664 lines) |
 | **Problema** | 4 componentes > 500 líneas cada uno, con lógica mezclada (UI + estado + handlers + JSX condicional). |
 | **Impacto** | Difícil de mantener, testear y extender. |
 | **Fix** | Dividir en componentes más pequeños siguiendo principios SRP. Priorizar `InventarioClient.tsx` (ya auditado). |
@@ -1069,9 +1116,9 @@ RECOVERY_SECRET=                    # (opcional) Secreto para recovery
 | `src/app/dashboard/inventario/page.tsx` | 43 | Server component, fetch data |
 | `src/app/dashboard/inventario/InventarioClient.tsx` | ~520 | Main UI: KPIs, search, filters, list, modals, CSV export |
 | `src/app/dashboard/inventario/ProductoRowActions.tsx` | 108 | Row actions: editar (via ProductoModal), eliminar |
-| `src/app/dashboard/inventario/AgregarProductoForm.tsx` | 496 | Legacy create form (usado por FloatAddButton y QuickAddProduct) |
+| `src/app/dashboard/inventario/AgregarProductoForm.tsx` | 496 | **ELIMINADO** — reemplazado por ProductoForm |
 | `src/app/dashboard/inventario/ImportadorCSV.tsx` | 258 | CSV import |
-| `src/app/dashboard/inventario/FloatAddButton.tsx` | 39 | FAB button (usando AgregarProductoForm legacy) |
+| `src/app/dashboard/inventario/FloatAddButton.tsx` | 39 | FAB button (usa ProductoModal + ProductoForm) |
 | `src/app/dashboard/inventario/actions.ts` | 143 | Server actions: CRUD producto |
 | `src/components/inventario/ProductoForm.tsx` | 520 | Formulario unificado crear/editar (estándar, ropa, boutique) |
 | `src/components/inventario/ProductoModal.tsx` | 37 | Modal wrapper reutilizable |
@@ -1098,7 +1145,7 @@ RECOVERY_SECRET=                    # (opcional) Secreto para recovery
 | `src/app/dashboard/dashboard-metrics.ts` | — | Lógica de métricas (calculate) |
 | `src/app/dashboard/actions.ts` | 103 | Server action: recalcular dashboard |
 | `src/app/dashboard/StoreToggle.tsx` | — | Toggle abierto/cerrado |
-| `src/app/dashboard/QuickAddProduct.tsx` | — | Quick add desde dashboard |
+| `src/app/dashboard/QuickAddProduct.tsx` | — | Quick add desde dashboard (usa ProductoModal + ProductoForm) |
 
 ### Auth
 
@@ -1293,9 +1340,37 @@ async function diag() {
 
 ## Changelog
 
-### 2026-05-30
+### 2026-05-30 — Sprint 2 Estabilización
 
-#### Sprint UX Inventario V2 — Fase 1 a 4 completadas
+#### Sprint UX Inventario V2 (mañana) + Sprint 2 Estabilización (tarde)
+
+##### Añadido
+- Dashboard auto-refresh polling: `setInterval(refrescarTodo, 30000)` como fallback junto a Supabase realtime
+- `ProductoModal.tsx` migrado a React Portal (`createPortal` en `document.body`)
+
+##### Modificado
+- `FloatAddButton.tsx` — reemplazado inline modal + AgregarProductoForm por ProductoModal + ProductoForm(mode="create")
+- `QuickAddProduct.tsx` — misma migración; ahora acepta `tipoNegocio` prop
+- `DashboardClient.tsx` — import no utilizado de QuickAddProduct removido
+- `InventarioClient.tsx:344` — hover-lift removido temporalmente de cards mobile
+- `ProductoForm.tsx:505` — sticky footer simplificado (eliminado `sticky bottom-0`)
+
+##### Eliminado
+- `AgregarProductoForm.tsx` (496 líneas) — reemplazado por ProductoForm, sin referencias
+
+##### Corregido
+- **Green switches en mobile** — causa raíz: `hover-lift` con `translateY(-2px)` rompía `position: fixed` del modal
+- **Modal stacking context** — React Portal elimina dependencia del contexto del dashboard; SSR seguro
+- **Footer sticky interrupción** — los botones ahora aparecen naturalmente al final del formulario
+
+##### Pendiente
+- Hooks violation P1 (React.memo + React 19) — no abordado
+- WhatsApp templates modal — no auditado
+- Regalos historial — no implementado
+- PWA QA — pendiente
+- E2E tests — pendiente
+
+### 2026-05-30 — Sprint UX Inventario V2 Fase 1-4
 
 ##### Añadido
 - `PROJECT_STATE.md` v1→v2 creado como documento maestro del proyecto

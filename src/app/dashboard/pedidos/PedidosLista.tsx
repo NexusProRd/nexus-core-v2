@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import PedidoRow from './PedidoRow'
+import { reemplazarVars, generarMensaje } from '@/lib/utils'
 
 interface Pedido {
   id: string
@@ -37,29 +38,7 @@ const DEFAULT_MSGS: Record<string, string> = {
   entregado: '¡Hola {cliente}! ✅ Tu pedido {pedido} ha sido entregado. ¡Gracias por confiar en {tienda}! 🙌',
 }
 
-export function reemplazarVars(texto: string, datos: {
-  cliente: string; pedido: string; tienda: string;
-  detalles: string; total: string; fecha: string;
-}): string {
-  return texto
-    .replace(/{cliente}/g, datos.cliente)
-    .replace(/{pedido}/g, datos.pedido)
-    .replace(/{tienda}/g, datos.tienda)
-    .replace(/{detalles}/g, datos.detalles)
-    .replace(/{productos}/g, datos.detalles)
-    .replace(/{total}/g, datos.total)
-    .replace(/{fecha}/g, datos.fecha)
-}
-
-export function generarMensaje(
-  plantillas: Record<string, string>,
-  templateKey: string,
-  defaultMsg: string,
-  vars: Parameters<typeof reemplazarVars>[1]
-): string {
-  const raw = plantillas[templateKey] || defaultMsg
-  return reemplazarVars(raw, vars)
-}
+export { reemplazarVars, generarMensaje }
 
 export default function PedidosLista({
   pedidos: initialPedidos,

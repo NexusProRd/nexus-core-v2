@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback, createContext, useContext, useRef, me
 import { createClient } from '@/lib/supabase'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { formatearPrecio } from '@/lib/utils'
+import { formatearPrecio, generarMensaje } from '@/lib/utils'
+import type { VarsWhatsApp } from '@/lib/utils'
 import { useTheme } from '@/context/ThemeContext'
 import { getPalette, applyPalette } from '@/lib/palettes'
 import type { NexusAnuncio, NexusAnuncioTipo } from '@/types/database'
@@ -40,6 +41,8 @@ interface Pedido {
   id_tienda?: string
   notas?: string | null
 }
+
+const FALLBACK_CONFIRMADO = '🛍️ *¡Hola, {cliente}!* Tu pedido #{pedido} ya fue recibido y lo estamos preparando en *{tienda}*. 🚀 En breve te avisaremos cuando vaya de camino. ¡Muchas gracias por tu confianza! 🙏✨'
 
 interface GiftAlert {
   id: string
@@ -317,6 +320,7 @@ export default function DashboardLayout({
   const [showGiftModal, setShowGiftModal] = useState(false)
   const [approvedGift, setApprovedGift] = useState<GiftAlert | null>(null)
   const [silenciado, setSilenciado] = useState(false)
+  const [plantillas, setPlantillas] = useState<Record<string, string>>({})
   const [sendingMagicLink, setSendingMagicLink] = useState(false)
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
@@ -517,6 +521,25 @@ export default function DashboardLayout({
       getSupabase().removeChannel(canal)
     }
   }, [tiendaId, showAlert])
+
+  useEffect(() => {
+    if (!tiendaId) return
+    getSupabase()
+      .from('whatsapp_templates')
+      .select('confirmado, preparando, en_camino, entregado')
+      .eq('store_id', tiendaId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setPlantillas({
+            confirmado: data.confirmado || '',
+            preparando: data.preparando || '',
+            en_camino: data.en_camino || '',
+            entregado: data.entregado || '',
+          })
+        }
+      })
+  }, [tiendaId, getSupabase])
 
   useEffect(() => {
     if (!tiendaId) return
@@ -1120,13 +1143,25 @@ export default function DashboardLayout({
                           Cerrar
                         </button>
                       </div>
-                    ) : (
+                    ) : (() => {
+                      const detallesStr = Array.isArray(pedido.detalles_pedido)
+                        ? pedido.detalles_pedido.map((d: DetallePedido) => `${d.cantidad}x ${d.producto}`).join(', ')
+                        : ''
+                      const vars: VarsWhatsApp = {
+                        cliente: pedido.cliente_nombre,
+                        pedido: `#${codigoReal}`,
+                        tienda: nombreTienda || 'nuestra tienda',
+                        detalles: detallesStr,
+                        total: `RD$${formatearPrecio(pedido.total)}`,
+                        fecha: new Date(pedido.creado_at).toLocaleDateString('es-DO'),
+                      }
+                      const mensajeWhatsApp = generarMensaje(plantillas, 'confirmado', FALLBACK_CONFIRMADO, vars)
+                      return (
                       <>
-                        {/* Cuadro de previsualización de mensaje universal para cualquier pedido entrante */}
                         <div className="bg-white/30 dark:bg-white/[0.02] border border-white/30 dark:border-white/[0.06] rounded-xl p-3 mb-3 text-xs text-gray-900 dark:text-slate-300 leading-relaxed text-left">
                           <p className="font-semibold text-gray-700 dark:text-slate-400 text-[10px] uppercase tracking-wide mb-1">🛍️ Vista previa del mensaje (WhatsApp)</p>
                           <p className="font-mono whitespace-pre-wrap text-gray-900 dark:text-slate-200 bg-white/50 dark:bg-black/20 p-2 rounded-lg border border-white/30 dark:border-white/[0.06]">
-                            🛍️ *¡Hola, {pedido.cliente_nombre}!* Tu pedido *#{pedido.order_id || pedido.id.slice(0, 8).toUpperCase()}* ya fue recibido y lo estamos preparando en *{nombreTienda || 'nuestra tienda'}*. 🚀 En breve te avisaremos cuando vaya de camino. ¡Muchas gracias por tu confianza! 🙏✨
+                            {mensajeWhatsApp}
                           </p>
                         </div>
                         <div className="flex gap-2">
@@ -1139,8 +1174,7 @@ export default function DashboardLayout({
                           <button
                             onClick={() => {
                               actualizarEstado(pedido.id, 'en_proceso')
-                              const msg = `🛍️ *¡Hola, ${pedido.cliente_nombre}!* Tu pedido *#${codigoReal}* ya fue recibido y lo estamos preparando. 🚀 En breve te avisaremos cuando vaya de camino. ¡Muchas gracias por tu confianza! 🙏✨`
-                              window.open(`https://api.whatsapp.com/send?phone=${(pedido.cliente_telefono || '').replace(/\D/g, '')}&text=${encodeURIComponent(msg)}`, '_blank')
+                              window.open(`https://api.whatsapp.com/send?phone=${(pedido.cliente_telefono || '').replace(/\D/g, '')}&text=${encodeURIComponent(mensajeWhatsApp)}`, '_blank')
                             }}
                             className="flex-1 bg-emerald-600/90 backdrop-blur-sm text-white py-1.5 px-3 rounded-xl hover:bg-emerald-700 transition-all text-sm font-medium border border-white/10"
                           >
@@ -1148,7 +1182,7 @@ export default function DashboardLayout({
                           </button>
                         </div>
                       </>
-                    )}
+                    )})()}
                   </div>
                 )
               })}
