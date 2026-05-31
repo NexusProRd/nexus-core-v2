@@ -28,6 +28,7 @@ export default function PushSubscribeButton({ idTienda }: { idTienda?: string })
   }, [])
 
   const handleToggle = useCallback(async () => {
+    console.log('[Push] handleToggle', { idTienda, loading })
     if (!idTienda || loading) return
     setLoading(true)
 

@@ -147,7 +147,7 @@ function SidebarDesktop({ tiendaId }: { tiendaId?: string }) {
         </nav>
         <div className="px-3 pb-3 space-y-1">
           <InstallAppButton variant="sidebar" />
-          <PushSubscribeButton idTienda={tiendaId} />
+          {tiendaId && <PushSubscribeButton idTienda={tiendaId} />}
         </div>
     </aside>
   )
