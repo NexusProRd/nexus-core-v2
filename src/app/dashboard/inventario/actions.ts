@@ -124,6 +124,7 @@ export async function actualizarProducto(formData: FormData): Promise<{ success?
     precio_oferta: precioOferta,
     costo_compra: costoCompra,
     stock: usaVariantes ? tallas.reduce((sum: number, v: any) => sum + (v.stock || 0), 0) : (parseInt(formData.get('stock') as string) || 0),
+    imagen_url: formData.get('imagen_url') as string || undefined,
     tipo_articulo: formData.get('tipo_articulo') as string || null,
     tallas: usaVariantes ? tallas : [],
   }

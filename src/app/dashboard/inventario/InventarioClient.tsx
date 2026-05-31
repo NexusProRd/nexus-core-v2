@@ -4,8 +4,9 @@ import { useState, useMemo, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import ProductoActions from './ProductoActions'
-import AgregarProductoForm from './AgregarProductoForm'
+import ProductoRowActions from './ProductoRowActions'
+import ProductoForm from '@/components/inventario/ProductoForm'
+import ProductoModal from '@/components/inventario/ProductoModal'
 import { formatearPrecio } from '@/lib/utils'
 import { toggleStock } from './actions'
 import ImportadorCSV from './ImportadorCSV'
@@ -198,10 +199,17 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
 
   const exportarCSV = () => {
     const lista = seleccionados.size > 0 ? productos.filter(p => seleccionados.has(p.id)) : productos
-    const cabecera = 'nombre,descripcion,categoria,precio,costo,stock,disponible'
-    const filas = lista.map(p =>
-      `"${p.nombre}","${p.descripcion || ''}","${p.categoria || ''}",${p.precio},${p.costo_compra || 0},${p.stock},${p.in_stock}`
-    ).join('\n')
+    const cabecera = 'nombre,descripcion,categoria,precio,costo,stock,disponible,tallas'
+    const filas = lista.map(p => {
+      let tallasStr = ''
+      if (Array.isArray(p.tallas)) {
+        const objects = p.tallas.filter((t): t is TallaVariant => typeof t === 'object' && t !== null)
+        if (objects.length > 0) {
+          tallasStr = objects.map(t => `${t.talla}(${t.stock})`).join(',')
+        }
+      }
+      return `"${p.nombre}","${p.descripcion || ''}","${p.categoria || ''}",${p.precio},${p.costo_compra || 0},${p.stock},${p.in_stock},"${tallasStr}"`
+    }).join('\n')
     const blob = new Blob([`${cabecera}\n${filas}`], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const sufijo = seleccionados.size > 0 ? `_seleccionados_${seleccionados.size}` : '_todos'
@@ -333,7 +341,7 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
               const bajoStock = p.in_stock && p.stock > 0 && p.stock <= 5
               const sinImagen = !p.imagen_url
               return (
-              <div key={p.id} className="flex items-start gap-3 px-4 py-3.5 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-all hover-lift">
+              <div key={p.id} className="flex items-start gap-3 px-4 py-3.5 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-all">
                 <input type="checkbox" checked={seleccionados.has(p.id)} onChange={() => toggleSeleccion(p.id)}
                   className="w-4 h-4 rounded border-slate-300 text-[var(--primary)] focus:ring-[var(--primary)] shrink-0 mt-1" />
                 <div className="shrink-0">
@@ -367,7 +375,7 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
                     </div>
                   </div>
                 </div>
-                <ProductoActions producto={p} categorias={categorias} onDelete={(id) => setProductos(prev => prev.filter(x => x.id !== id))} />
+                <ProductoRowActions producto={p} categorias={categorias} tiendaId={tiendaId} tipoNegocio={tipoNegocio} onDelete={(id) => setProductos(prev => prev.filter(x => x.id !== id))} />
               </div>
               )
             }) : (
@@ -472,7 +480,7 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
                           </form>
                         </div>
                       </td>
-                      {(permisos === null || permisos.productos) && <td className="px-4 py-2.5 text-center"><ProductoActions producto={p} categorias={categorias} onDelete={(id) => setProductos(prev => prev.filter(x => x.id !== id))} /></td>}
+                      {(permisos === null || permisos.productos) && <td className="px-4 py-2.5 text-center"><ProductoRowActions producto={p} categorias={categorias} tiendaId={tiendaId} tipoNegocio={tipoNegocio} onDelete={(id) => setProductos(prev => prev.filter(x => x.id !== id))} /></td>}
                     </tr>
                     )
                   })}
@@ -498,19 +506,16 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
         </div>
       </main>
       {showAddModal && (permisos === null || permisos.productos) && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-800/95 rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Nuevo Producto</h3>
-              <button onClick={() => setShowAddModal(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <AgregarProductoForm tiendaId={tiendaId} tipoNegocio={tipoNegocio} categorias={categorias} onSuccess={() => setShowAddModal(false)} />
-          </div>
-        </div>
+        <ProductoModal open={showAddModal} title="Nuevo Producto" onClose={() => setShowAddModal(false)}>
+          <ProductoForm
+            mode="create"
+            tiendaId={tiendaId}
+            tipoNegocio={tipoNegocio}
+            categorias={categorias}
+            onSuccess={() => setShowAddModal(false)}
+            onCancel={() => setShowAddModal(false)}
+          />
+        </ProductoModal>
       )}
       {(permisos === null || permisos.productos) && importOpen && <ImportadorCSV tiendaId={tiendaId} categorias={categorias} onClose={() => setImportOpen(false)} />}
     </div>

@@ -8,7 +8,6 @@ import CopiarEnlace from './CopiarEnlace'
 import { recalcularDashboard } from './actions'
 import { calcularMetricasDashboard, ESTADOS_INCLUIDOS, calcularComparativo } from './dashboard-metrics'
 import type { DashboardFullMetrics } from './dashboard-metrics'
-import QuickAddProduct from './QuickAddProduct'
 import StoreToggle from './StoreToggle'
 import QrButton from './QrButton'
 import { usePermisos } from '@/context/PermisosContext'
@@ -174,7 +173,12 @@ export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero
       .on('postgres_changes', { event: '*', schema: 'public', table: 'productos', filter: `id_tienda=eq.${tiendaId}` }, () => refrescarTodo())
       .subscribe()
 
-    return () => { supabase.removeChannel(canal) }
+    const pollInterval = setInterval(refrescarTodo, 30000)
+
+    return () => {
+      supabase.removeChannel(canal)
+      clearInterval(pollInterval)
+    }
   }, [tiendaId, refrescarTodo])
 
   useEffect(() => {
