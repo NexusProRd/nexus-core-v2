@@ -4,7 +4,7 @@ const SCOPE = '/pcc'
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll([SCOPE, '/offline']))
+    caches.open(CACHE).then((cache) => cache.addAll([SCOPE, '/offline.html']))
   )
   self.skipWaiting()
 })
