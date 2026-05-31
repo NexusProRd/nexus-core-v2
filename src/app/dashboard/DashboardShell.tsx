@@ -1199,6 +1199,7 @@ export default function DashboardLayout({
       </ToastProvider>
       <PwaRegister swUrl="/sw-dashboard.js" manifestUrl={tiendaId ? `/api/manifest/dashboard/${tiendaId}` : undefined} />
       <PwaInstallPrompt />
+      <InstallAppButton />
     </OrderAlertContext.Provider>
     </SessionProvider>
   )

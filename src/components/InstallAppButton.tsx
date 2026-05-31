@@ -11,12 +11,10 @@ export default function InstallAppButton({ variant = 'pill' }: { variant?: 'pill
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [installed, setInstalled] = useState(false)
   const [showModal, setShowModal] = useState(false)
-  const [mounted, setMounted] = useState(false)
 
   const isIOS = typeof window !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent || '') && !(window as any).MSStream
 
   useEffect(() => {
-    setMounted(true)
     if (typeof window === 'undefined') return
 
     const mq = window.matchMedia('(display-mode: standalone)')
@@ -51,7 +49,7 @@ export default function InstallAppButton({ variant = 'pill' }: { variant?: 'pill
     }
   }, [deferredPrompt, isIOS])
 
-  if (installed || !mounted) return null
+  if (installed) return null
 
   const btnClass = variant === 'sidebar'
     ? 'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200'
