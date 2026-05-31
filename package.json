@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "backfill-pwa-icons": "npx tsx scripts/backfill-pwa-icons.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
