@@ -270,6 +270,14 @@ export default function ConfigurarPage() {
       return
     }
 
+    if (logoFileRef.current && logoUrl) {
+      fetch('/api/pwa-icons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logoUrl, tiendaId: sessionId }),
+      }).catch(() => {})
+    }
+
     try {
       await apiTiendas('PATCH', { direccion, rnc, slug: slug || null })
       setSuccess('¡Configuración guardada correctamente!')

@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { getSessionFromCookieValue } from '@/lib/auth/get-session'
 import { PALETTES } from '@/lib/palettes'
 import LogoUpload from './LogoUpload'
+import { generatePwaIcons } from '@/lib/pwa-icons'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,6 +65,10 @@ export default async function OnboardingPage() {
       } catch {
         // fallback: logo queda null
       }
+    }
+
+    if (logoUrl) {
+      await generatePwaIcons(logoUrl, sessionId).catch(() => {})
     }
 
     const ahora = new Date()
