@@ -1,0 +1,16 @@
+{
+  "headers": [
+    {
+      "source": "/dashboard/sw.js",
+      "headers": [
+        { "key": "Service-Worker-Allowed", "value": "/dashboard" }
+      ]
+    },
+    {
+      "source": "/pcc/sw.js",
+      "headers": [
+        { "key": "Service-Worker-Allowed", "value": "/pcc" }
+      ]
+    }
+  ]
+}
