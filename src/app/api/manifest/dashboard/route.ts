@@ -29,7 +29,7 @@ export async function GET() {
     // Use defaults on error
   }
 
-  const iconType = logoUrl.endsWith('.svg') ? 'image/svg+xml' : 'image/png'
+  const iconType = logoUrl.endsWith('.svg') ? 'image/svg+xml' : logoUrl.endsWith('.png') ? 'image/png' : 'image/webp'
 
   const manifest = {
     name: `Dashboard - ${nombre}`,
