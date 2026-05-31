@@ -45,6 +45,15 @@ export default function PushSubscribeButton({ idTienda }: { idTienda?: string })
         }
         setSubscribed(false)
       } else {
+        console.log('[Push] requesting permission')
+        const permission = await Notification.requestPermission()
+        console.log('[Push] permission result:', permission)
+        if (permission !== 'granted') {
+          setLoading(false)
+          return
+        }
+
+        console.log('[Push] fetching VAPID key')
         let publicKey = ''
         const res = await fetch('/api/push/vapid-key')
         if (res.ok) {
@@ -56,17 +65,12 @@ export default function PushSubscribeButton({ idTienda }: { idTienda?: string })
           return
         }
 
-        const permission = await Notification.requestPermission()
-        if (permission !== 'granted') {
-          setLoading(false)
-          return
-        }
-
         const reg = await navigator.serviceWorker.ready
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(publicKey) as any,
         })
+        console.log('[Push] subscription created')
 
         await fetch('/api/push/subscribe', {
           method: 'POST',
