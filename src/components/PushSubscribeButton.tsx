@@ -73,7 +73,8 @@ export default function PushSubscribeButton({ idTienda }: { idTienda?: string })
         })
         console.log('[Push] subscription created')
 
-        await fetch('/api/push/subscribe', {
+        console.log('[Push] posting subscription')
+        const subRes = await fetch('/api/push/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -82,9 +83,16 @@ export default function PushSubscribeButton({ idTienda }: { idTienda?: string })
             user_agent: navigator.userAgent,
           }),
         })
+        console.log('[Push] subscribe API status', subRes.status)
+        if (!subRes.ok) {
+          const body = await subRes.json().catch(() => ({}))
+          throw new Error(body.error || `HTTP ${subRes.status}`)
+        }
+        console.log('[Push] subscribe success')
         setSubscribed(true)
       }
-    } catch {
+    } catch (error) {
+      console.error('[Push] subscribe error', error)
     } finally {
       setLoading(false)
     }
