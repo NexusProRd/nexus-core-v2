@@ -7,7 +7,7 @@ function resolveAppleTouchIcon(logoUrl?: string | null): string {
   return '/pwa-icon-180.png'
 }
 
-export default function PwaRegister({ swUrl, manifestUrl, logoUrl }: { swUrl: string; manifestUrl?: string; logoUrl?: string | null }) {
+export default function PwaRegister({ swUrl, manifestUrl, logoUrl, scope }: { swUrl: string; manifestUrl?: string; logoUrl?: string | null; scope?: string }) {
   const appleTouchIcon = resolveAppleTouchIcon(logoUrl)
 
   useInsertionEffect(() => {
@@ -36,9 +36,16 @@ export default function PwaRegister({ swUrl, manifestUrl, logoUrl }: { swUrl: st
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register(swUrl).catch(() => {})
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const reg of registrations) {
+          if (new URL(reg.scope).pathname === '/') {
+            reg.unregister()
+          }
+        }
+      })
+      navigator.serviceWorker.register(swUrl, scope ? { scope } : undefined).catch(() => {})
     }
-  }, [swUrl])
+  }, [swUrl, scope])
 
   return null
 }

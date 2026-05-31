@@ -6,7 +6,7 @@ export default function CLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
-      <PwaRegister swUrl="/sw-catalogo.js" />
+      <PwaRegister swUrl="/catalogo/sw.js" scope="/catalogo/" />
       <InstallAppButton />
     </>
   )

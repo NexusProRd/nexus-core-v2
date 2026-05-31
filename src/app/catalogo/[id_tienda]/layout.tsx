@@ -27,7 +27,7 @@ export default async function CatalogoLayout({ children, params }: { children: R
   return (
     <>
       {children}
-      <PwaRegister swUrl="/sw-catalogo.js" logoUrl={logoUrl} />
+      <PwaRegister swUrl="/catalogo/sw.js" scope="/catalogo/" logoUrl={logoUrl} />
       <InstallAppButton />
     </>
   )
