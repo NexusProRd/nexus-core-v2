@@ -17,11 +17,18 @@ export default function InstallAppButton({ variant = 'pill' }: { variant?: 'pill
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    const mq = window.matchMedia('(display-mode: standalone)')
-    if (mq.matches || (window.navigator as any).standalone) {
-      setInstalled(true)
-      return
+    const check = () => {
+      const mq = window.matchMedia('(display-mode: standalone)')
+      if (mq.matches || (window.navigator as any).standalone) {
+        setInstalled(true)
+      }
     }
+
+    check()
+
+    window.addEventListener('focus', check)
+    const onVisibility = () => { if (document.visibilityState === 'visible') check() }
+    document.addEventListener('visibilitychange', onVisibility)
 
     const handler = (e: Event) => {
       e.preventDefault()
@@ -35,6 +42,8 @@ export default function InstallAppButton({ variant = 'pill' }: { variant?: 'pill
     return () => {
       window.removeEventListener('beforeinstallprompt', handler)
       window.removeEventListener('appinstalled', installedHandler)
+      window.removeEventListener('focus', check)
+      document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [])
 

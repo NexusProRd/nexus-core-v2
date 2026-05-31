@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import PwaRegister from '@/components/PwaRegister'
-import PwaInstallPrompt from '@/components/PwaInstallPrompt'
 import InstallAppButton from '@/components/InstallAppButton'
 import { createPublicClient } from '@/lib/supabase/public'
 
@@ -29,7 +28,6 @@ export default async function CatalogoLayout({ children, params }: { children: R
     <>
       {children}
       <PwaRegister swUrl="/sw-catalogo.js" logoUrl={logoUrl} />
-      <PwaInstallPrompt />
       <InstallAppButton />
     </>
   )

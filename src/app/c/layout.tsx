@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import PwaRegister from '@/components/PwaRegister'
-import PwaInstallPrompt from '@/components/PwaInstallPrompt'
 import InstallAppButton from '@/components/InstallAppButton'
 
 export default function CLayout({ children }: { children: React.ReactNode }) {
@@ -8,7 +7,6 @@ export default function CLayout({ children }: { children: React.ReactNode }) {
     <>
       {children}
       <PwaRegister swUrl="/sw-catalogo.js" />
-      <PwaInstallPrompt />
       <InstallAppButton />
     </>
   )

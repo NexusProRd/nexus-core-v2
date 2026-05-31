@@ -17,7 +17,6 @@ const TIPOS: { value: NexusAnuncioTipo; label: string; icon: string; color: stri
 ]
 
 import PwaRegister from '@/components/PwaRegister'
-import PwaInstallPrompt from '@/components/PwaInstallPrompt'
 import InstallAppButton from '@/components/InstallAppButton'
 import { SessionProvider, usePermisos } from '@/context/PermisosContext'
 import ToastProvider from '@/components/Toast'
@@ -1200,7 +1199,6 @@ export default function DashboardLayout({
       </div>
       </ToastProvider>
       <PwaRegister swUrl="/sw-dashboard.js" manifestUrl={tiendaId ? `/api/manifest/dashboard/${tiendaId}` : undefined} logoUrl={storeLogoUrl} />
-      <PwaInstallPrompt />
       <InstallAppButton />
     </OrderAlertContext.Provider>
     </SessionProvider>

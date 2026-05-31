@@ -7,7 +7,6 @@ import { useTheme } from '@/context/ThemeContext'
 import { createClient } from '@/lib/supabase'
 import LoginVigiladoModal from './LoginVigiladoModal'
 import PwaRegister from '@/components/PwaRegister'
-import PwaInstallPrompt from '@/components/PwaInstallPrompt'
 import InstallAppButton from '@/components/InstallAppButton'
 
 const navItems = [
@@ -241,7 +240,6 @@ export default function PccLayout({ children }: { children: React.ReactNode }) {
       </div>
       <LoginVigiladoModal />
       <PwaRegister swUrl="/sw-pcc.js" manifestUrl="/api/manifest/pcc" logoUrl={landingLogo} />
-      <PwaInstallPrompt />
     </div>
   )
 }
