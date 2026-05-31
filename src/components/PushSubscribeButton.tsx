@@ -66,12 +66,16 @@ export default function PushSubscribeButton({ idTienda }: { idTienda?: string })
           return
         }
 
+        console.log('[Push] waiting for service worker')
         const reg = await navigator.serviceWorker.ready
+        console.log('[Push] service worker ready')
+
+        console.log('[Push] subscribing')
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(publicKey) as any,
         })
-        console.log('[Push] subscription created')
+        console.log('[Push] subscription created', sub)
 
         console.log('[Push] posting subscription')
         const subRes = await fetch('/api/push/subscribe', {
