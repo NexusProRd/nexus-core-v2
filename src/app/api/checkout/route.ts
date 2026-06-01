@@ -260,11 +260,13 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  console.log('[API Checkout] sending push for tienda', idTienda, 'pedido', pedido.id)
   sendPushToTienda(idTienda, {
     title: '¡Nuevo pedido!',
     body: `Cliente: ${nombreCliente.trim()} — $${total.toLocaleString('es-DO')}`,
     data: { url: '/dashboard/pedidos', id_pedido: pedido.id, id_tienda: idTienda },
-  }).catch(() => {})
+  }).then((r) => console.log('[API Checkout] push result', r))
+    .catch((e) => console.error('[API Checkout] push error', e))
 
   return NextResponse.json({ pedido: { id: pedido.id, total, order_id: orderId } })
 }

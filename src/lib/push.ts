@@ -20,7 +20,7 @@ function getWebpush() {
     const subject = process.env.VAPID_SUBJECT
 
     if (!publicKey || !privateKey || !subject) {
-      console.warn('[Push] VAPID keys not configured')
+      console.warn('[Push Server] VAPID keys missing:', { publicKey: !!publicKey, privateKey: !!privateKey, subject: !!subject })
       return null
     }
 
@@ -49,14 +49,17 @@ export async function sendPushToTienda(idTienda: string, payload: PushPayload) {
   let sent = 0
   let failed = 0
 
+  console.log('[Push Server] sending to', subs.length, 'subscriptions')
   for (const sub of subs) {
     try {
       await wp.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
         JSON.stringify(payload)
       )
+      console.log('[Push Server] sent to', sub.endpoint.slice(0, 50) + '...')
       sent++
     } catch (err: any) {
+      console.error('[Push Server] error', err.statusCode, err.message)
       if (err.statusCode === 410) {
         await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint)
       }
@@ -64,5 +67,6 @@ export async function sendPushToTienda(idTienda: string, payload: PushPayload) {
     }
   }
 
+  console.log('[Push Server] done — sent:', sent, 'failed:', failed)
   return { sent, failed }
 }

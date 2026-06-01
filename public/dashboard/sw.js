@@ -56,15 +56,18 @@ self.addEventListener('fetch', (e) => {
 })
 
 self.addEventListener('push', (e) => {
+  console.log('[SW] push received')
   const data = e.data?.json() ?? {}
 
-  self.registration.showNotification(data.title || 'Nuevo pedido', {
-    body: data.body,
-    icon: data.icon || '/pwa-icon-192.png',
-    badge: '/pwa-icon-192.png',
-    data: { url: data.url || '/dashboard/pedidos' },
-    vibrate: [200, 100, 200],
-  })
+  e.waitUntil(
+    self.registration.showNotification(data.title || 'Nuevo pedido', {
+      body: data.body,
+      icon: data.icon || '/pwa-icon-192.png',
+      badge: '/pwa-icon-192.png',
+      data: { url: data.url || '/dashboard/pedidos' },
+      vibrate: [200, 100, 200],
+    }).then(() => console.log('[SW] notification shown'))
+  )
 })
 
 self.addEventListener('notificationclick', (e) => {

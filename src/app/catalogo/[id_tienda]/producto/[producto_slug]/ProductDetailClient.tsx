@@ -184,11 +184,13 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
     setBuyName('')
     setBuyPhone('')
 
+    console.log('[ProductDetail] sending push')
     fetch('/api/push/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id_tienda: tienda.id, cliente_nombre: buyName.trim(), total, id_pedido: pedido.id }),
-    }).catch(() => {})
+    }).then((r) => console.log('[ProductDetail] push status', r.status))
+      .catch((e) => console.error('[ProductDetail] push error', e))
 
     const mensaje = `Hola! Quiero hacer el siguiente pedido:\n*Pedido #${orderId}*\n\n- ${nombreConVariante} x${quantity} = RD$${formatearPrecio(total)}\n\n*💰 Total General: RD$${formatearPrecio(total)}*\n\n👤 *Cliente:* ${buyName.trim()}${buyPhone.trim() ? `\n📞 *Teléfono:* ${buyPhone.trim()}` : ''}`
     const whatsappUrl = `https://wa.me/${numeroLimpio}?text=${encodeURIComponent(mensaje)}`
