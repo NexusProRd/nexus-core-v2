@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { verifySessionToken, createSessionToken } from '@/lib/auth/session'
 
 export async function POST(req: NextRequest) {
   try {
+    const pccSession = req.cookies.get('nx_pcc_session')?.value
+    if (!pccSession) {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+    const session = await verifySessionToken(pccSession)
+    if (!session.valid || session.tiendaId !== 'pcc') {
+      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    }
+
     const body = await req.json()
     const { tiendaId, tipo } = body
 
@@ -40,8 +50,9 @@ export async function POST(req: NextRequest) {
       })
     }
 
+    const token = await createSessionToken(tiendaId)
     const res = NextResponse.json({ success: true })
-    res.cookies.set('nx_session', tiendaId, {
+    res.cookies.set('nx_session', token, {
       httpOnly: true, secure, sameSite: 'lax', path: '/', maxAge,
     })
     res.cookies.set('nx_colaborador', encodeURIComponent(colCookie), {
