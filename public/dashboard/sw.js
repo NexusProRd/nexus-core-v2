@@ -71,18 +71,23 @@ self.addEventListener('push', (e) => {
 })
 
 self.addEventListener('notificationclick', (e) => {
+  console.log('[SW] notification click')
   e.notification.close()
 
   const url = e.notification.data?.url || '/dashboard/pedidos'
 
-  clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+  e.waitUntil((async () => {
+    const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true })
     for (const client of clientList) {
       if (client.url.startsWith(self.location.origin) && 'focus' in client) {
-        client.focus()
-        client.navigate(url)
+        console.log('[SW] existing client found, focusing')
+        await client.focus()
+        console.log('[SW] navigate pedidos')
+        await client.navigate(url)
         return
       }
     }
-    clients.openWindow(self.location.origin + url)
-  })
+    console.log('[SW] opening new window')
+    await clients.openWindow(self.location.origin + url)
+  })().catch((error) => console.error('[SW] notification click error', error)))
 })
