@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createSessionToken } from '@/lib/auth/session'
 
 function getClientIp(req: Request): string {
   const forwarded = req.headers.get('x-forwarded-for')
@@ -106,9 +107,11 @@ export async function POST(req: NextRequest) {
 
     await clearRateLimit(ip)
 
+    const token = await createSessionToken('pcc')
+
     const isLocalhost = req.headers.get('host')?.includes('localhost') || req.headers.get('host')?.includes('127.0.0.1')
     const res = NextResponse.json({ success: true })
-    res.cookies.set('nx_pcc_session', 'authenticated', {
+    res.cookies.set('nx_pcc_session', token, {
       httpOnly: true,
       secure: !isLocalhost,
       sameSite: 'lax',

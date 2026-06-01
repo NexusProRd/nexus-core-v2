@@ -63,10 +63,7 @@ export default function PccLayout({ children }: { children: React.ReactNode }) {
   }, [])
 
   const handleLogout = () => {
-    document.cookie = 'nx_pcc_session=; path=/; max-age=0'
-    document.cookie = 'nx_session=; path=/; max-age=0'
-    document.cookie = 'nx_colaborador=; path=/; max-age=0'
-    window.location.href = '/pcc-login'
+    window.location.href = '/api/auth/pcc-logout'
   }
 
   useEffect(() => {
