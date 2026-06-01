@@ -78,16 +78,20 @@ self.addEventListener('notificationclick', (e) => {
 
   e.waitUntil((async () => {
     const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true })
+    console.log('[SW] clients found:', clientList.length)
+    for (const c of clientList) {
+      console.log('[SW] client url:', c.url, 'focused:', c.focused, 'visibilityState:', c.visibilityState)
+    }
     for (const client of clientList) {
       if (client.url.startsWith(self.location.origin) && 'focus' in client) {
-        console.log('[SW] existing client found, focusing')
+        console.log('[SW] focusing existing client')
         await client.focus()
         console.log('[SW] navigate pedidos')
         await client.navigate(url)
         return
       }
     }
-    console.log('[SW] opening new window')
+    console.log('[SW] no matching client found, opening new window')
     await clients.openWindow(self.location.origin + url)
   })().catch((error) => console.error('[SW] notification click error', error)))
 })
