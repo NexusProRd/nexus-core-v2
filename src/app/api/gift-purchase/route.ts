@@ -1,5 +1,4 @@
 import { createAdminClient } from '@/lib/supabase/admin'
-import { gestionarStock } from '@/lib/stock'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(req: NextRequest) {
@@ -55,21 +54,6 @@ export async function POST(req: NextRequest) {
 
   if (insertError) {
     return NextResponse.json({ error: insertError.message }, { status: 500 })
-  }
-
-  // Deduct stock for each gift item
-  const stockResult = await gestionarStock(
-    supabase!,
-    items.map((p: any) => ({
-      id_producto: p.product_id,
-      nombre: p.nombre,
-      cantidad: 1,
-      variante_seleccionada: p.variante_seleccionada || null,
-    })),
-    'deduct'
-  )
-  if (!stockResult.ok) {
-    console.error('[API gift-purchase] Errores al descontar stock:', stockResult.errors)
   }
 
   const itemsText = items.map((p: any) => p.nombre).join(', ')
