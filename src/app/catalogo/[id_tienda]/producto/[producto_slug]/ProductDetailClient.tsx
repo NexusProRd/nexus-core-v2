@@ -8,6 +8,7 @@ import { useCart } from '@/context/CartContext'
 import { useConfig } from '@/context/ConfigProvider'
 import { createClient } from '@/lib/supabase'
 import { formatearPrecio } from '@/lib/utils'
+import { gestionarStock } from '@/lib/stock'
 import ModalCompartirProducto from '@/components/catalog/ModalCompartirProducto'
 import ModalSeleccionarTalla from '@/components/catalog/ModalSeleccionarTalla'
 import BottomNav, { type TabId } from '@/components/catalog/BottomNav'
@@ -178,6 +179,15 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
       cantidad: quantity,
       precio_unitario: precioFinal,
     })
+
+    const stockResult = await gestionarStock(
+      supabase,
+      [{ id_producto: producto.id, nombre: producto.nombre, cantidad: quantity, variante_seleccionada: selectedTalla || null }],
+      'deduct'
+    )
+    if (!stockResult.ok) {
+      console.error('[ProductDetail] stock decrement errors:', stockResult.errors)
+    }
 
     setFeedback('buy')
     setBuying(false)
