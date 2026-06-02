@@ -18,8 +18,8 @@
 | Estado | **Beta QA** — módulos funcionales, bugs conocidos, S1/S2/S4/S5 corregidos |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | Sprint P0-C — Dashboard Session Hardening (Jun 1) |
-| Última verificación | 2026-06-01 — Sprint P0-C completado |
+| Último commit | Sprint P1-A.1 — Restore quick-buy push (Jun 1) |
+| Última verificación | 2026-06-01 — Sprint P1-A.1 completado |
 
 ### Módulos
 
@@ -46,11 +46,11 @@
 
 ### Sprint completado
 
-**Sprint P0-B — PCC Security Hardening + Sprint P0-C — Dashboard Session Hardening**
+**Sprint P0-B — PCC Security Hardening + Sprint P0-C — Dashboard Session Hardening + Sprint P1-A — Push + Data Access Hardening + Sprint P1-A.1 — Restore Quick-Buy Push**
 
 ### Estado
 
-**Completados.** Ambos sprints de seguridad ejecutados y verificados.
+**Completados.** Los sprints de seguridad y accesos fueron ejecutados, verificados, y la regresión corregida.
 
 **Sprint P0-B (commit `0f4bba5`):**
 - S2 — PCC middleware ausente: implementado middleware PCC para rutas `/pcc/*`
@@ -93,6 +93,7 @@
 | — | Auth en `/api/push/send` | ✅ P1-A |
 | — | RLS `push_subscriptions` tautológica | ✅ P1-A |
 | — | IDOR `actualizarEstado` | ✅ P1-A |
+| — | Regresión quick-buy push (P1-A) | ✅ P1-A.1 |
 
 ### Próxima acción
 
@@ -882,7 +883,16 @@ La ruta de login cargaba el cliente Supabase de forma eager, causando errores en
 **Estado:** ✅ Cerrado en Sprint P1-A.
 **Archivos:** `src/app/dashboard/pedidos/actions.ts`
 
-### P2 — Stock decremento inconsistente
+### P0 — Stock decremento ausente en ProductDetailClient (RESUELTO — Sprint P1-B.1)
+**Síntoma:** ProductDetailClient creaba pedidos sin decrementar stock. Cada compra desde la página de producto era sobreventa garantizada.
+**Fix:** Agregado `gestionarStock()` con cantidad real y variante después de crear el pedido.
+**Estado:** ✅ Cerrado en Sprint P1-B.1.
+**Archivos:** `src/app/catalogo/[...]/producto/[...]/ProductDetailClient.tsx`
+
+### P1 — Stock decremento inconsistente (B1/B2 — quick-buy RPC)
+**Síntoma:** ProductCard, ProductQuickView, DashboardShell y GiftDashboard usan `rpc('decrement_stock')` que siempre descuenta 1 (ignora cantidad) y no maneja variantes.
+
+### P2 — Stock race condition (B4/B5 — checkout/gift-purchase)
 **Síntoma:** El checkout decrementa stock sin protección de condición de carrera. Dos pedidos simultáneos pueden decrementar el mismo stock por debajo de 0 o aceptar más stock del disponible.
 
 ### P2 — Realtime reconnection
@@ -1038,13 +1048,14 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 
 ### Sprint completado — Sprint P1-A — Push + Data Access Hardening
 
-**Commit:** (pendiente)
+**Commits:** `6890792` (P1-A), `4037c39` (P1-A.1)
 
 | Tarea | Prioridad | Estado |
 |-------|-----------|--------|
 | Auth en `/api/push/send` | P1 | ✅ |
 | Fix RLS `push_subscriptions` | P1 | ✅ |
 | Fix IDOR `actualizarEstado` | P1 | ✅ |
+| Restaurar quick-buy push (regresión P1-A) | P1 | ✅ |
 
 **Correcciones:**
 
@@ -1064,14 +1075,18 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 * Subscribe/unsubscribe: usan `createAdminClient()` (bypass RLS, no afectado)
 
 **Riesgos remanentes:**
-* Clientes quick-buy (ProductCard, ProductQuickView, ProductDetailClient) llaman a `/api/push/send` sin sesión — recibirán 401 silencioso (`.catch()`). Push desde quick-buy solo funciona si el dueño está logueado en el dashboard mientras navega su catálogo.
 * RLS no protege contra admin client (bypass intencional por diseño). La fix es defensa-en-profundidad para accesos con anon key.
+
+**Regresión corregida en P1-A.1:**
+* Quick-buy (ProductCard, ProductQuickView, ProductDetailClient): se movió de `fetch('/api/push/send')` a `fetch('/api/push/quickbuy')`. El nuevo endpoint verifica existencia del pedido en DB antes de enviar push. `/api/push/send` sigue protegido con session auth.
 
 ### Sprint P1-B — Data Integrity
 
 | Tarea | Prioridad | Estado |
 |-------|-----------|--------|
-| Stock decremento inconsistente | P2 | ⬜ |
+| Stock decremento inconsistente — B3 (ProductDetailClient) | P0 | ✅ |
+| Stock decremento inconsistente — B1/B2 (quick-buy RPC) | P1 | ⬜ |
+| Stock decremento inconsistente — B4/B5 (race condition) | P2 | ⬜ |
 | Realtime reconnection | P2 | ⬜ |
 
 ### Sprint P2 — Pre-lanzamiento
@@ -1416,6 +1431,39 @@ async function diag() {
 ---
 
 ## Changelog
+
+### 2026-06-01 — Sprint P1-B.1 — Fix B3: ProductDetailClient sin stock decrement
+
+##### Corregido
+- **B3**: ProductDetailClient nunca ejecutaba `decrement_stock`. El pedido se creaba, `detalles_pedido` se insertaba, pero el stock nunca se descontaba. Cada compra desde la página de producto era sobreventa garantizada.
+
+##### Solución
+- Importado `gestionarStock` desde `@/lib/stock` (mismo mecanismo que checkout)
+- Llamado `gestionarStock(supabase, items, 'deduct')` después de crear el pedido
+- Usa `cantidad: quantity` (respeta la cantidad comprada) y `variante_seleccionada: selectedTalla || null` (maneja variantes)
+
+##### Archivos
+- `src/app/catalogo/[...]/producto/[...]/ProductDetailClient.tsx`
+
+### 2026-06-01 — Sprint P1-A.1 — Restore Quick-Buy Push
+
+##### Corregido
+- **Regresión P1-A**: Quick-buy (ProductCard, ProductQuickView, ProductDetailClient) dejó de enviar push al requerir auth en `/api/push/send`.
+
+##### Solución
+- Nuevo endpoint `/api/push/quickbuy` que verifica existencia del pedido (`pedidos.id + id_tienda + estado = pendiente`) antes de enviar push.
+- Los 3 componentes ahora llaman a `/api/push/quickbuy` en vez de `/api/push/send`.
+
+##### Seguridad
+- `/api/push/send` sigue protegido con session auth (P1-A preservado).
+- `/api/push/quickbuy` requiere pedido UUID válido y existente en DB.
+- Atacante necesita UUID de pedido real (cryptográficamente aleatorio) para abusar.
+
+##### Archivos
+- `src/app/api/push/quickbuy/route.ts` (nuevo)
+- `src/components/catalog/ProductCard.tsx`
+- `src/components/catalog/ProductQuickView.tsx`
+- `src/app/catalogo/[...]/ProductDetailClient.tsx`
 
 ### 2026-06-01 — Sprint P1-A — Push + Data Access Hardening
 

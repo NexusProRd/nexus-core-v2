@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { formatearPrecio, generarMensaje } from '@/lib/utils'
+import { gestionarStock } from '@/lib/stock'
 import type { VarsWhatsApp } from '@/lib/utils'
 import { useTheme } from '@/context/ThemeContext'
 import { getPalette, applyPalette } from '@/lib/palettes'
@@ -605,23 +606,51 @@ export default function DashboardLayout({
   }, [pathname, nombreTienda])
 
   const handleGiftAction = async (giftId: string, newStatus: 'approved' | 'rejected') => {
-    const updates: any = { status: newStatus }
-    if (newStatus === 'approved') updates.approved_at = new Date().toISOString()
-    await getSupabase().from('gift_experiences').update(updates).eq('id', giftId)
-
     if (newStatus === 'approved') {
       const gift = giftPendientes.find(g => g.id === giftId)
-      if (gift?.items_list) {
+      if (gift?.items_list && gift.items_list.length > 0) {
+        const productIds = gift.items_list.map(i => i.product_id)
+        const { data: products } = await getSupabase()
+          .from('productos')
+          .select('id, stock, in_stock')
+          .in('id', productIds)
+
+        const insufficient: string[] = []
         for (const item of gift.items_list) {
-          await getSupabase()
-            .rpc('decrement_stock', { pid: item.product_id })
-            .maybeSingle()
+          const prod = products?.find(p => p.id === item.product_id)
+          if (!prod || !prod.in_stock || prod.stock <= 0) {
+            insufficient.push(item.nombre)
+          }
+        }
+
+        if (insufficient.length > 0) {
+          console.error('[Gift] Stock insuficiente para:', insufficient.join(', '))
+          alert(`No se puede aprobar el regalo. Stock insuficiente para: ${insufficient.join(', ')}`)
+          return
+        }
+
+        const stockResult = await gestionarStock(
+          getSupabase(),
+          gift.items_list.map(i => ({
+            id_producto: i.product_id,
+            nombre: i.nombre,
+            cantidad: 1,
+            variante_seleccionada: null,
+          })),
+          'deduct'
+        )
+        if (!stockResult.ok) {
+          console.error('[Gift] stock decrement errors:', stockResult.errors)
         }
       }
+
+      const updates: any = { status: newStatus, approved_at: new Date().toISOString() }
+      await getSupabase().from('gift_experiences').update(updates).eq('id', giftId)
       setApprovedGift(gift || null)
       return
     }
 
+    await getSupabase().from('gift_experiences').update({ status: newStatus }).eq('id', giftId)
     setGiftPendientes(prev => {
       const updated = prev.filter(g => g.id !== giftId)
       if (updated.length === 0) setShowGiftModal(false)

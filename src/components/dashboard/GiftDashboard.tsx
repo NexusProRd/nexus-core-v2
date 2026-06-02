@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase'
+import { gestionarStock } from '@/lib/stock'
 
 interface Gift {
   id: string
@@ -90,20 +91,48 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
       setUpdatingId(gift.id)
       const supabase = createClient()
 
+      if (newStatus === 'approved' && gift.items_list?.length > 0) {
+        const productIds = gift.items_list.map(i => i.product_id)
+        const { data: products } = await supabase
+          .from('productos')
+          .select('id, stock, in_stock')
+          .in('id', productIds)
+
+        const insufficient: string[] = []
+        for (const item of gift.items_list) {
+          const prod = products?.find(p => p.id === item.product_id)
+          if (!prod || !prod.in_stock || prod.stock <= 0) {
+            insufficient.push(item.nombre)
+          }
+        }
+
+        if (insufficient.length > 0) {
+          console.error('[GiftDashboard] Stock insuficiente para:', insufficient.join(', '))
+          setUpdatingId(null)
+          return
+        }
+
+        const stockResult = await gestionarStock(
+          supabase,
+          gift.items_list.map(i => ({
+            id_producto: i.product_id,
+            nombre: i.nombre,
+            cantidad: 1,
+            variante_seleccionada: null,
+          })),
+          'deduct'
+        )
+        if (!stockResult.ok) {
+          console.error('[GiftDashboard] stock decrement errors:', stockResult.errors)
+        }
+      }
+
       const updates: any = { status: newStatus }
       if (newStatus === 'approved') updates.approved_at = new Date().toISOString()
       const { error } = await supabase
         .from('gift_experiences')
         .update(updates)
         .eq('id', gift.id)
-
-      if (!error && newStatus === 'approved' && gift.items_list?.length > 0) {
-        for (const item of gift.items_list) {
-          await supabase
-            .rpc('decrement_stock', { pid: item.product_id })
-            .maybeSingle()
-        }
-      }
 
       if (error) {
         console.error('Error updating gift status:', error)

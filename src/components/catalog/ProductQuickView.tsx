@@ -6,6 +6,7 @@ import { useCart } from '@/context/CartContext'
 import { useConfig } from '@/context/ConfigProvider'
 import { createClient } from '@/lib/supabase'
 import { formatearPrecio } from '@/lib/utils'
+import { gestionarStock } from '@/lib/stock'
 import ModalSeleccionarTalla from './ModalSeleccionarTalla'
 import BotonWhatsApp from './BotonWhatsApp'
 import ModalCompartirProducto from './ModalCompartirProducto'
@@ -89,6 +90,25 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
 
   const confirmBuy = async () => {
     if (!buyName.trim() || !buyPhone.trim() || buying) return
+
+    if (!producto.in_stock || producto.stock <= 0) {
+      alert('Este producto no está disponible actualmente.')
+      return
+    }
+
+    if (necesitaTalla && selectedTalla && Array.isArray(producto.tallas)) {
+      const variant: any = producto.tallas.find((t: any) =>
+        typeof t === 'object' && t.talla === selectedTalla
+      )
+      if (variant && (variant.stock || 0) < quantity) {
+        alert(`Stock insuficiente para la talla (${selectedTalla}). Disponible: ${variant.stock || 0}`)
+        return
+      }
+    } else if ((producto.stock || 0) < quantity) {
+      alert(`Stock insuficiente. Disponible: ${producto.stock || 0}`)
+      return
+    }
+
     setBuying(true)
     setShowBuyForm(false)
     const supabase = createClient()
@@ -124,7 +144,14 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
       precio_unitario: precioFinal,
     })
 
-    await supabase.rpc('decrement_stock', { pid: producto.id })
+    const stockResult = await gestionarStock(
+      supabase,
+      [{ id_producto: producto.id, nombre: producto.nombre, cantidad: quantity, variante_seleccionada: selectedTalla || null }],
+      'deduct'
+    )
+    if (!stockResult.ok) {
+      console.error('[ProductQuickView] stock decrement errors:', stockResult.errors)
+    }
 
     localStorage.setItem(`nexus-last-order-${idTienda}`, pedido.id)
 
