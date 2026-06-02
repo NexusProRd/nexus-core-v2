@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { sendPushToTienda } from '@/lib/push'
+import { getSession } from '@/lib/auth/get-session'
 
 export async function POST(req: NextRequest) {
-  const body = await req.json()
-  const { id_tienda, cliente_nombre, total, id_pedido } = body
-
-  if (!id_tienda) {
-    return NextResponse.json({ error: 'Falta id_tienda' }, { status: 400 })
+  const session = await getSession(req)
+  if (!session.valid || !session.tiendaId) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
   }
+
+  const body = await req.json()
+  const { cliente_nombre, total, id_pedido } = body
+
+  const id_tienda = session.tiendaId
 
   console.log('[Push Send API] sending push for tienda', id_tienda, 'pedido', id_pedido)
   sendPushToTienda(id_tienda, {

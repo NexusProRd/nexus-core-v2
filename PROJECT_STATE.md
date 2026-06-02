@@ -15,11 +15,11 @@
 | Base de datos | Supabase PostgreSQL (52 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta QA** — módulos funcionales, bugs conocidos, en pruebas |
+| Estado | **Beta QA** — módulos funcionales, bugs conocidos, S1/S2/S4/S5 corregidos |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | Sprint 2 Estabilización — portal, hover-lift, sticky footer, polling (May 30) |
-| Última verificación | 2026-05-30 — Sprint 2 Estabilización completado |
+| Último commit | Sprint P0-C — Dashboard Session Hardening (Jun 1) |
+| Última verificación | 2026-06-01 — Sprint P0-C completado |
 
 ### Módulos
 
@@ -46,48 +46,59 @@
 
 ### Sprint completado
 
-**Sprint UX Inventario V2 (4 fases) + Sprint 2 Estabilización**
+**Sprint P0-B — PCC Security Hardening + Sprint P0-C — Dashboard Session Hardening**
 
 ### Estado
 
-**Completado.** Ambos sprints fueron ejecutados y verificados.
+**Completados.** Ambos sprints de seguridad ejecutados y verificados.
 
-**Sprint UX Inventario V2** — Formulario unificado, modal reutilizable, SKU autogenerado, CSV con tallas, refactor ProductoRowActions, bug P1 resuelto.
+**Sprint P0-B (commit `0f4bba5`):**
+- S2 — PCC middleware ausente: implementado middleware PCC para rutas `/pcc/*`
+- S4 — Cookie PCC forjable: firma criptográfica agregada a `nx_pcc`
 
-**Sprint 2 Estabilización** — Migración completa de dependencias legacy, React Portal para modal, hover-lift removido, sticky footer simplificado, polling 30s.
+**Sprint P0-C:**
+- S1 — login-as sin autenticación: ahora requiere sesión PCC válida
+- S5 — Legacy UUID session bypass: `nx_session` solo acepta tokens firmados, UUID legacy eliminado
 
 ### Logros acumulados
 
-#### Sprint UX Inventario V2
-- **ProductoForm.tsx** — Formulario unificado crear/editar con soporte para estándar, ropa y boutique
-- **ProductoModal.tsx** — Modal reutilizable para crear y editar
-- **SKU único por producto** — SKU por variante autogenerado desde SKU principal + talla
-- **Leyenda St/Pr/Co** — Leyenda secundaria debajo de tabla de variantes
-- **CSV export con tallas** — Columna `tallas` añadida con formato `S(5),M(3),L(7)`
-- **ProductoRowActions.tsx** — Componente limpio solo con editar/eliminar, sin lógica de formulario
-- **actualizarProducto** — Ahora soporta `imagen_url` en el payload (ausente antes)
-- **P1 Inventario resuelto** — El bug de edición no persistente fue corregido al migrar a ProductoForm
+#### Sprint P0-B — PCC Security Hardening
+- **PCC middleware (S2)**: Middleware propio para rutas `/pcc/*` que verifica sesión PCC válida antes de permitir acceso
+- **Cookie PCC firmada (S4)**: `nx_pcc` ahora usa el mismo sistema de tokens firmados HMAC-SHA256 que `nx_session`, no un UUID plano
+- **Validación completa**: PCC login → middleware protege → APIs PCC protegidas → logout funcional
 
-#### Sprint 2 Estabilización
-- **FloatAddButton migrado** — Reemplazó inline modal + AgregarProductoForm por ProductoModal + ProductoForm(mode="create")
-- **QuickAddProduct migrado** — Misma migración; ahora acepta `tipoNegocio` prop
-- **AgregarProductoForm.tsx eliminado** — 496 líneas legacy removidas sin referencias
-- **DashboardClient.tsx** — Import no utilizado de QuickAddProduct removido
-- **Dashboard auto-refresh polling** — `setInterval(refrescarTodo, 30000)` como fallback junto a Supabase realtime
-- **Diagnóstico green switches completado** — Causa raíz: `hover-lift` con `translateY(-2px)` rompía `position: fixed` del modal
-- **hover-lift removido** — Eliminado de `InventarioClient.tsx:344` para evitar que cards contengan el modal fijo
-- **ProductoModal migrado a React Portal** — `createPortal(..., document.body)` libera el modal de ancestros con `transform`/`animation`. SSR seguro.
-- **Sticky footer simplificado** — Se eliminó `sticky bottom-0` del footer en ProductoForm; los botones aparecen naturalmente al final del formulario
+#### Sprint P0-C — Dashboard Session Hardening
+- **login-as protegido (S1)**: El endpoint `POST /api/auth/login-as` ahora verifica que quien invoca tenga una sesión PCC válida. Un atacante no puede escalar a dueño de tienda sin ser operador PCC
+- **Sesiones firmadas obligatorias (S5)**: `getSessionFromCookieValue` ya no acepta UUIDs planos. Solo tokens firmados con HMAC-SHA256 son válidos. Esto cierra el bypass donde cualquiera podía setear `nx_session=<cualquier-uuid>` y autenticarse como cualquier tienda
+- **Validación completa**: Dashboard login → middleware protege → logout → login-as → sesiones firmadas
+
+### Estado de vulnerabilidades
+
+| ID | Vulnerabilidad | Estado |
+|----|---------------|--------|
+| S1 | login-as sin autenticación | ✅ Corregido |
+| S2 | PCC middleware ausente | ✅ Corregido |
+| S4 | Cookie PCC forjable | ✅ Corregido |
+| S5 | Legacy UUID session bypass | ✅ Corregido |
+
+### Pendientes críticos (próximo sprint)
+
+1. **Stock decremento inconsistente** — checkout puede decrementar stock incorrectamente en condiciones de carrera
+2. **Realtime reconnection** — canales real-time no reconectan automáticamente al perder conexión
+
+### Vulnerabilidades corregidas recientemente
+
+| ID | Vulnerabilidad | Sprint |
+|----|---------------|--------|
+| — | Auth en `/api/push/send` | ✅ P1-A |
+| — | RLS `push_subscriptions` tautológica | ✅ P1-A |
+| — | IDOR `actualizarEstado` | ✅ P1-A |
 
 ### Próxima acción
 
-Iniciar Sprint 3 — Pre-lanzamiento:
-1. Hooks violation P1 — investigar `React.memo(PlantillaPreview)` + React 19
-2. WhatsApp templates modal — auditoría y fix
-3. Regalos historial — tabla completa con filtros
-4. PWA QA completo
-5. Cupones y Marketing — auditoría funcional
-6. E2E tests con Playwright para flujos críticos
+Iniciar Sprint P1-B — Data Integrity:
+1. Stock decremento inconsistente
+2. Realtime reconnection
 
 ### Bloqueadores
 
@@ -755,6 +766,30 @@ Botón WhatsApp flotante o CTA →
 
 ## Bugs Cerrados
 
+### S1 — login-as sin autenticación (P0)
+**Síntoma:** El endpoint `POST /api/auth/login-as` no verificaba que el llamante tuviera una sesión PCC válida. Cualquier persona con el UUID de una tienda podía generar una sesión de dueño.
+**Fix:** Agregar verificación de sesión PCC (`getPCCSession()`) antes de ejecutar el login-as. Si no hay sesión PCC válida, retorna 401.
+**Commit:** `0f4bba5` (Sprint P0-C)
+**Archivos:** `src/app/api/auth/login-as/route.ts`
+
+### S2 — PCC middleware ausente (P0)
+**Síntoma:** Las rutas `/pcc/*` no tenían middleware de protección. El layout de PCC verificaba sesión, pero un atacante podía acceder directamente a rutas API de PCC sin autenticación.
+**Fix:** Implementar middleware específico para `/pcc/:path*` que verifica `nx_pcc` antes de permitir el acceso. Middleware existente extendido.
+**Commit:** `0f4bba5` (Sprint P0-B)
+**Archivos:** `middleware.ts`
+
+### S4 — Cookie PCC forjable (P0)
+**Síntoma:** La cookie `nx_pcc` era un UUID plano. Un atacante podía setear `nx_pcc=<uuid-conocido>` y obtener acceso completo al PCC.
+**Fix:** Migrar `nx_pcc` al mismo sistema de tokens firmados HMAC-SHA256 que `nx_session`. Ahora es un JWT custom con payload `{ id, exp }` y firma verificable.
+**Commit:** `0f4bba5` (Sprint P0-B)
+**Archivos:** `src/lib/auth/session.ts`, `src/app/api/auth/pcc-login/route.ts`
+
+### S5 — Legacy UUID session bypass (P0)
+**Síntoma:** `getSessionFromCookieValue` aceptaba UUIDs planos como sesión válida. Un atacante que conociera el UUID de una tienda podía setear `nx_session=<uuid>` y autenticarse sin password.
+**Fix:** Eliminar compatibilidad con UUID legacy. `getSessionFromCookieValue` solo acepta tokens firmados. Cualquier cookie en formato UUID es rechazada.
+**Commit:** `0f4bba5` (Sprint P0-C)
+**Archivos:** `src/lib/auth/get-session.ts`
+
 ### P0 — Logout no funciona en producción (Vercel)
 **Síntoma:** En Chrome 134+ (HTTPS), `document.cookie = 'nx_session=; max-age=0'` no borra la cookie porque fue creada sin flag `Secure` pero en canal HTTPS.
 **Fix:** `login/route.ts` líneas 150, 228 — `secure: false` → `secure: !isLocalhost`
@@ -828,6 +863,30 @@ La ruta de login cargaba el cliente Supabase de forma eager, causando errores en
 **Síntoma:** Error "Rendered more hooks than during the previous render" en `Router (app-router.tsx:168:45)` al entrar a Dashboard/Vitrina en dev mode.
 **Causa tentativa:** `React.memo(PlantillaPreview)` + React 19 reconciliation. Ocurre solo en dev mode. No reproducible en production build.
 **Archivos:** `src/components/catalog/CatalogoModal.tsx`
+
+### P1 — Auth en /api/push/send (RESUELTO — Sprint P1-A)
+**Síntoma:** El endpoint `POST /api/push/send` no tenía autenticación.
+**Fix:** `getSession(req)` verifica cookie `nx_session`. Retorna 401 si no hay sesión. Usa `session.tiendaId` en vez del body.
+**Estado:** ✅ Cerrado en Sprint P1-A.
+**Archivos:** `src/app/api/push/send/route.ts`
+
+### P1 — RLS push_subscriptions ausente (RESUELTO — Sprint P1-A)
+**Síntoma:** Política tautológica `id_tienda = (SELECT id_tienda FROM tiendas...)` — siempre verdadera porque `tiendas` no tiene columna `id_tienda`.
+**Fix:** `id_tienda IN (SELECT id FROM tiendas)`. Migration `054_fix_rls_push_subscriptions.sql`.
+**Estado:** ✅ Cerrado en Sprint P1-A.
+**Archivos:** `supabase/migrations/053_push_subscriptions.sql`
+
+### P1 — IDOR en actualizarEstado (RESUELTO — Sprint P1-A)
+**Síntoma:** La primera SELECT de pedido no filtraba por `id_tienda`, permitiendo leer datos de pedidos de otras tiendas.
+**Fix:** `.eq('id_tienda', sessionId)` agregado a la SELECT.
+**Estado:** ✅ Cerrado en Sprint P1-A.
+**Archivos:** `src/app/dashboard/pedidos/actions.ts`
+
+### P2 — Stock decremento inconsistente
+**Síntoma:** El checkout decrementa stock sin protección de condición de carrera. Dos pedidos simultáneos pueden decrementar el mismo stock por debajo de 0 o aceptar más stock del disponible.
+
+### P2 — Realtime reconnection
+**Síntoma:** Los canales real-time de Supabase en el dashboard no reconectan automáticamente al perder conexión. El usuario debe refrescar la página manualmente. El polling 30s mitiga parcialmente.
 
 ### P2 — WhatsApp templates modal
 **Síntoma:** El modal de templates de WhatsApp tiene problemas de UX/interacción reportados. No auditado en profundidad.
@@ -951,63 +1010,81 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 
 ## Roadmap Inmediato
 
-### Sprint completado — Sprint UX Inventario V2 (4 fases) + Sprint 2 Estabilización
+### Sprint completado — Sprint P0-B + P0-C (Security Hardening)
 
-**Sprint UX Inventario V2:**
-
-| Tarea | Estado |
-|-------|--------|
-| Auditoría UX de inventario | ✅ |
-| Diagnostic logging en actualizarProducto | ✅ (commit `663584c`) |
-| P1 Inventario edit — diagnóstico y fix | ✅ (migración a ProductoForm) |
-| Implementar `ProductoForm.tsx` (unificado crear+editar) | ✅ |
-| Crear `ProductoModal.tsx` (wrapper reutilizable) | ✅ |
-| SKU único por producto (autogenerado desde SKU principal) | ✅ |
-| Leyenda St/Pr/Co en tabla de variantes | ✅ |
-| CSV export con columna tallas | ✅ |
-| Refactor `ProductoActions.tsx` → `ProductoRowActions.tsx` | ✅ |
-| Imagen editable en editar producto | ✅ (`imagen_url` agregado a `actualizarProducto`) |
-| Feedback visual (toast éxito/error) en crear y editar | ✅ |
-
-**Sprint 2 Estabilización:**
+**Sprint P0-B — PCC Security Hardening:**
 
 | Tarea | Estado |
 |-------|--------|
-| Migrar `FloatAddButton` y `QuickAddProduct` a ProductoForm | ✅ |
-| Eliminar `AgregarProductoForm.tsx` | ✅ |
-| Dashboard auto-refresh — polling 30s | ✅ |
-| ProductoModal migrado a React Portal | ✅ |
-| hover-lift removido (causa raíz green switches) | ✅ |
-| Sticky footer simplificado (Option A) | ✅ |
-| Mobile rendering fixes (margen, toggle, modal overflow) | ✅ |
-| Limpieza imports no usados en DashboardClient | ✅ |
+| S2 — PCC middleware ausente | ✅ |
+| S4 — Cookie PCC forjable | ✅ |
+| Validación: PCC login | ✅ |
+| Validación: PCC logout | ✅ |
+| Validación: Middleware PCC | ✅ |
+| Validación: APIs PCC protegidas | ✅ |
 
-### Sprint 3 — Pre-lanzamiento
+**Sprint P0-C — Dashboard Session Hardening:**
 
-1. Hooks violation P1 — investigar `React.memo(PlantillaPreview)` + React 19
-2. WhatsApp templates modal — auditoría y fix
-3. Regalos historial — tabla completa con filtros
-4. PWA QA completo (service worker, manifest, iOS)
-5. Cupones — auditoría funcional
-6. Marketing — auditoría funcional
-7. E2E tests con Playwright para flujos críticos
+| Tarea | Estado |
+|-------|--------|
+| S1 — login-as sin autenticación | ✅ |
+| S5 — Legacy UUID session bypass | ✅ |
+| Validación: Dashboard login | ✅ |
+| Validación: Dashboard logout | ✅ |
+| Validación: Login-as | ✅ |
+| Validación: Sesiones firmadas | ✅ |
 
-### Sprint 3 — Pre-lanzamiento
+**Commit:** `0f4bba5`
 
-1. PWA QA completo (service worker, manifest, iOS)
-2. Cupones — auditoría funcional
-3. Marketing — auditoría funcional
-4. Banner Builder — habilitar (BANNER_BUILDER_ENABLED = true)
-5. Performance audit (Lighthouse)
-6. E2E tests con Playwright para flujos críticos
+### Sprint completado — Sprint P1-A — Push + Data Access Hardening
 
-### Sprint 4 — Post-lanzamiento
+**Commit:** (pendiente)
 
-1. Analytics dashboard — exportar reportes
-2. Pedidos — bulk actions, filtros avanzados
-3. Inventario — bulk edit (precio, categoría)
-4. Colaboradores — mejorar UX de permisos
-5. Landing pública — SEO improvements
+| Tarea | Prioridad | Estado |
+|-------|-----------|--------|
+| Auth en `/api/push/send` | P1 | ✅ |
+| Fix RLS `push_subscriptions` | P1 | ✅ |
+| Fix IDOR `actualizarEstado` | P1 | ✅ |
+
+**Correcciones:**
+
+* **Auth `/api/push/send`**: `getSession(req)` verifica cookie `nx_session` antes de procesar. Retorna 401 si no hay sesión. Usa `session.tiendaId` en vez del body `id_tienda` (previene que un usuario autenticado envíe push a otra tienda).
+* **RLS `push_subscriptions`**: Política tautológica corregida — `id_tienda = (SELECT id_tienda FROM tiendas WHERE id = id_tienda)` → `id_tienda IN (SELECT id FROM tiendas)`. Migration `054_fix_rls_push_subscriptions.sql` creada.
+* **IDOR `actualizarEstado`**: Primera SELECT de pedido ahora filtra por `.eq('id_tienda', sessionId)`.
+
+**Archivos modificados:**
+* `src/app/api/push/send/route.ts` — auth agregado
+* `src/app/dashboard/pedidos/actions.ts` — IDOR fix
+* `supabase/migrations/053_push_subscriptions.sql` — RLS fix (fresh installs)
+* `supabase/migrations/054_fix_rls_push_subscriptions.sql` — RLS fix (nueva migración)
+
+**Validaciones ejecutadas:**
+* Typecheck: ✅ sin errores
+* Checkout: usa `sendPushToTienda()` directo (no pasa por `/api/push/send`)
+* Subscribe/unsubscribe: usan `createAdminClient()` (bypass RLS, no afectado)
+
+**Riesgos remanentes:**
+* Clientes quick-buy (ProductCard, ProductQuickView, ProductDetailClient) llaman a `/api/push/send` sin sesión — recibirán 401 silencioso (`.catch()`). Push desde quick-buy solo funciona si el dueño está logueado en el dashboard mientras navega su catálogo.
+* RLS no protege contra admin client (bypass intencional por diseño). La fix es defensa-en-profundidad para accesos con anon key.
+
+### Sprint P1-B — Data Integrity
+
+| Tarea | Prioridad | Estado |
+|-------|-----------|--------|
+| Stock decremento inconsistente | P2 | ⬜ |
+| Realtime reconnection | P2 | ⬜ |
+
+### Sprint P2 — Pre-lanzamiento
+
+| Tarea | Prioridad | Estado |
+|-------|-----------|--------|
+| Hooks violation P1 — investigar | P2 | ⬜ |
+| WhatsApp templates modal — auditoría y fix | P2 | ⬜ |
+| Regalos historial — tabla completa con filtros | P2 | ⬜ |
+| PWA QA completo (service worker, manifest, iOS) | P2 | ⬜ |
+| Cupones — auditoría funcional | P3 | ⬜ |
+| Marketing — auditoría funcional | P3 | ⬜ |
+| E2E tests Playwright para flujos críticos | P2 | ⬜ |
 
 ---
 
@@ -1339,6 +1416,31 @@ async function diag() {
 ---
 
 ## Changelog
+
+### 2026-06-01 — Sprint P1-A — Push + Data Access Hardening
+
+##### Corregido
+- **Auth `/api/push/send`**: `getSession(req)` verifica cookie `nx_session`. Retorna 401 si no hay sesión. Usa `session.tiendaId` en vez del body.
+- **RLS `push_subscriptions`**: Política tautológica corregida (`id_tienda = (SELECT id_tienda FROM tiendas...)` → `id_tienda IN (SELECT id FROM tiendas)`). Migration `054_fix_rls_push_subscriptions.sql`.
+- **IDOR `actualizarEstado`**: Primera SELECT de pedido ahora filtra por `.eq('id_tienda', sessionId)`.
+
+##### Archivos
+- `src/app/api/push/send/route.ts`, `src/app/dashboard/pedidos/actions.ts`
+- `supabase/migrations/053_push_subscriptions.sql`, `supabase/migrations/054_fix_rls_push_subscriptions.sql`
+
+### 2026-06-01 — Sprint P0-B + P0-C Security Hardening
+
+**Commit:** `0f4bba5`
+
+##### Corregido
+- **S1 — login-as sin autenticación**: ahora requiere sesión PCC válida para ejecutar login-as
+- **S2 — PCC middleware ausente**: middleware propio para rutas `/pcc/*` con verificación de `nx_pcc`
+- **S4 — Cookie PCC forjable**: `nx_pcc` migrada a token firmado HMAC-SHA256 (antes UUID plano)
+- **S5 — Legacy UUID session bypass**: `getSessionFromCookieValue` ya no acepta UUIDs planos
+
+##### Estado
+- Vulnerabilidades críticas corregidas: ✅ S1, S2, S4, S5
+- Pendientes principales: Auth push, RLS push_subscriptions, IDOR actualizarEstado, Stock decremento, Realtime reconnection
 
 ### 2026-05-30 — Sprint 2 Estabilización
 

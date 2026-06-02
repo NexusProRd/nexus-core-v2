@@ -18,5 +18,5 @@ CREATE POLICY "socio_push_subscriptions_own"
   ON public.push_subscriptions
   FOR ALL
   USING (
-    id_tienda = (SELECT id_tienda FROM public.tiendas WHERE id = id_tienda)
+    id_tienda IN (SELECT id FROM public.tiendas)
   );

@@ -44,6 +44,7 @@ export async function actualizarEstado(formData: FormData) {
     .from('pedidos')
     .select('is_gift, id_tienda, notas, cliente_telefono, cliente_nombre, detalles_pedido')
     .eq('id', pedidoId)
+    .eq('id_tienda', sessionId)
     .single()
 
   await supabase
