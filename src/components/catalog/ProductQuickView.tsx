@@ -127,7 +127,7 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
       order_id: orderId,
       total,
       estado: 'pendiente',
-      detalles_pedido: [{ producto: nombreConVariante, cantidad: quantity, precio_unitario: precioFinal, precio_cobrado: precioFinal }],
+      detalles_pedido: [{ id_producto: producto.id, producto: nombreConVariante, cantidad: quantity, precio_unitario: precioFinal, precio_cobrado: precioFinal, variante_seleccionada: selectedTalla || null }],
     }).select().single()
 
     if (error || !pedido) {

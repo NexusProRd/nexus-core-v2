@@ -166,7 +166,7 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
       order_id: orderId,
       total,
       estado: 'pendiente',
-      detalles_pedido: [{ producto: nombreConSize, cantidad: quantity, precio_unitario: precioFinal, precio_cobrado: precioFinal }],
+      detalles_pedido: [{ id_producto: producto.id, producto: nombreConSize, cantidad: quantity, precio_unitario: precioFinal, precio_cobrado: precioFinal, variante_seleccionada: selectedSize || null }],
     }).select().single()
 
     if (error || !pedido) {
