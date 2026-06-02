@@ -641,6 +641,8 @@ export default function DashboardLayout({
         )
         if (!stockResult.ok) {
           console.error('[Gift] stock decrement errors:', stockResult.errors)
+          alert('No se pudo descontar el stock. Intenta de nuevo.')
+          return
         }
       }
 

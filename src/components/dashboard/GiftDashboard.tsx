@@ -124,6 +124,8 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
         )
         if (!stockResult.ok) {
           console.error('[GiftDashboard] stock decrement errors:', stockResult.errors)
+          setUpdatingId(null)
+          return
         }
       }
 
