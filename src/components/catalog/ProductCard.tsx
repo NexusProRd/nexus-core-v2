@@ -169,7 +169,7 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
     localStorage.setItem(`nexus-last-order-${idTienda}`, pedido.id)
 
     console.log('[ProductCard] sending push')
-    fetch('/api/push/send', {
+    fetch('/api/push/quickbuy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id_tienda: idTienda, cliente_nombre: quickBuyName.trim(), total, id_pedido: pedido.id }),

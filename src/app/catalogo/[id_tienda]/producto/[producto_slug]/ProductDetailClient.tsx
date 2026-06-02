@@ -185,7 +185,7 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
     setBuyPhone('')
 
     console.log('[ProductDetail] sending push')
-    fetch('/api/push/send', {
+    fetch('/api/push/quickbuy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id_tienda: tienda.id, cliente_nombre: buyName.trim(), total, id_pedido: pedido.id }),
