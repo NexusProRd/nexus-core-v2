@@ -889,8 +889,10 @@ La ruta de login cargaba el cliente Supabase de forma eager, causando errores en
 **Estado:** ✅ Cerrado en Sprint P1-B.1.
 **Archivos:** `src/app/catalogo/[...]/producto/[...]/ProductDetailClient.tsx`
 
-### P1 — Stock decremento inconsistente (B1/B2 — quick-buy RPC)
-**Síntoma:** ProductCard, ProductQuickView, DashboardShell y GiftDashboard usan `rpc('decrement_stock')` que siempre descuenta 1 (ignora cantidad) y no maneja variantes.
+### P1 — Stock decremento inconsistente (B1/B2/B8 — quick-buy RPC) (RESUELTO — Sprint P1-B.2)
+**Síntoma:** ProductCard, ProductQuickView, DashboardShell y GiftDashboard usaban `rpc('decrement_stock')` que siempre descuenta 1 (ignora cantidad) y no maneja variantes.
+**Fix:** Migrados a `gestionarStock()` con cantidad real y variante seleccionada. Agregada validación de stock antes de crear pedido.
+**Estado:** ✅ Cerrado en Sprint P1-B.2.
 
 ### P2 — Stock race condition (B4/B5 — checkout/gift-purchase)
 **Síntoma:** El checkout decrementa stock sin protección de condición de carrera. Dos pedidos simultáneos pueden decrementar el mismo stock por debajo de 0 o aceptar más stock del disponible.
@@ -1085,8 +1087,9 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 | Tarea | Prioridad | Estado |
 |-------|-----------|--------|
 | Stock decremento inconsistente — B3 (ProductDetailClient) | P0 | ✅ |
-| Stock decremento inconsistente — B1/B2 (quick-buy RPC) | P1 | ⬜ |
+| Stock decremento inconsistente — B1/B2 (quick-buy RPC) | P1 | ✅ |
 | Stock decremento inconsistente — B4/B5 (race condition) | P2 | ⬜ |
+| Stock decremento inconsistente — B8 (sin validación previa) | P1 | ✅ |
 | Realtime reconnection | P2 | ⬜ |
 
 ### Sprint P2 — Pre-lanzamiento
@@ -1431,6 +1434,31 @@ async function diag() {
 ---
 
 ## Changelog
+
+### 2026-06-01 — Sprint P1-B.2 — Unify quick-buy stock logic (B1+B2+B8)
+
+##### Corregido
+- **B1** — `rpc('decrement_stock')` siempre descontaba 1, ignorando `quantity`. Reemplazado por `gestionarStock()` que respeta la cantidad real.
+- **B2** — `rpc('decrement_stock')` solo actualizaba `productos.stock`, no las variantes en `tallas[]`. `gestionarStock()` actualiza ambos.
+- **B8** — Los 4 flujos no validaban stock antes de crear pedido/aprobar regalo. Agregada validación: si `in_stock` es false, stock <= 0, o variante sin stock suficiente, se muestra alert y se aborta.
+
+##### Flujos migrados
+| Componente | Antes | Después |
+|-----------|-------|---------|
+| ProductCard | `rpc('decrement_stock', { pid })` | `gestionarStock(supabase, items, 'deduct')` |
+| ProductQuickView | `rpc('decrement_stock', { pid })` | `gestionarStock(supabase, items, 'deduct')` |
+| DashboardShell gift | Loop `rpc('decrement_stock')` | `gestionarStock(supabase, items, 'deduct')` batch |
+| GiftDashboard gift | Loop `rpc('decrement_stock')` | `gestionarStock(supabase, items, 'deduct')` batch |
+
+##### Mecanismo único
+Todos los flujos ahora usan el mismo `gestionarStock()` de `@/lib/stock`.
+`rpc('decrement_stock')` queda sin uso activo.
+
+##### Archivos
+- `src/components/catalog/ProductCard.tsx`
+- `src/components/catalog/ProductQuickView.tsx`
+- `src/app/dashboard/DashboardShell.tsx`
+- `src/components/dashboard/GiftDashboard.tsx`
 
 ### 2026-06-01 — Sprint P1-B.1 — Fix B3: ProductDetailClient sin stock decrement
 
