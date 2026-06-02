@@ -34,63 +34,32 @@ export default function GiftRedemption({ idTienda, defaultCode, onOpen }: { idTi
 
     const supabase = createClient()
 
-    const { data: giftData, error: fetchError } = await supabase
+    const { data: giftData } = await supabase
       .from('gift_experiences')
-      .select('id, sender_name, receiver_name, personal_message, approved_at, items_list')
+      .select('sender_name, receiver_name, personal_message')
       .eq('store_id', idTienda)
       .eq('gift_code', code.trim().toUpperCase())
-      .eq('status', 'approved')
-      .eq('is_redeemed', false)
       .maybeSingle()
 
-    if (fetchError || !giftData) {
-      setError('Código inválido, ya fue canjeado o ha expirado.')
+    const { data: rpcData, error: rpcError } = await supabase.rpc('procesar_canje_regalo', {
+      p_gift_code: code.trim().toUpperCase(),
+      p_store_id: idTienda
+    })
+
+    if (rpcError) {
+      setError('Error de comunicación con el servidor. Inténtalo de nuevo.')
       setLoading(false)
       return
     }
 
-    const aprobado = new Date(giftData.approved_at)
-    const ahora = new Date()
-    const diffHoras = (ahora.getTime() - aprobado.getTime()) / (1000 * 60 * 60)
-    if (diffHoras > 72) {
-      setError('Este código ha expirado (más de 72 horas desde su aprobación).')
+    const res = rpcData as { success: boolean; error?: string; items?: any[] }
+    if (!res.success) {
+      setError(res.error || 'No se pudo procesar el canje.')
       setLoading(false)
       return
     }
 
-    const { error: updateError } = await supabase
-      .from('gift_experiences')
-      .update({ is_redeemed: true })
-      .eq('id', giftData.id)
-      .eq('is_redeemed', false)
-
-    if (updateError) {
-      setError('No se pudo canjear el regalo. Inténtalo de nuevo.')
-      setLoading(false)
-      return
-    }
-
-    const items = (giftData.items_list as { product_id: string; nombre: string; precio: number; imagen_url: string | null }[]) || []
-
-    const productIds = items.map(item => item.product_id)
-    const { data: stockData, error: stockError } = await supabase
-      .from('productos')
-      .select('id, in_stock')
-      .in('id', productIds)
-
-    if (stockError) {
-      setError('No se pudo verificar el inventario. Inténtalo de nuevo.')
-      setLoading(false)
-      return
-    }
-
-    const outOfStock = stockData?.filter(p => !p.in_stock) || []
-    if (outOfStock.length > 0) {
-      setError('Lo sentimos, este detalle está temporalmente agotado. Por favor, contacta a la tienda.')
-      setLoading(false)
-      return
-    }
-
+    const items = (res.items || []) as { product_id: string; nombre: string; precio: number; imagen_url: string | null }[]
     for (const item of items) {
       addToCart({ id: item.product_id, nombre: item.nombre, precio: 0, imagen_url: item.imagen_url, isGift: true })
     }
@@ -106,9 +75,9 @@ export default function GiftRedemption({ idTienda, defaultCode, onOpen }: { idTi
     }, 300)
 
     setGift({
-      sender_name: giftData.sender_name,
-      receiver_name: giftData.receiver_name,
-      personal_message: giftData.personal_message || '',
+      sender_name: giftData?.sender_name || '',
+      receiver_name: giftData?.receiver_name || '',
+      personal_message: giftData?.personal_message || '',
       items,
     })
     setLoading(false)
