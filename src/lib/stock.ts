@@ -39,10 +39,19 @@ export async function gestionarStock(
         prod.tallas.some((t: any) => typeof t === 'object' && t.talla === item.variante_seleccionada)
 
       if (tieneVariante) {
+        const varianteActual = prod.tallas.find(
+          (t: any) => typeof t === 'object' && t.talla === item.variante_seleccionada
+        )
+        const nuevoStockVariante = (varianteActual?.stock || 0) + multiplicador * item.cantidad
+
+        if (accion === 'deduct' && nuevoStockVariante < 0) {
+          errors.push(`Stock insuficiente para variante ${item.variante_seleccionada} de ${item.nombre}. Disponible: ${varianteActual?.stock || 0}`)
+          continue
+        }
+
         const tallasActualizadas = prod.tallas.map((t: any) => {
           if (typeof t === 'object' && t.talla === item.variante_seleccionada) {
-            const nuevoStock = t.stock + multiplicador * item.cantidad
-            return { ...t, stock: Math.max(0, nuevoStock) }
+            return { ...t, stock: Math.max(0, nuevoStockVariante) }
           }
           return t
         })
@@ -51,18 +60,36 @@ export async function gestionarStock(
           return sum + (typeof v === 'object' ? (v.stock || 0) : 0)
         }, 0)
 
-        await supabase
+        const stockAntes = prod.stock
+        const { data: updatedV } = await supabase
           .from('productos')
           .update({ tallas: tallasActualizadas, stock: stockSum, in_stock: stockSum > 0 })
           .eq('id', pid)
+          .eq('stock', stockAntes)
+          .select()
+
+        if (!updatedV || updatedV.length === 0) {
+          errors.push(`Conflicto de concurrencia al ${accion === 'deduct' ? 'descontar' : 'restaurar'} stock de ${item.nombre} (variante ${item.variante_seleccionada}). Intenta de nuevo.`)
+        }
       } else {
         const nuevoStock = (prod.stock || 0) + multiplicador * item.cantidad
+
+        if (accion === 'deduct' && nuevoStock < 0) {
+          errors.push(`Stock insuficiente para ${item.nombre}. Disponible: ${prod.stock || 0}`)
+          continue
+        }
+
         const sanitized = Math.max(0, nuevoStock)
-        await supabase
+        const { data: updatedS } = await supabase
           .from('productos')
           .update({ stock: sanitized, in_stock: sanitized > 0 })
           .eq('id', pid)
           .eq('stock', prod.stock)
+          .select()
+
+        if (!updatedS || updatedS.length === 0) {
+          errors.push(`Conflicto de concurrencia al ${accion === 'deduct' ? 'descontar' : 'restaurar'} stock de ${item.nombre}. Intenta de nuevo.`)
+        }
       }
     } catch (e: any) {
       errors.push(
