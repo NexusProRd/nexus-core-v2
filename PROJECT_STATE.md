@@ -3,7 +3,6 @@
 > Documento maestro de arquitectura, decisiones, bugs y roadmap.
 > Cualquier nuevo chat, desarrollador o auditor debe empezar aquí.
 
----
 
 ## Resumen Ejecutivo
 
@@ -15,11 +14,11 @@
 | Base de datos | Supabase PostgreSQL (52 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta QA** — módulos funcionales, bugs conocidos, S1/S2/S4/S5 corregidos |
+| Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | Sprint P1-A.1 — Restore quick-buy push (Jun 1) |
-| Última verificación | 2026-06-01 — Sprint P1-A.1 completado |
+| Último commit | Sprint P3-A — Gift Redemption Unification (Jun 2) |
+| Última verificación | 2026-06-02 — Sprint P3-A completado |
 
 ### Módulos
 
@@ -27,15 +26,15 @@
 |--------|--------|-------------|
 | Catálogo público | ✅ Funcional | Media |
 | Dashboard socio | ✅ Funcional | Alta |
-| Inventario | ✅ Funcional (bugs conocidos) | Alta |
+| Inventario | ✅ Funcional (stock hardening completo) | Alta |
 | Pedidos | ✅ Funcional | Alta |
 | WhatsApp | ✅ Funcional | Media |
-| Regalos corporativos | ✅ Funcional | Baja |
+| Regalos corporativos | ✅ Funcional (auditado I1/I2 corregidos) | Media |
 | Vitrina Studio | ⚠️ Beta | Alta |
 | Banner Builder | 🔴 Oculto (feature flag) | Pospuesto |
 | PCC (Panel Control Central) | ✅ Funcional | Alta |
 | Auth (login/register) | ✅ Funcional | Crítica |
-| Canje de regalos | ✅ Funcional | Baja |
+| Canje de regalos | ✅ Funcional (redemption unificada vía RPC) | Media |
 | Landing pública | ✅ Funcional | Baja |
 | Cupones | ⚠️ No auditado | Baja |
 | Marketing | ⚠️ No auditado | Baja |
@@ -46,45 +45,43 @@
 
 ### Sprint completado
 
-**Sprint P0-B — PCC Security Hardening + Sprint P0-C — Dashboard Session Hardening + Sprint P1-A — Push + Data Access Hardening + Sprint P1-A.1 — Restore Quick-Buy Push**
+**Sprint P3-A — Gift Redemption Unification**
 
 ### Estado
 
-**Completados.** Los sprints de seguridad y accesos fueron ejecutados, verificados, y la regresión corregida.
+**Completado.** GiftRedemption.tsx migrado a usar `procesar_canje_regalo` RPC atómico. Eliminada lógica client-side duplicada de SELECT + validación expiración + UPDATE directo.
 
-**Sprint P0-B (commit `0f4bba5`):**
-- S2 — PCC middleware ausente: implementado middleware PCC para rutas `/pcc/*`
-- S4 — Cookie PCC forjable: firma criptográfica agregada a `nx_pcc`
-
-**Sprint P0-C:**
-- S1 — login-as sin autenticación: ahora requiere sesión PCC válida
-- S5 — Legacy UUID session bypass: `nx_session` solo acepta tokens firmados, UUID legacy eliminado
-
-### Logros acumulados
-
-#### Sprint P0-B — PCC Security Hardening
-- **PCC middleware (S2)**: Middleware propio para rutas `/pcc/*` que verifica sesión PCC válida antes de permitir acceso
-- **Cookie PCC firmada (S4)**: `nx_pcc` ahora usa el mismo sistema de tokens firmados HMAC-SHA256 que `nx_session`, no un UUID plano
-- **Validación completa**: PCC login → middleware protege → APIs PCC protegidas → logout funcional
-
-#### Sprint P0-C — Dashboard Session Hardening
-- **login-as protegido (S1)**: El endpoint `POST /api/auth/login-as` ahora verifica que quien invoca tenga una sesión PCC válida. Un atacante no puede escalar a dueño de tienda sin ser operador PCC
-- **Sesiones firmadas obligatorias (S5)**: `getSessionFromCookieValue` ya no acepta UUIDs planos. Solo tokens firmados con HMAC-SHA256 son válidos. Esto cierra el bypass donde cualquiera podía setear `nx_session=<cualquier-uuid>` y autenticarse como cualquier tienda
-- **Validación completa**: Dashboard login → middleware protege → logout → login-as → sesiones firmadas
+Todos los sprints de seguridad, hardening, data integrity y gift unification ejecutados:
+- **P0-B/C**: Security Hardening (`0f4bba5`)
+- **P1-A/A.1**: Push + Data Access Hardening (`6890792` / `4037c39`)
+- **P1-B.1/B.2**: Data Integrity — stock en todos los flujos (`13d1e0d` / `0ad023b`)
+- **P2-PREP**: Inventory consistency audit
+- **P2-A**: Stock concurrency hardening — B4/B5 (`412bbef`)
+- **P2-B**: Fix variant stock restore — B6 (`f09dabf`)
+- **P2-C**: Gift approve hardening (`c564a7e`)
+- **P2-D**: Gift inventory integrity — I1/I2 (`c6619aa`)
+- **P3-A**: Gift redemption unification — R3 (`df028c2`)
 
 ### Estado de vulnerabilidades
 
 | ID | Vulnerabilidad | Estado |
 |----|---------------|--------|
-| S1 | login-as sin autenticación | ✅ Corregido |
-| S2 | PCC middleware ausente | ✅ Corregido |
-| S4 | Cookie PCC forjable | ✅ Corregido |
-| S5 | Legacy UUID session bypass | ✅ Corregido |
+| S1 | login-as sin autenticación | ✅ Corregido (P0-C) |
+| S2 | PCC middleware ausente | ✅ Corregido (P0-B) |
+| S4 | Cookie PCC forjable | ✅ Corregido (P0-B) |
+| S5 | Legacy UUID session bypass | ✅ Corregido (P0-C) |
+| B3 | ProductDetailClient sin stock decrement | ✅ Corregido (P1-B.1) |
+| B1/B2/B8 | RPC decrement_stock ignora cantidad/variante/validación | ✅ Corregido (P1-B.2) |
+| B4/B5 | Stock race condition (checkout/gift-purchase) | ✅ Corregido (P2-A) |
+| B6 | Variant stock restore no funciona en quick-buy | ✅ Corregido (P2-B) |
+| I1 | Gift stock descontado dos veces | ✅ Corregido (P2-D) |
+| I2 | Gift rechazado sin restauración | ✅ Corregido (P2-D) |
+| R3 | GiftRedemption canje no atómico (client-side) | ✅ Corregido (P3-A) |
 
 ### Pendientes críticos (próximo sprint)
 
-1. **Stock decremento inconsistente** — checkout puede decrementar stock incorrectamente en condiciones de carrera
-2. **Realtime reconnection** — canales real-time no reconectan automáticamente al perder conexión
+1. **Gift Cards / Wallet** — feature postergada, depende de gift subsystem unification
+2. **Gift subsystem unification** — decidir si migrar Subsistema B (pedidos+tickets) a Subsistema A (gift_experiences)
 
 ### Vulnerabilidades corregidas recientemente
 
@@ -94,12 +91,18 @@
 | — | RLS `push_subscriptions` tautológica | ✅ P1-A |
 | — | IDOR `actualizarEstado` | ✅ P1-A |
 | — | Regresión quick-buy push (P1-A) | ✅ P1-A.1 |
+| B3 | ProductDetailClient sin stock decrement | ✅ P1-B.1 |
+| B1/B2/B8 | RPC decrement_stock (cantidad/variante/validación) | ✅ P1-B.2 |
+| B4/B5 | Stock race condition (optimistic locking) | ✅ P2-A |
+| B6 | Variant stock restore en quick-buy | ✅ P2-B |
+| — | Gift approve sin verificar stock | ✅ P2-C |
+| I1 | Gift stock doble descuento | ✅ P2-D |
+| I2 | Gift rechazo sin restore | ✅ P2-D |
+| R3 | GiftRedemption canje no atómico | ✅ P3-A |
 
 ### Próxima acción
 
-Iniciar Sprint P1-B — Data Integrity:
-1. Stock decremento inconsistente
-2. Realtime reconnection
+Próximo paso recomendado: estabilización pre-lanzamiento (Vitrina Studio, Realtime reconnection) o avanzar con migración de Subsistema B (tickets) a gift_experiences.
 
 ### Bloqueadores
 
@@ -171,6 +174,15 @@ Iniciar Sprint P1-B — Data Integrity:
 | **Impacto** | Medio — rotura silenciosa de funcionalidad |
 | **Probabilidad** | Baja |
 | **Mitigación** | No modificar `CatalogoModal.tsx` (PlantillaPreview) sin verificar Banner Wizard. Mantener `BANNER_BUILDER_ENABLED = false` hasta QA completo. |
+
+### R8 — Gift subsystem duplication
+
+| Campo | Valor |
+|-------|-------|
+| **Riesgo** | Existen dos subsistemas de regalos separados: `gift_experiences` (Subsistema A: nuevo, público, canje, expiración) y `pedidos+tickets` (Subsistema B: antiguo, store-side, magic links). Cero código compartido. I1/I2 corregidos solo en Subsistema A. |
+| **Impacto** | Medio — duplicación de lógica, mantenimiento costoso, experiencia inconsistente. Subsistema B podría heredar bugs similares a I1/I2. |
+| **Probabilidad** | Alta — ya hay bugs confirmados en Subsistema A (I1/I2). Subsistema B no auditado. |
+| **Mitigación** | Unificar ambos subsistemas antes de implementar Gift Cards o Wallet. Migrar Subsistema B a usar `gift_experiences` como tabla canónica. |
 
 ---
 
@@ -632,6 +644,42 @@ Se implementó `ProductoForm.tsx` que maneja ambos modos (`create` / `edit`) con
 | **Motivo** | El efecto visual en cards mobile causaba que `position: fixed` del modal se contuviera dentro del card (el `transform` crea un nuevo stacking context). Aunque el portal resuelve el problema de raíz, se optó por eliminar también la causa directa. |
 | **Impacto** | Cards mobile pierden el efecto hover de elevación. Se eliminó temporalmente para validación; si se confirma que el portal es suficiente, no se restaurará. |
 
+### D015 — Stock management unificado en gestionarStock()
+
+| Campo | Valor |
+|-------|-------|
+| **Fecha** | Junio 2026 (Sprint P1-B) |
+| **Decisión** | Migrar todos los flujos de descuento/restauración de stock a una única función `gestionarStock()` en `@/lib/stock.ts`. Eliminar cualquier `rpc('decrement_stock')` y `UPDATE productos SET stock = stock - N` directo. |
+| **Motivo** | Existían 4 implementaciones diferentes de descuento de stock, cada una con bugs distintos (B1 cantidad, B2 variantes, B3 faltante, B4 race condition). Unificar permite aplicar validaciones (B8), optimistic locking (B4/B5) y tracking en un solo punto. |
+| **Impacto** | 9/9 flujos convergen en una función. `rpc('decrement_stock')` sin callers activos. Mantenimiento centralizado. |
+
+### D016 — Gift approve hardening: abortar si gestionarStock falla
+
+| Campo | Valor |
+|-------|-------|
+| **Fecha** | Junio 2026 (Sprint P2-C) |
+| **Decisión** | GiftDashboard.tsx y DashboardShell.tsx deben abortar la aprobación del gift si `gestionarStock('deduct')` retorna error. No actualizar `status = 'approved'` sin haber descontado stock. |
+| **Motivo** | El flujo anterior aprobaba el gift incluso si el descuento de stock fallaba (stock insuficiente, error de DB), creando una discrepancia gift aprobado + stock no descontado. |
+| **Impacto** | Gift approval es atómica: o se descuenta stock y se aprueba, o no ocurre ninguna de las dos. Sin cambios en rejection path. |
+
+### D017 — Purchase-time stock deduct eliminado (gift)
+
+| Campo | Valor |
+|-------|-------|
+| **Fecha** | Junio 2026 (Sprint P2-D) |
+| **Decisión** | Eliminar `gestionarStock('deduct')` de `gift-purchase/route.ts`. La compra de un gift solo debe validar disponibilidad (stock > 0, in_stock), no descontar stock. El descuento ocurre una única vez al aprobar el gift. |
+| **Motivo** | I1 confirmado: el stock se descontaba dos veces (compra + aprobación). Al eliminar el descuento de compra, el rechazo de gift ya no requiere restauración (I2 resuelto implícitamente). El flujo correcto es: compra valida → store aprueba → stock-- único. |
+| **Impacto** | Stock consistente en todo el ciclo de vida del gift. `handle_expired_gifts()` con `stock + 1` ahora es correcto (restaura el único descuento de aprobación). Sin cambios en GiftDashboard/DashboardShell.
+
+### D018 — Gift redemption unificado vía RPC atómico
+
+| Campo | Valor |
+|-------|-------|
+| **Fecha** | Junio 2026 (Sprint P3-A) |
+| **Decisión** | GiftRedemption.tsx debe usar el RPC `procesar_canje_regalo` (con FOR UPDATE) como única fuente de verdad para canje de gift_experiences, eliminando las queries directas SELECT + UPDATE y la validación de expiración client-side. |
+| **Motivo** | La auditoría de gifts identificó dos caminos de canje paralelos para la misma tabla: `/canje` usaba RPC atómico, GiftRedemption usaba SELECT + client-side expiry + UPDATE directo. Esto introducía race condition, expiración client-side manipulable y stock check redundante. Unificar elimina el riesgo y centraliza la lógica. |
+| **Impacto** | Ambos caminos (`/canje` y GiftRedemption) ahora ejecutan el mismo RPC con FOR UPDATE. La validación de expiración es server-side. Sin cambios en tablas, sin nuevas migraciones. SELECT cosmético preservado para modal de éxito. |
+
 ---
 
 ## Flujo de Usuario
@@ -849,53 +897,62 @@ Inputs en dark mode, FOUC (flash of unstyled content) del theme, colores de plac
 La ruta de login cargaba el cliente Supabase de forma eager, causando errores en Vercel Edge Runtime. Fix con lazy initialization.
 **Commit:** `d9e0db7`
 
+### P0 — Stock decremento ausente en ProductDetailClient (B3 — Sprint P1-B.1)
+**Síntoma:** ProductDetailClient creaba pedidos sin decrementar stock. Cada compra desde la página de producto era sobreventa garantizada.
+**Fix:** Agregado `gestionarStock()` con cantidad real y variante después de crear el pedido.
+**Commit:** `13d1e0d`
+**Archivos:** `src/app/catalogo/[...]/producto/[...]/ProductDetailClient.tsx`
+
+### P1 — Stock decremento inconsistente (B1/B2/B8 — Sprint P1-B.2)
+**Síntoma:** ProductCard, ProductQuickView, DashboardShell y GiftDashboard usaban `rpc('decrement_stock')` que siempre descuenta 1 (ignora cantidad) y no maneja variantes. No validaban stock antes de crear pedido.
+**Fix:** Migrados a `gestionarStock()` con cantidad real, variante seleccionada, y validación previa de disponibilidad.
+**Commit:** `0ad023b`
+**Archivos:** `src/components/catalog/ProductCard.tsx`, `src/components/catalog/ProductQuickView.tsx`, `src/app/dashboard/DashboardShell.tsx`, `src/components/dashboard/GiftDashboard.tsx`
+
+### P2 — Stock race condition (B4/B5 — Sprint P2-A)
+**Síntoma:** Checkout y gift-purchase decrementaban stock sin protección de condición de carrera. Dos pedidos simultáneos podían sobrepasar stock disponible.
+**Fix:** Optimistic locking via `.eq('stock', prod.stock)` antes del `update()`, con `.select()` post-update para validar que el cambio se aplicó. `gestionarStock()` rechaza `nuevoStock < 0`.
+**Commit:** `412bbef`
+**Archivos:** `src/lib/stock.ts`
+
+### P1 — Variant stock restore no funciona (B6 — Sprint P2-B)
+**Síntoma:** Al cancelar pedidos quick-buy (ProductCard, ProductQuickView, ProductDetailClient), `gestionarStock('restore')` no identificaba la variante porque `detalles_pedido` no persistía `variante_seleccionada` ni `id_producto`.
+**Fix:** Los 3 flujos quick-buy ahora persisten `id_producto` + `variante_seleccionada` en JSONB `detalles_pedido`. `extraerItemsPedido()` usa estos campos para identificar producto y variante.
+**Commit:** `f09dabf`
+**Archivos:** `src/components/catalog/ProductCard.tsx`, `src/components/catalog/ProductQuickView.tsx`, `src/app/catalogo/[...]/ProductDetailClient.tsx`, `src/lib/stock.ts`
+
+### P2 — Gift approve sin verificar stock (Sprint P2-C)
+**Síntoma:** GiftDashboard y DashboardShell aprobaban gifts incluso si `gestionarStock('deduct')` fallaba (stock insuficiente, error de DB). El gift quedaba aprobado pero el stock no se descontaba.
+**Fix:** Ambos componentes ahora verifican el resultado de `gestionarStock()`. Si retorna error, se aborta la operación con alerta y no se actualiza el status del gift.
+**Commit:** `c564a7e`
+**Archivos:** `src/components/dashboard/GiftDashboard.tsx`, `src/app/dashboard/DashboardShell.tsx`
+
+### I1 — Gift stock descontado dos veces (Sprint P2-D)
+**Síntoma:** `gift-purchase/route.ts` descontaba stock al comprar el gift, y GiftDashboard/DashboardShell volvían a descontar al aprobarlo. Un mismo gift descontaba stock dos veces.
+**Fix:** Eliminado `gestionarStock('deduct')` de `gift-purchase/route.ts`. La compra solo valida disponibilidad. El descuento ocurre una única vez, al aprobar el gift.
+**Commit:** `c6619aa`
+**Archivos:** `src/app/api/gift-purchase/route.ts`
+
+### I2 — Gift rechazado sin restauración (Sprint P2-D)
+**Síntoma:** Al rechazar un gift, GiftDashboard y DashboardShell solo actualizaban `status = 'rejected'` sin llamar a `gestionarStock('restore')`. El stock quedaba永久emente descontado.
+**Fix:** Resuelto implícitamente por I1 — al no descontar stock durante la compra, el rechazo ya no necesita restaurar nada. Sin cambios de código adicionales.
+**Commit:** `c6619aa`
+**Archivos:** (sin cambios — efecto de I1)
+
+### R3 — GiftRedemption canje no atómico (Sprint P3-A)
+**Síntoma:** GiftRedemption.tsx ejecutaba SELECT + validación expiry client-side + UPDATE directo de `is_redeemed` en vez del RPC `procesar_canje_regalo`. Esto creaba un segundo camino de canje con race condition (SELECT + UPDATE no atómico), validación de expiración manipulable (JS Date), y stock check redundante (stock ya descontado al aprobar).
+**Fix:** Reemplazada toda la lógica por `supabase.rpc('procesar_canje_regalo', ...)`, idéntico al flujo de `/canje`/RedeemButton. El RPC maneja validación, expiración y actualización atómicamente con FOR UPDATE. SELECT cosmético preservado para datos del modal de éxito.
+**Commit:** `df028c2`
+**Archivos:** `src/components/store/GiftRedemption.tsx`
+
 ---
 
 ## Bugs Pendientes
-
-### P1 — Inventario: editar producto no persiste (RESUELTO — Sprint UX V2 Fase 3)
-**Síntoma:** Al editar un producto y guardar, los cambios no se reflejaban después de refrescar la página.
-**Causa raíz:** El formulario de edición inline en `ProductoActions.tsx` tenía lógica de estado desconectada del server action. El `useActionState` no se sincronizaba correctamente con el modal.
-**Fix:** Migrar editar producto a `ProductoForm(mode="edit")` + `ProductoModal`. El flujo ahora es: ProductoRowActions → ProductoModal → ProductoForm → actualizarProducto(). El formulario unificado maneja correctamente el estado y los datos.
-**Estado:** ✅ Resuelto en Sprint UX V2 Fase 3.
-**Archivos:** `src/components/inventario/ProductoForm.tsx`, `src/app/dashboard/inventario/ProductoRowActions.tsx`
 
 ### P1 — Hooks violation en Dashboard/Vitrina
 **Síntoma:** Error "Rendered more hooks than during the previous render" en `Router (app-router.tsx:168:45)` al entrar a Dashboard/Vitrina en dev mode.
 **Causa tentativa:** `React.memo(PlantillaPreview)` + React 19 reconciliation. Ocurre solo en dev mode. No reproducible en production build.
 **Archivos:** `src/components/catalog/CatalogoModal.tsx`
-
-### P1 — Auth en /api/push/send (RESUELTO — Sprint P1-A)
-**Síntoma:** El endpoint `POST /api/push/send` no tenía autenticación.
-**Fix:** `getSession(req)` verifica cookie `nx_session`. Retorna 401 si no hay sesión. Usa `session.tiendaId` en vez del body.
-**Estado:** ✅ Cerrado en Sprint P1-A.
-**Archivos:** `src/app/api/push/send/route.ts`
-
-### P1 — RLS push_subscriptions ausente (RESUELTO — Sprint P1-A)
-**Síntoma:** Política tautológica `id_tienda = (SELECT id_tienda FROM tiendas...)` — siempre verdadera porque `tiendas` no tiene columna `id_tienda`.
-**Fix:** `id_tienda IN (SELECT id FROM tiendas)`. Migration `054_fix_rls_push_subscriptions.sql`.
-**Estado:** ✅ Cerrado en Sprint P1-A.
-**Archivos:** `supabase/migrations/053_push_subscriptions.sql`
-
-### P1 — IDOR en actualizarEstado (RESUELTO — Sprint P1-A)
-**Síntoma:** La primera SELECT de pedido no filtraba por `id_tienda`, permitiendo leer datos de pedidos de otras tiendas.
-**Fix:** `.eq('id_tienda', sessionId)` agregado a la SELECT.
-**Estado:** ✅ Cerrado en Sprint P1-A.
-**Archivos:** `src/app/dashboard/pedidos/actions.ts`
-
-### P0 — Stock decremento ausente en ProductDetailClient (RESUELTO — Sprint P1-B.1)
-**Síntoma:** ProductDetailClient creaba pedidos sin decrementar stock. Cada compra desde la página de producto era sobreventa garantizada.
-**Fix:** Agregado `gestionarStock()` con cantidad real y variante después de crear el pedido.
-**Estado:** ✅ Cerrado en Sprint P1-B.1.
-**Archivos:** `src/app/catalogo/[...]/producto/[...]/ProductDetailClient.tsx`
-
-### P1 — Stock decremento inconsistente (B1/B2/B8 — quick-buy RPC) (RESUELTO — Sprint P1-B.2)
-**Síntoma:** ProductCard, ProductQuickView, DashboardShell y GiftDashboard usaban `rpc('decrement_stock')` que siempre descuenta 1 (ignora cantidad) y no maneja variantes.
-**Fix:** Migrados a `gestionarStock()` con cantidad real y variante seleccionada. Agregada validación de stock antes de crear pedido.
-**Estado:** ✅ Cerrado en Sprint P1-B.2.
-
-### P2 — Stock race condition (B4/B5 — checkout/gift-purchase)
-**Síntoma:** El checkout decrementa stock sin protección de condición de carrera. Dos pedidos simultáneos pueden decrementar el mismo stock por debajo de 0 o aceptar más stock del disponible.
 
 ### P2 — Realtime reconnection
 **Síntoma:** Los canales real-time de Supabase en el dashboard no reconectan automáticamente al perder conexión. El usuario debe refrescar la página manualmente. El polling 30s mitiga parcialmente.
@@ -914,10 +971,10 @@ El catálogo público tiene capacidades PWA pero no se ha auditado:
 ### P2 — Regalos historial
 El módulo de regalos corporativos (`/dashboard/regalos`) solo tiene `page.tsx`. No hay historial completo, filtros ni acciones masivas.
 
-### P2 — Dashboard auto-refresh (RESUELTO — Sprint 2 Estabilización)
-**Síntoma:** El dashboard no actualiza datos automáticamente. El usuario debe refrescar la página.
-**Fix:** Implementado `setInterval(refrescarTodo, 30000)` como fallback junto a la suscripción real-time de Supabase (canal `realtime_productos`). El polling garantiza actualización incluso si el canal real-time falla.
-**Estado:** ✅ Resuelto en Sprint 2 Estabilización.
+### P2 — Gift subsystem unification
+**Síntoma:** Existen dos subsistemas de regalos separados: `gift_experiences` (nuevo, público, canje, expiración) y `pedidos+tickets` (antiguo, store-side, magic links). Cero código compartido. I1/I2 corregidos solo en Subsistema A.
+**Impacto:** Duplicación de lógica, mantenimiento costoso, experiencia inconsistente para el destinatario.
+**Archivos:** `src/app/api/gift-purchase/route.ts`, `src/components/dashboard/GiftDashboard.tsx`, `src/app/dashboard/DashboardShell.tsx`, `src/components/store/GiftRedemption.tsx`, `src/app/api/ticket-redeem/route.ts`, `supabase/migrations/011_tickets.sql`
 
 ### P3 — Banner Builder (post-beta)
 Feature completo pero oculto tras `BANNER_BUILDER_ENABLED=false`. Pendiente QA y habilitación.
@@ -952,7 +1009,7 @@ Módulos existentes pero no auditados. Se desconoce su estado funcional.
 | Inventario — Editar | ✅ Resuelto | Bug P1 corregido. Edit usa ProductoForm unificado |
 | Vitrina Studio | **ALTO** | Hooks violation P1, UX complejo |
 | WhatsApp | Medio | Modal templates no auditado |
-| Regalos | Bajo | Sin features complejos |
+| Regalos | Medio | Auditado I1/I2 corregidos, subsistema unificación pendiente |
 | Cupones | Desconocido | No auditado |
 | Marketing | Desconocido | No auditado |
 | PWA (catálogo) | Medio | Service worker, offline, iOS |
@@ -983,11 +1040,17 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
   - Listar con filtros por estado ✅
   - Confirmar/completar/cancelar ✅
   - Ticket imprimible ✅
+- [ ] **Stock integrity**
+  - Stock se descuenta en todos los flujos ✅ (P1-B.1, P1-B.2)
+  - Stock usa optimistic locking contra race conditions ✅ (P2-A)
+  - Variant stock restore funcional ✅ (P2-B)
+  - Gift stock sin double deduct ✅ (P2-D)
+  - Gift reject sin pérdida de stock ✅ (P2-D)
 - [ ] **Dashboard estable**
   - KPIs correctos ✅
   - Charts cargan ✅
   - Sin hooks violation P1
-  - Auto-refresh implementado
+  - Auto-refresh implementado ✅
 - [ ] **Catálogo público funcional**
   - Cards de producto ✅
   - Quick view ✅
@@ -1000,14 +1063,15 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
   - Cambio de colores/logo ✅
   - Vista previa ✅
   - Sin hooks violation P1
-- [ ] **Sin bugs P0/P1 abiertos**
+- [ ] **Sin bugs P0/P1 abiertos** (se registraron y cerraron 10+ bugs de integridad de datos y seguridad)
 
 ### 🟡 Should-have (no bloqueante pero deseable)
 
 - [ ] PWA validada (service worker, manifest, iOS)
 - [ ] WhatsApp templates modal funcional
 - [ ] Regalos historial (tabla + filtros)
-- [ ] Dashboard auto-refresh
+- [ ] Gift subsystem unification (pedidos+tickets → gift_experiences)
+- [ ] Realtime reconnection estable
 - [ ] E2E tests para flujos críticos (Playwright)
 
 ### 🔵 Could-have (post-beta)
@@ -1022,87 +1086,75 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 
 ## Roadmap Inmediato
 
-### Sprint completado — Sprint P0-B + P0-C (Security Hardening)
-
-**Sprint P0-B — PCC Security Hardening:**
-
-| Tarea | Estado |
-|-------|--------|
-| S2 — PCC middleware ausente | ✅ |
-| S4 — Cookie PCC forjable | ✅ |
-| Validación: PCC login | ✅ |
-| Validación: PCC logout | ✅ |
-| Validación: Middleware PCC | ✅ |
-| Validación: APIs PCC protegidas | ✅ |
-
-**Sprint P0-C — Dashboard Session Hardening:**
-
-| Tarea | Estado |
-|-------|--------|
-| S1 — login-as sin autenticación | ✅ |
-| S5 — Legacy UUID session bypass | ✅ |
-| Validación: Dashboard login | ✅ |
-| Validación: Dashboard logout | ✅ |
-| Validación: Login-as | ✅ |
-| Validación: Sesiones firmadas | ✅ |
-
+### Sprint completado — P0-B + P0-C (Security Hardening)
 **Commit:** `0f4bba5`
+- S2 — PCC middleware ausente ✅
+- S4 — Cookie PCC forjable ✅
+- S1 — login-as sin autenticación ✅
+- S5 — Legacy UUID session bypass ✅
 
-### Sprint completado — Sprint P1-A — Push + Data Access Hardening
+### Sprint completado — P1-A + P1-A.1 (Push + Data Access Hardening)
+**Commits:** `6890792`, `4037c39`
+- Auth en `/api/push/send` ✅
+- RLS `push_subscriptions` tautológica ✅
+- IDOR `actualizarEstado` ✅
+- Restaurar quick-buy push (regresión) ✅
 
-**Commits:** `6890792` (P1-A), `4037c39` (P1-A.1)
+### Sprint completado — P1-B (Data Integrity)
+**Commits:** `13d1e0d` (B3), `0ad023b` (B1/B2/B8)
+- B3 — ProductDetailClient sin stock decrement ✅
+- B1/B2 — RPC decrement_stock ignora cantidad/variante ✅
+- B8 — Sin validación de stock previa ✅
+- B4/B5 — Stock race condition → postergado a P2-A
+
+### Sprint completado — P2-PREP (Inventory Consistency Audit)
+**Audit only**
+- Confirmado: inventario unificado al 100%. Todos los flujos usan `gestionarStock()`. 0 callers de `decrement_stock` RPC.
+- Resultado: siguiente sprint recomendado → P2-B (B6) antes que B4/B5.
+
+### Sprint completado — P2-A (Stock Concurrency Hardening)
+**Commit:** `412bbef`
+- B4 — TOCTOU race en checkout: optimistic locking + `.select()` post-update ✅
+- B5 — Variant optimistic lock en gift-purchase: `.eq('stock', prod.stock)` ✅
+- `gestionarStock()` rechaza `nuevoStock < 0` ✅
+
+### Sprint completado — P2-B (Fix Variant Stock Restore)
+**Commit:** `f09dabf`
+- B6 — Variant stock restore en quick-buy ✅
+- 3 flujos persisten `id_producto` + `variante_seleccionada` en JSONB `detalles_pedido`
+- `extraerItemsPedido()` + `gestionarStock('restore')` funcional
+
+### Sprint completado — P2-C (Gift Approve Hardening)
+**Commit:** `c564a7e`
+- GiftDashboard y DashboardShell abortan si `gestionarStock()` falla ✅
+- Gift approval es atómica: no se aprueba sin descontar stock
+
+### Sprint completado — P2-D (Gift Inventory Integrity)
+**Commit:** `c6619aa`
+- I1 — Eliminar `gestionarStock('deduct')` de `gift-purchase/route.ts` ✅
+- I2 — Rechazo sin restore: resuelto implícitamente por I1 ✅
+- `handle_expired_gifts()` evaluado: `stock + 1` ahora correcto
+
+### Sprint completado — P3-A (Gift Redemption Unification)
+**Commit:** `df028c2`
+- R3 — GiftRedemption migrado a RPC `procesar_canje_regalo` ✅
+- Eliminado SELECT autorización + expiry client-side + UPDATE directo
+- Ambos caminos (`/canje` y GiftRedemption) usan el mismo RPC atómico
+
+### Pendientes (próximo sprint)
 
 | Tarea | Prioridad | Estado |
 |-------|-----------|--------|
-| Auth en `/api/push/send` | P1 | ✅ |
-| Fix RLS `push_subscriptions` | P1 | ✅ |
-| Fix IDOR `actualizarEstado` | P1 | ✅ |
-| Restaurar quick-buy push (regresión P1-A) | P1 | ✅ |
-
-**Correcciones:**
-
-* **Auth `/api/push/send`**: `getSession(req)` verifica cookie `nx_session` antes de procesar. Retorna 401 si no hay sesión. Usa `session.tiendaId` en vez del body `id_tienda` (previene que un usuario autenticado envíe push a otra tienda).
-* **RLS `push_subscriptions`**: Política tautológica corregida — `id_tienda = (SELECT id_tienda FROM tiendas WHERE id = id_tienda)` → `id_tienda IN (SELECT id FROM tiendas)`. Migration `054_fix_rls_push_subscriptions.sql` creada.
-* **IDOR `actualizarEstado`**: Primera SELECT de pedido ahora filtra por `.eq('id_tienda', sessionId)`.
-
-**Archivos modificados:**
-* `src/app/api/push/send/route.ts` — auth agregado
-* `src/app/dashboard/pedidos/actions.ts` — IDOR fix
-* `supabase/migrations/053_push_subscriptions.sql` — RLS fix (fresh installs)
-* `supabase/migrations/054_fix_rls_push_subscriptions.sql` — RLS fix (nueva migración)
-
-**Validaciones ejecutadas:**
-* Typecheck: ✅ sin errores
-* Checkout: usa `sendPushToTienda()` directo (no pasa por `/api/push/send`)
-* Subscribe/unsubscribe: usan `createAdminClient()` (bypass RLS, no afectado)
-
-**Riesgos remanentes:**
-* RLS no protege contra admin client (bypass intencional por diseño). La fix es defensa-en-profundidad para accesos con anon key.
-
-**Regresión corregida en P1-A.1:**
-* Quick-buy (ProductCard, ProductQuickView, ProductDetailClient): se movió de `fetch('/api/push/send')` a `fetch('/api/push/quickbuy')`. El nuevo endpoint verifica existencia del pedido en DB antes de enviar push. `/api/push/send` sigue protegido con session auth.
-
-### Sprint P1-B — Data Integrity
-
-| Tarea | Prioridad | Estado |
-|-------|-----------|--------|
-| Stock decremento inconsistente — B3 (ProductDetailClient) | P0 | ✅ |
-| Stock decremento inconsistente — B1/B2 (quick-buy RPC) | P1 | ✅ |
-| Stock decremento inconsistente — B4/B5 (race condition) | P2 | ⬜ |
-| Stock decremento inconsistente — B8 (sin validación previa) | P1 | ✅ |
+| Hooks violation P1 | P2 | ⬜ |
+| WhatsApp templates modal | P2 | ⬜ |
+| Regalos historial | P2 | ⬜ |
+| Gift subsystem unification | P2 | ⬜ |
+| PWA QA completo | P2 | ⬜ |
 | Realtime reconnection | P2 | ⬜ |
-
-### Sprint P2 — Pre-lanzamiento
-
-| Tarea | Prioridad | Estado |
-|-------|-----------|--------|
-| Hooks violation P1 — investigar | P2 | ⬜ |
-| WhatsApp templates modal — auditoría y fix | P2 | ⬜ |
-| Regalos historial — tabla completa con filtros | P2 | ⬜ |
-| PWA QA completo (service worker, manifest, iOS) | P2 | ⬜ |
-| Cupones — auditoría funcional | P3 | ⬜ |
-| Marketing — auditoría funcional | P3 | ⬜ |
-| E2E tests Playwright para flujos críticos | P2 | ⬜ |
+| E2E tests Playwright | P2 | ⬜ |
+| Cupones — auditoría | P3 | ⬜ |
+| Marketing — auditoría | P3 | ⬜ |
+| Gift Cards / Wallet | P4 | ⬜ |
 
 ---
 
@@ -1434,6 +1486,92 @@ async function diag() {
 ---
 
 ## Changelog
+
+### 2026-06-02 — Sprint P3-A — Gift Redemption Unification (R3)
+
+##### Corregido
+- **R3** — GiftRedemption.tsx migrado de queries directas (SELECT + UPDATE) a RPC `procesar_canje_regalo`.
+- Eliminado: SELECT con filtros de autorización, validación de expiración client-side (JS Date), UPDATE directo de `is_redeemed`, stock check redundante.
+- SELECT cosmético preservado (`sender_name, receiver_name, personal_message`) para datos del modal de éxito.
+
+##### Impacto
+- Ambos caminos de canje (`/canje` y GiftRedemption) ahora usan el mismo RPC atómico con FOR UPDATE.
+- Validación de expiración es server-side (no manipulable por cliente).
+- Sin cambios en tablas, sin migraciones nuevas.
+
+##### Commit
+`df028c2` — pushed to `origin/main`
+
+##### Archivos
+- `src/components/store/GiftRedemption.tsx` — `+15 / -46 lines`
+
+### 2026-06-02 — Sprint P2-D — Gift Inventory Integrity (I1+I2)
+
+##### Corregido
+- **I1** — `gift-purchase/route.ts` ya no descuenta stock al comprar el gift. El descuento ocurre una sola vez, al aprobar (GiftDashboard/DashboardShell). Stock validation preservada.
+- **I2** — Resuelto implícitamente por I1: al no descontar en compra, el rechazo no necesita restore.
+
+##### Evaluado
+- `handle_expired_gifts()` con `stock + 1` es ahora correcto (restaura el único descuento de aprobación). Sin cambios.
+
+##### Commit
+`c6619aa` — pushed to `origin/main`
+
+##### Archivos
+- `src/app/api/gift-purchase/route.ts` — `-16 lines` (removido `gestionarStock('deduct')` + import)
+
+### 2026-06-02 — Sprint P2-C — Gift Approve Hardening
+
+##### Corregido
+- GiftDashboard y DashboardShell ahora abortan si `gestionarStock('deduct')` retorna error. No se actualiza `status = 'approved'` sin haber descontado stock.
+
+##### Commit
+`c564a7e` — pushed to `origin/main`
+
+##### Archivos
+- `src/components/dashboard/GiftDashboard.tsx`
+- `src/app/dashboard/DashboardShell.tsx`
+
+### 2026-06-02 — Post-hardening project reassessment (audit)
+
+##### Auditado
+- Top 10 riesgos identificados, prioridades P0-P4, módulos listos/no listos.
+- Sprint recomendado: P2-B (B6) antes que features nuevos.
+- Sprint no recomendado: B7/Vitrina Studio (postergar).
+
+### 2026-06-02 — Sprint P2-B — Fix Variant Stock Restore (B6)
+
+##### Corregido
+- **B6** — 3 flujos quick-buy (ProductCard, ProductQuickView, ProductDetailClient) ahora persisten `id_producto` + `variante_seleccionada` en JSONB `detalles_pedido`. `extraerItemsPedido()` usa estos campos para restaurar stock de variante correctamente.
+
+##### Commit
+`f09dabf` — pushed to `origin/main`
+
+##### Archivos
+- `src/components/catalog/ProductCard.tsx`
+- `src/components/catalog/ProductQuickView.tsx`
+- `src/app/catalogo/[...]/ProductDetailClient.tsx`
+- `src/lib/stock.ts`
+
+### 2026-06-02 — Sprint P2-PREP — Inventory Consistency Verification (audit)
+
+##### Auditado
+- Confirmado: inventario unificado al 100%. Los 9 flujos de stock usan `gestionarStock()`.
+- `rpc('decrement_stock')` sin callers activos.
+- Resultado: B6 prioritario sobre B4/B5.
+
+### 2026-06-02 — Sprint P2-A — Stock Concurrency Hardening (B4+B5)
+
+##### Corregido
+- **B4** — TOCTOU race en checkout mitigado: `gestionarStock()` ahora hace `.eq('stock', prod.stock)` (optimistic lock) + `.select()` post-update para validar que el cambio se aplicó atómicamente.
+- **B5** — Mismo optimistic lock aplicado al path de variantes en gift-purchase.
+- `gestionarStock()` rechaza `nuevoStock < 0` en vez de silenciar con `Math.max(0, ...)`.
+
+##### Commit
+`412bbef` — pushed to `origin/main`
+
+##### Archivos
+- `src/lib/stock.ts`
 
 ### 2026-06-01 — Sprint P1-B.2 — Unify quick-buy stock logic (B1+B2+B8)
 
