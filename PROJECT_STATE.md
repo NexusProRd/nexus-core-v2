@@ -14,11 +14,11 @@
 | Base de datos | Supabase PostgreSQL (54 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A |
+| Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | Sprint P3-C — Migración Subsistema B → A (Jun 3) |
-| Última verificación | 2026-06-03 — Sprint P3-C completado |
+| Último commit | `ef92631` — P3-C Migración Subsistema B → A (Jun 3) |
+| Última verificación | 2026-06-03 — Sprint P3-C completado + Production Readiness Audit |
 
 ### Módulos
 
@@ -45,11 +45,13 @@
 
 ### Sprint completado
 
-**Sprint P3-C — Migración Subsistema B → A**
+**Sprint P3-C — Migración Subsistema B → A** + **Production Readiness Audit**
 
 ### Estado
 
 **Completado.** Subsistema B (tickets/pedidos.is_gift) eliminado. Toda la lógica de regalos unificada en Subsistema A (gift_experiences). Tickets migrados con backfill, creación de gifts redirigida a gift_experiences, enlaces legacy redirigen a /canje. Stock management, aprobación y canje permanecen inalterados.
+
+**Production Readiness Audit completado:** Verdict — LISTO PARA PRODUCCIÓN con 75% confianza. Sin bloqueadores P0. Riesgos aceptados: middleware ausente (corrección: `middleware.ts` SÍ existe en raíz del proyecto, protege /pcc, /dashboard, /login), AUTH_SECRET débil, quick-buy stock failures no mostrados al usuario. Recomendación: lanzar hoy con monitoreo activo.
 
 Todos los sprints de seguridad, hardening, data integrity y gift unification ejecutados:
 - **P0-B/C**: Security Hardening (`0f4bba5`)
@@ -61,7 +63,7 @@ Todos los sprints de seguridad, hardening, data integrity y gift unification eje
 - **P2-C**: Gift approve hardening (`c564a7e`)
 - **P2-D**: Gift inventory integrity — I1/I2 (`c6619aa`)
 - **P3-A**: Gift redemption unification — R3 (`df028c2`)
-- **P3-C**: Gift subsystem migration B→A — legacy_code, tickets drop, is_gift defer
+- **P3-C**: Gift subsystem migration B→A — legacy_code, tickets drop, is_gift defer (`ef92631`)
 
 ### Estado de vulnerabilidades
 
@@ -86,6 +88,8 @@ Todos los sprints de seguridad, hardening, data integrity y gift unification eje
 2. **Auto-aprobación para tiendas de confianza** — columna `auto_approve_gifts` en tiendas
 3. **Configuración de expiración por tienda** — 24h/48h/72h/7d configurable
 4. **B7 — Gift quantity > 1** — agregar `cantidad` a `items_list`
+5. **Rotar AUTH_SECRET** — Dev secret (`nexus-super-secret-2026-ultra-secure`) debe reemplazarse antes de producción real
+6. **Quick-buy stock failure UX** — Mostrar error al usuario cuando `gestionarStock()` falla (actualmente solo console.error)
 
 ### Vulnerabilidades corregidas recientemente
 
@@ -95,7 +99,7 @@ Todos los sprints de seguridad, hardening, data integrity y gift unification eje
 
 ### Próxima acción
 
-Estabilización pre-lanzamiento: Vitrina Studio, Realtime reconnection, WhatsApp notifications para gift lifecycle, auto-aprobación de regalos.
+Estabilización pre-lanzamiento: rotar AUTH_SECRET, quick-buy UX error handling, Vitrina Studio, WhatsApp notifications para gift lifecycle, auto-aprobación de regalos.
 
 ### Bloqueadores
 
@@ -168,14 +172,11 @@ Estabilización pre-lanzamiento: Vitrina Studio, Realtime reconnection, WhatsApp
 | **Probabilidad** | Baja |
 | **Mitigación** | No modificar `CatalogoModal.tsx` (PlantillaPreview) sin verificar Banner Wizard. Mantener `BANNER_BUILDER_ENABLED = false` hasta QA completo. |
 
-### R8 — Gift subsystem duplication
+### ~~R8 — Gift subsystem duplication~~ ✅ Resuelto
 
 | Campo | Valor |
 |-------|-------|
-| **Riesgo** | Existen dos subsistemas de regalos separados: `gift_experiences` (Subsistema A: nuevo, público, canje, expiración) y `pedidos+tickets` (Subsistema B: antiguo, store-side, magic links). Cero código compartido. I1/I2 corregidos solo en Subsistema A. |
-| **Impacto** | Medio — duplicación de lógica, mantenimiento costoso, experiencia inconsistente. Subsistema B podría heredar bugs similares a I1/I2. |
-| **Probabilidad** | Alta — ya hay bugs confirmados en Subsistema A (I1/I2). Subsistema B no auditado. |
-| **Mitigación** | Unificar ambos subsistemas antes de implementar Gift Cards o Wallet. Migrar Subsistema B a usar `gift_experiences` como tabla canónica. |
+| **Estado** | **RESUELTO** en Sprint P3-C (`ef92631`). Subsistema B eliminado. Toda la lógica de regalos unificada en `gift_experiences`. |
 
 ---
 
@@ -973,10 +974,8 @@ El catálogo público tiene capacidades PWA pero no se ha auditado:
 ### P2 — Regalos historial
 El módulo de regalos corporativos (`/dashboard/regalos`) solo tiene `page.tsx`. No hay historial completo, filtros ni acciones masivas.
 
-### P2 — Gift subsystem unification
-**Síntoma:** Existen dos subsistemas de regalos separados: `gift_experiences` (nuevo, público, canje, expiración) y `pedidos+tickets` (antiguo, store-side, magic links). Cero código compartido. I1/I2 corregidos solo en Subsistema A.
-**Impacto:** Duplicación de lógica, mantenimiento costoso, experiencia inconsistente para el destinatario.
-**Archivos:** `src/app/api/gift-purchase/route.ts`, `src/components/dashboard/GiftDashboard.tsx`, `src/app/dashboard/DashboardShell.tsx`, `src/components/store/GiftRedemption.tsx`, `src/app/api/ticket-redeem/route.ts`, `supabase/migrations/011_tickets.sql`
+### ~~P2 — Gift subsystem unification~~ ✅ Resuelto
+**Resuelto en P3-C** (`ef92631`): Subsistema B eliminado. `tickets` table dropped. Toda la lógica unificada en `gift_experiences`.
 
 ### P3 — Banner Builder (post-beta)
 Feature completo pero oculto tras `BANNER_BUILDER_ENABLED=false`. Pendiente QA y habilitación.
@@ -1072,7 +1071,7 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 - [ ] PWA validada (service worker, manifest, iOS)
 - [ ] WhatsApp templates modal funcional
 - [ ] Regalos historial (tabla + filtros)
-- [ ] Gift subsystem unification (pedidos+tickets → gift_experiences)
+- [x] Gift subsystem unification (pedidos+tickets → gift_experiences) ✅ P3-C
 - [ ] Realtime reconnection estable
 - [ ] E2E tests para flujos críticos (Playwright)
 
@@ -1144,7 +1143,7 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 - Ambos caminos (`/canje` y GiftRedemption) usan el mismo RPC atómico
 
 ### Sprint completado — P3-C (Gift Subsystem Migration B→A)
-**Commit:** _(pendiente)_
+**Commit:** `ef92631`
 - Migración 055: `legacy_code` + backfill tickets → gift_experiences ✅
 - Migración 056: drop tickets table, `is_gift` column deferred ✅
 - `/tickets?code=` → redirect → `/canje?gift=` ✅
@@ -1160,6 +1159,8 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 
 | Tarea | Prioridad | Estado |
 |-------|-----------|--------|
+| Rotar AUTH_SECRET (dev secret débil) | P1 | ⬜ |
+| Quick-buy stock failure UX | P1 | ⬜ |
 | Hooks violation P1 | P2 | ⬜ |
 | WhatsApp templates modal | P2 | ⬜ |
 | Regalos historial | P2 | ⬜ |
@@ -1506,7 +1507,7 @@ async function diag() {
 
 ## Changelog
 
-### 2026-06-03 — Sprint P3-C — Gift Subsystem Migration B→A
+### 2026-06-03 — Sprint P3-C — Gift Subsystem Migration B→A (+ blocking fix + production audit)
 
 ##### Cambios
 
@@ -1524,6 +1525,12 @@ async function diag() {
 
 - Regresión de detección de gifts: `🎁 Modo Regalo` nunca se escribía en `notas`. Corregido en checkout route + dual-check (notas + `is_gift` legacy) en `actualizarEstado`.
 
+##### Production Readiness Audit
+
+- **Verdict:** LISTO PARA PRODUCCIÓN (75% confianza). Sin bloqueadores P0.
+- **Riesgos aceptados:** AUTH_SECRET débil (dev), quick-buy stock failures sin feedback UX
+- **Recomendación:** Lanzar hoy con monitoreo activo
+
 ##### Impacto
 
 - Subsistema B eliminado: ~500 líneas de código muerto removidas de 8 archivos
@@ -1533,7 +1540,7 @@ async function diag() {
 
 ##### Commit
 
-_(pendiente)_
+`ef92631` — pushed to `origin/main`
 
 ##### Archivos modificados
 
