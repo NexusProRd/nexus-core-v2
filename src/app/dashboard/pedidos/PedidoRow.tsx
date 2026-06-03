@@ -125,40 +125,34 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
     if (sendingLink) return
     setSendingLink(true)
     const supabase = createClient()
-    let { data, error: queryError } = await supabase
-      .from('tickets')
-      .select('code, gift_details, store_id')
-      .eq('order_id', pedido.id)
-      .maybeSingle()
-    if (queryError) { toast('Error al consultar ticket', 'error'); setSendingLink(false); return }
-    if (!data) {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-      let code = ''
-      for (let i = 0; i < 10; i++) code += chars[Math.floor(Math.random() * chars.length)]
-      const senderMatch = pedido.notas?.match(/De:\s*(.+?),/)
-      const receiverMatch = pedido.notas?.match(/Para:\s*(.+?)(?:,|$)/)
-      const msgMatch = pedido.notas?.match(/Msj:\s*"(.+?)"/)
-      const { error: insertError } = await supabase.from('tickets').insert({
-        order_id: pedido.id,
-        store_id: pedido.id_tienda || '',
-        code,
-        gift_details: {
-          sender_name: senderMatch ? senderMatch[1].trim() : '',
-          recipient_name: receiverMatch ? receiverMatch[1].trim() : '',
-          dedication: msgMatch ? msgMatch[1].trim() : '',
-        },
-      })
-      if (insertError) { toast('Error al generar ticket', 'error'); setSendingLink(false); return }
-      const si = senderMatch ? senderMatch[1].trim() : ''
-      const ri = receiverMatch ? receiverMatch[1].trim() : ''
-      const mi = msgMatch ? msgMatch[1].trim() : ''
-      data = { code, gift_details: { sender_name: si, recipient_name: ri, dedication: mi }, store_id: pedido.id_tienda || '' }
-    }
-    const details = data.gift_details as any
-    const recipient = details?.recipient_name || ''
-    const storeId = data.store_id || pedido.id_tienda
+
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    let code = ''
+    for (let i = 0; i < 10; i++) code += chars[Math.floor(Math.random() * chars.length)]
+    const senderMatch = pedido.notas?.match(/De:\s*(.+?),/)
+    const receiverMatch = pedido.notas?.match(/Para:\s*(.+?)(?:,|$)/)
+    const msgMatch = pedido.notas?.match(/Msj:\s*"(.+?)"/)
+
+    const { error: insertError } = await supabase.from('gift_experiences').insert({
+      store_id: pedido.id_tienda || '',
+      sender_name: senderMatch ? senderMatch[1].trim() : '',
+      receiver_name: receiverMatch ? receiverMatch[1].trim() : '',
+      personal_message: msgMatch ? msgMatch[1].trim() : '',
+      gift_code: code,
+      is_redeemed: false,
+      status: 'approved',
+      approved_at: new Date().toISOString(),
+      sender_phone: pedido.cliente_telefono || null,
+      items_list: [],
+      legacy_code: code,
+    })
+
+    if (insertError) { toast('Error al generar gift', 'error'); setSendingLink(false); return }
+
+    const recipient = receiverMatch ? receiverMatch[1].trim() : ''
+    const storeId = pedido.id_tienda
     if (!storeId) { toast('Falta el ID de la tienda', 'error'); setSendingLink(false); return }
-    const magicUrl = `${window.location.origin}/catalogo/${storeId}/tickets?code=${data.code}`
+    const magicUrl = `${window.location.origin}/canje?gift=${code}&id=${storeId}`
     const msg = encodeURIComponent(`¡Hola! Tu pedido de regalo para ${recipient} ha sido confirmado. 🎉 Aquí tienes el enlace mágico para que se lo envíes cuando quieras darle la sorpresa: ${magicUrl}`)
     window.open(`https://wa.me/${pedido.cliente_telefono.replace(/\D/g, '')}?text=${msg}`, '_blank')
     toast('Enlace mágico enviado por WhatsApp', 'success')
@@ -193,7 +187,7 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
                 <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                   {pedido.cliente_nombre}
                 </p>
-                {pedido.is_gift && (
+                {(pedido.notas?.includes('🎁 Modo Regalo') || pedido.is_gift) && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-bold">🎁</span>
                 )}
               </div>
@@ -446,7 +440,7 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/50">
             <div className="flex items-center gap-2">
               {/* Magic Link for confirmed gift orders */}
-              {(permisos === null || permisos.pedidos) && pedido.is_gift && pedido.estado === 'confirmado' && (
+              {(permisos === null || permisos.pedidos) && (pedido.notas?.includes('🎁 Modo Regalo') || pedido.is_gift) && pedido.estado === 'confirmado' && (
                 <button
                   onClick={handleSendMagicLink}
                   disabled={sendingLink}

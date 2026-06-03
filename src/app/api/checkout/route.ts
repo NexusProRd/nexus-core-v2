@@ -165,6 +165,9 @@ export async function POST(req: NextRequest) {
   ).join('')
 
   const notasFinales = [notas || null]
+  if (isGift) {
+    notasFinales.push('🎁 Modo Regalo')
+  }
   if (cuponAplicado) {
     notasFinales.push(`🎫 Cupón: ${cuponAplicado} - RD$${descuento.toLocaleString('es-DO')} descuento`)
   }
@@ -175,7 +178,6 @@ export async function POST(req: NextRequest) {
       id_tienda: idTienda,
       cliente_nombre: nombreCliente.trim(),
       cliente_telefono: telefonoCliente?.trim() || null,
-      is_gift: !!isGift,
       notas: notasFinales.filter(Boolean).join(' | ') || null,
       order_id: orderId,
       total,
@@ -239,25 +241,6 @@ export async function POST(req: NextRequest) {
   )
   if (!stockResult.ok) {
     console.error('[API Checkout] Errores al descontar stock:', stockResult.errors)
-  }
-
-  const giftItems = items.filter((i: any) => i.isGift)
-  for (const giftItem of giftItems) {
-    const match = giftItem.id?.match(/^gift-([a-f0-9-]+)-/)
-    if (!match) continue
-    const originalOrderId = match[1]
-    const { data: ticket } = await supabase!
-      .from('tickets')
-      .select('gift_details')
-      .eq('order_id', originalOrderId)
-      .maybeSingle()
-    if (ticket) {
-      const details = (ticket.gift_details as Record<string, unknown>) || {}
-      await supabase!
-        .from('tickets')
-        .update({ gift_details: { ...details, id_pedido: pedido.id } })
-        .eq('order_id', originalOrderId)
-    }
   }
 
   console.log('[API Checkout] sending push for tienda', idTienda, 'pedido', pedido.id)

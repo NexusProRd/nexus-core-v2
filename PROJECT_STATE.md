@@ -11,14 +11,14 @@
 | Atributo | Valor |
 |----------|-------|
 | Stack | Next.js 16.2.6, React 19.2.4, Supabase, Tailwind v4 |
-| Base de datos | Supabase PostgreSQL (52 migraciones) |
+| Base de datos | Supabase PostgreSQL (54 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido |
+| Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | Sprint P3-A — Gift Redemption Unification (Jun 2) |
-| Última verificación | 2026-06-02 — Sprint P3-A completado |
+| Último commit | Sprint P3-C — Migración Subsistema B → A (Jun 3) |
+| Última verificación | 2026-06-03 — Sprint P3-C completado |
 
 ### Módulos
 
@@ -29,7 +29,7 @@
 | Inventario | ✅ Funcional (stock hardening completo) | Alta |
 | Pedidos | ✅ Funcional | Alta |
 | WhatsApp | ✅ Funcional | Media |
-| Regalos corporativos | ✅ Funcional (auditado I1/I2 corregidos) | Media |
+| Regalos corporativos | ✅ Funcional (migrado Subsistema B → A) | Media |
 | Vitrina Studio | ⚠️ Beta | Alta |
 | Banner Builder | 🔴 Oculto (feature flag) | Pospuesto |
 | PCC (Panel Control Central) | ✅ Funcional | Alta |
@@ -45,11 +45,11 @@
 
 ### Sprint completado
 
-**Sprint P3-A — Gift Redemption Unification**
+**Sprint P3-C — Migración Subsistema B → A**
 
 ### Estado
 
-**Completado.** GiftRedemption.tsx migrado a usar `procesar_canje_regalo` RPC atómico. Eliminada lógica client-side duplicada de SELECT + validación expiración + UPDATE directo.
+**Completado.** Subsistema B (tickets/pedidos.is_gift) eliminado. Toda la lógica de regalos unificada en Subsistema A (gift_experiences). Tickets migrados con backfill, creación de gifts redirigida a gift_experiences, enlaces legacy redirigen a /canje. Stock management, aprobación y canje permanecen inalterados.
 
 Todos los sprints de seguridad, hardening, data integrity y gift unification ejecutados:
 - **P0-B/C**: Security Hardening (`0f4bba5`)
@@ -61,6 +61,7 @@ Todos los sprints de seguridad, hardening, data integrity y gift unification eje
 - **P2-C**: Gift approve hardening (`c564a7e`)
 - **P2-D**: Gift inventory integrity — I1/I2 (`c6619aa`)
 - **P3-A**: Gift redemption unification — R3 (`df028c2`)
+- **P3-C**: Gift subsystem migration B→A — legacy_code, tickets drop, is_gift defer
 
 ### Estado de vulnerabilidades
 
@@ -77,32 +78,24 @@ Todos los sprints de seguridad, hardening, data integrity y gift unification eje
 | I1 | Gift stock descontado dos veces | ✅ Corregido (P2-D) |
 | I2 | Gift rechazado sin restauración | ✅ Corregido (P2-D) |
 | R3 | GiftRedemption canje no atómico (client-side) | ✅ Corregido (P3-A) |
+| — | Gift detection regression (notas marker ausente) | ✅ Corregido (P3-C blocking fix) |
 
 ### Pendientes críticos (próximo sprint)
 
-1. **Gift Cards / Wallet** — feature postergada, depende de gift subsystem unification
-2. **Gift subsystem unification** — decidir si migrar Subsistema B (pedidos+tickets) a Subsistema A (gift_experiences)
+1. **Notificaciones WhatsApp al comprador** — sender_phone + deep link WA para aprobado/canjeado/expirado
+2. **Auto-aprobación para tiendas de confianza** — columna `auto_approve_gifts` en tiendas
+3. **Configuración de expiración por tienda** — 24h/48h/72h/7d configurable
+4. **B7 — Gift quantity > 1** — agregar `cantidad` a `items_list`
 
 ### Vulnerabilidades corregidas recientemente
 
 | ID | Vulnerabilidad | Sprint |
 |----|---------------|--------|
-| — | Auth en `/api/push/send` | ✅ P1-A |
-| — | RLS `push_subscriptions` tautológica | ✅ P1-A |
-| — | IDOR `actualizarEstado` | ✅ P1-A |
-| — | Regresión quick-buy push (P1-A) | ✅ P1-A.1 |
-| B3 | ProductDetailClient sin stock decrement | ✅ P1-B.1 |
-| B1/B2/B8 | RPC decrement_stock (cantidad/variante/validación) | ✅ P1-B.2 |
-| B4/B5 | Stock race condition (optimistic locking) | ✅ P2-A |
-| B6 | Variant stock restore en quick-buy | ✅ P2-B |
-| — | Gift approve sin verificar stock | ✅ P2-C |
-| I1 | Gift stock doble descuento | ✅ P2-D |
-| I2 | Gift rechazo sin restore | ✅ P2-D |
-| R3 | GiftRedemption canje no atómico | ✅ P3-A |
+| — | Gift detection regression (checkout sin marker) | ✅ P3-C blocking fix |
 
 ### Próxima acción
 
-Próximo paso recomendado: estabilización pre-lanzamiento (Vitrina Studio, Realtime reconnection) o avanzar con migración de Subsistema B (tickets) a gift_experiences.
+Estabilización pre-lanzamiento: Vitrina Studio, Realtime reconnection, WhatsApp notifications para gift lifecycle, auto-aprobación de regalos.
 
 ### Bloqueadores
 
@@ -680,6 +673,15 @@ Se implementó `ProductoForm.tsx` que maneja ambos modos (`create` / `edit`) con
 | **Motivo** | La auditoría de gifts identificó dos caminos de canje paralelos para la misma tabla: `/canje` usaba RPC atómico, GiftRedemption usaba SELECT + client-side expiry + UPDATE directo. Esto introducía race condition, expiración client-side manipulable y stock check redundante. Unificar elimina el riesgo y centraliza la lógica. |
 | **Impacto** | Ambos caminos (`/canje` y GiftRedemption) ahora ejecutan el mismo RPC con FOR UPDATE. La validación de expiración es server-side. Sin cambios en tablas, sin nuevas migraciones. SELECT cosmético preservado para modal de éxito. |
 
+### D019 — Migración Subsistema B (tickets/pedidos.is_gift) → Subsistema A (gift_experiences)
+
+| Campo | Valor |
+|-------|-------|
+| **Fecha** | Junio 2026 (Sprint P3-C) |
+| **Decisión** | Migrar todos los datos, lógica de creación, redirección de enlaces y queries desde `tickets` + `pedidos.is_gift` hacia `gift_experiences`. Añadir columna `legacy_code` para trazabilidad de tickets migrados. Mantener `pedidos.is_gift` durante transición. |
+| **Motivo** | Cero código compartido entre subsistemas. Subsistema B carece de status intermedio, expiración server-side, y atomicidad en canje. Mantener ambos duplica ~500 líneas en 8 archivos. Riesgo aceptable: datos no financieros, volumen bajo. |
+| **Impacto** | Se agregan 2 migraciones (055 backfill, 056 drop tickets). `tickets` table eliminada. `pedidos.is_gift` preservada (defer). `/tickets?code=` redirige a `/canje?gift=`. Backup/Restore actualizado. |
+
 ---
 
 ## Flujo de Usuario
@@ -1141,6 +1143,19 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 - Eliminado SELECT autorización + expiry client-side + UPDATE directo
 - Ambos caminos (`/canje` y GiftRedemption) usan el mismo RPC atómico
 
+### Sprint completado — P3-C (Gift Subsystem Migration B→A)
+**Commit:** _(pendiente)_
+- Migración 055: `legacy_code` + backfill tickets → gift_experiences ✅
+- Migración 056: drop tickets table, `is_gift` column deferred ✅
+- `/tickets?code=` → redirect → `/canje?gift=` ✅
+- `pedidos/actions.ts`: creación de gifts via gift_experiences ✅
+- DashboardShell/PedidoRow: magic link via gift_experiences, URL → `/canje` ✅
+- `/api/regalos`: unificado a solo gift_experiences ✅
+- `checkout/route.ts`: removed ticket cross-reference, `🎁 Modo Regalo` marker added ✅
+- PCC backup/restore: removed tickets from data set ✅
+- `/api/ticket-redeem`: removed (orphaned) ✅
+- Blocking fix: gift detection regression (notas marker ausente) ✅
+
 ### Pendientes (próximo sprint)
 
 | Tarea | Prioridad | Estado |
@@ -1148,13 +1163,17 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 | Hooks violation P1 | P2 | ⬜ |
 | WhatsApp templates modal | P2 | ⬜ |
 | Regalos historial | P2 | ⬜ |
-| Gift subsystem unification | P2 | ⬜ |
+| WhatsApp gift notifications (sender) | P2 | ⬜ |
+| Auto-approve gifts por tienda | P2 | ⬜ |
+| Gift expiry configurable (24h/48h/72h/7d) | P2 | ⬜ |
 | PWA QA completo | P2 | ⬜ |
 | Realtime reconnection | P2 | ⬜ |
 | E2E tests Playwright | P2 | ⬜ |
 | Cupones — auditoría | P3 | ⬜ |
 | Marketing — auditoría | P3 | ⬜ |
+| B7 — Gift quantity > 1 | P3 | ⬜ |
 | Gift Cards / Wallet | P4 | ⬜ |
+| Drop `pedidos.is_gift` column (cleanup) | P4 | ⬜ |
 
 ---
 
@@ -1486,6 +1505,53 @@ async function diag() {
 ---
 
 ## Changelog
+
+### 2026-06-03 — Sprint P3-C — Gift Subsystem Migration B→A
+
+##### Cambios
+
+- **Migración 055** — `legacy_code` column en gift_experiences + backfill de todos los tickets existentes
+- **Migración 056** — Drop tickets table, `eliminar_tienda_completa` actualizado, `is_gift` column preservada (defer)
+- **Redirección** — `/catalogo/{storeId}/tickets?code=X` redirige a `/canje?gift=X&id=storeId` vía `findGiftByCode` server action
+- **Creación de gifts** — `actualizarEstado` inserta en `gift_experiences` en vez de `tickets`
+- **Magic link** — DashboardShell y PedidoRow crean `gift_experiences`, URL apunta a `/canje`
+- **API regalos** — Unificado a solo `gift_experiences` (eliminada UNION con tickets)
+- **Checkout** — Removida búsqueda de ticket por `gift_details.id_pedido`. Agregado `🎁 Modo Regalo` a `notas` para detección de gifts
+- **PCC backup** — Tickets eliminados del backup dataset y restore
+- **API ticket-redeem** — Eliminado (orphaned: frontend usa server actions)
+
+##### Blocking fix
+
+- Regresión de detección de gifts: `🎁 Modo Regalo` nunca se escribía en `notas`. Corregido en checkout route + dual-check (notas + `is_gift` legacy) en `actualizarEstado`.
+
+##### Impacto
+
+- Subsistema B eliminado: ~500 líneas de código muerto removidas de 8 archivos
+- Cero cambios en stock management, aprobación, canje RPC
+- Enlaces legacy redirigen correctamente
+- `pedidos.is_gift` column preservada para compatibilidad durante transición
+
+##### Commit
+
+_(pendiente)_
+
+##### Archivos modificados
+
+```
+src/app/api/checkout/route.ts                   |  23 +--
+src/app/api/pcc/backups/[id]/restore/route.ts   |   6 -
+src/app/api/pcc/backups/route.ts                |   8 +-
+src/app/api/regalos/route.ts                    |  55 ++----
+src/app/api/ticket-redeem/route.ts              |  32 ---
+src/app/catalogo/[id_tienda]/tickets/actions.ts | 112 +--------
+src/app/catalogo/[id_tienda]/tickets/page.tsx   | 245 ++-------------
+src/app/dashboard/DashboardShell.tsx            |  58 +++---
+src/app/dashboard/pedidos/PedidoRow.tsx         |  64 +++----
+src/app/dashboard/pedidos/actions.ts            |  55 +++---
+supabase/migrations/055_migrate_tickets_to_gift_experiences.sql |  97 ++++++++
+supabase/migrations/056_drop_tickets_table.sql                  |  35 ++++
+```
+12 files changed, 136 insertions(+), 522 deletions(-)
 
 ### 2026-06-02 — Sprint P3-A — Gift Redemption Unification (R3)
 

@@ -42,7 +42,7 @@ export async function actualizarEstado(formData: FormData) {
 
   const { data: pedido } = await supabase
     .from('pedidos')
-    .select('is_gift, id_tienda, notas, cliente_telefono, cliente_nombre, detalles_pedido')
+    .select('id_tienda, is_gift, notas, cliente_telefono, cliente_nombre, detalles_pedido')
     .eq('id', pedidoId)
     .eq('id_tienda', sessionId)
     .single()
@@ -53,12 +53,12 @@ export async function actualizarEstado(formData: FormData) {
     .eq('id', pedidoId)
     .eq('id_tienda', sessionId)
 
-  if (nuevoEstado === 'rechazado' || nuevoEstado === 'cancelado' || nuevoEstado === 'devuelto') {
-    const { data: detalles } = await supabase
-      .from('detalles_pedido')
-      .select('id_producto, producto, cantidad, variante_seleccionada')
-      .eq('id_pedido', pedidoId)
+  const { data: detalles } = await supabase
+    .from('detalles_pedido')
+    .select('id_producto, producto, cantidad, precio_unitario, variante_seleccionada, imagen_url')
+    .eq('id_pedido', pedidoId)
 
+  if (nuevoEstado === 'rechazado' || nuevoEstado === 'cancelado' || nuevoEstado === 'devuelto') {
     if (detalles && detalles.length > 0) {
       const items = detalles.map(d => ({
         id_producto: d.id_producto,
@@ -74,11 +74,6 @@ export async function actualizarEstado(formData: FormData) {
   }
 
   if (nuevoEstado === 'confirmado' || nuevoEstado === 'entregado') {
-    const { data: detalles } = await supabase
-      .from('detalles_pedido')
-      .select('id_producto, cantidad, precio_unitario')
-      .eq('id_pedido', pedidoId)
-
     if (detalles && detalles.length > 0) {
       let gananciaNeta = 0
       for (const d of detalles) {
@@ -98,27 +93,39 @@ export async function actualizarEstado(formData: FormData) {
       }
     }
 
-    const isGift = pedido?.is_gift || (pedido?.notas?.includes('🎁 Modo Regalo') ?? false)
+    const isGift = (pedido?.notas?.includes('🎁 Modo Regalo') ?? false) || (pedido as any)?.is_gift === true
     if (isGift) {
       const code = generateTicketCode()
       const giftDetails = parseGiftDetails(pedido?.notas ?? null)
 
       if (!pedido?.id_tienda) {
-        console.error('Error al crear ticket: pedido sin id_tienda')
+        console.error('Error al crear gift: pedido sin id_tienda')
       } else {
-        const { error: ticketError } = await supabase.from('tickets').insert({
-          order_id: pedidoId,
+        const itemsList = (detalles || []).map(d => ({
+          product_id: d.id_producto,
+          nombre: d.producto || '',
+          precio: 0,
+          imagen_url: d.imagen_url || null,
+          cantidad: d.cantidad || 1,
+          variante_seleccionada: d.variante_seleccionada || null,
+        }))
+
+        const { error: giftError } = await supabase.from('gift_experiences').insert({
           store_id: pedido.id_tienda,
-          code,
-          gift_details: {
-            sender_name: giftDetails.sender_name,
-            recipient_name: giftDetails.recipient_name,
-            dedication: giftDetails.dedication,
-          },
+          sender_name: giftDetails.sender_name,
+          receiver_name: giftDetails.recipient_name,
+          personal_message: giftDetails.dedication,
+          gift_code: code,
+          is_redeemed: false,
+          status: 'approved',
+          approved_at: new Date().toISOString(),
+          sender_phone: pedido.cliente_telefono,
+          items_list: itemsList,
+          legacy_code: code,
         })
 
-        if (ticketError) {
-          console.error('Error al crear ticket de regalo:', ticketError.message)
+        if (giftError) {
+          console.error('Error al crear gift_experiences:', giftError.message)
         }
       }
     }
@@ -159,7 +166,7 @@ export async function eliminarTodosLosPedidos() {
     }
   }
 
-  await supabase.from('tickets').delete().in('order_id', ids)
+  await supabase.from('gift_experiences').delete().eq('store_id', sessionId)
   await supabase.from('detalles_pedido').delete().in('id_pedido', ids)
   await supabase.from('pedidos').delete().in('id', ids)
   redirect('/dashboard/pedidos')

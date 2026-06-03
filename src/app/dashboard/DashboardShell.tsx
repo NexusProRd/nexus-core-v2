@@ -668,7 +668,7 @@ export default function DashboardLayout({
 
     if (!error) {
       const pedido = pedidosPendientes.find(p => p.id === pedidoId)
-      if (pedido?.is_gift && nuevoEstado === 'confirmado') {
+      if ((pedido?.notas?.includes('🎁 Modo Regalo') || pedido?.is_gift) && nuevoEstado === 'confirmado') {
         setPedidosPendientes(prev =>
           prev.map(p => p.id === pedidoId ? { ...p, estado: 'confirmado' } : p)
         )
@@ -685,37 +685,33 @@ export default function DashboardLayout({
   async function handleSendMagicLink(pedido: Pedido) {
     if (!pedido.id_tienda) { alert('Falta el ID de la tienda'); return }
     setSendingMagicLink(true)
-    const { data: existing } = await getSupabase()
-      .from('tickets')
-      .select('code')
-      .eq('order_id', pedido.id)
-      .maybeSingle()
 
-    let code = existing?.code
-    if (!code) {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-      code = ''
-      for (let i = 0; i < 10; i++) code += chars[Math.floor(Math.random() * chars.length)]
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    let code = ''
+    for (let i = 0; i < 10; i++) code += chars[Math.floor(Math.random() * chars.length)]
 
-      const senderMatch = pedido.notas?.match(/De:\s*(.+?),/)
-      const receiverMatch = pedido.notas?.match(/Para:\s*(.+?)(?:,|$)/)
-      const msgMatch = pedido.notas?.match(/Msj:\s*"(.+?)"/)
+    const senderMatch = pedido.notas?.match(/De:\s*(.+?),/)
+    const receiverMatch = pedido.notas?.match(/Para:\s*(.+?)(?:,|$)/)
+    const msgMatch = pedido.notas?.match(/Msj:\s*"(.+?)"/)
 
-      const { error } = await getSupabase().from('tickets').insert({
-        order_id: pedido.id,
-        store_id: pedido.id_tienda,
-        code,
-        gift_details: {
-          sender_name: senderMatch ? senderMatch[1].trim() : '',
-          recipient_name: receiverMatch ? receiverMatch[1].trim() : '',
-          dedication: msgMatch ? msgMatch[1].trim() : '',
-        },
-      })
-      if (error) { alert('Error al generar ticket: ' + error.message); setSendingMagicLink(false); return }
-    }
+    const { error } = await getSupabase().from('gift_experiences').insert({
+      store_id: pedido.id_tienda,
+      sender_name: senderMatch ? senderMatch[1].trim() : '',
+      receiver_name: receiverMatch ? receiverMatch[1].trim() : '',
+      personal_message: msgMatch ? msgMatch[1].trim() : '',
+      gift_code: code,
+      is_redeemed: false,
+      status: 'approved',
+      approved_at: new Date().toISOString(),
+      sender_phone: pedido.cliente_telefono || null,
+      items_list: [],
+      legacy_code: code,
+    })
+
+    if (error) { alert('Error al generar gift: ' + error.message); setSendingMagicLink(false); return }
 
     const recipient = (pedido.notas?.match(/Para:\s*(.+?)(?:,|$)/) || [])[1]?.trim() || ''
-    const magicUrl = `${window.location.origin}/catalogo/${pedido.id_tienda}/tickets?code=${code}`
+    const magicUrl = `${window.location.origin}/canje?gift=${code}&id=${pedido.id_tienda}`
     const phone = (pedido.cliente_telefono || '').replace(/\D/g, '')
     if (!phone) { alert('Este pedido no tiene número de teléfono.'); setSendingMagicLink(false); return }
     const msg = encodeURIComponent(`¡Hola! Tu pedido de regalo para ${recipient} ha sido confirmado. 🎉 Aquí tienes el enlace mágico para que se lo envíes cuando quieras darle la sorpresa: ${magicUrl}`)
@@ -1106,7 +1102,7 @@ export default function DashboardLayout({
 
                     <p className="text-lg font-bold text-green-600 dark:text-green-400 mb-2">Total: RD${formatearPrecio(pedido.total)}</p>
 
-                    {pedido.is_gift && pedido.estado === 'confirmado' ? (
+                    {(pedido.notas?.includes('🎁 Modo Regalo') || pedido.is_gift) && pedido.estado === 'confirmado' ? (
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleSendMagicLink(pedido)}
@@ -1122,7 +1118,7 @@ export default function DashboardLayout({
                           Cerrar
                         </button>
                       </div>
-                    ) : pedido.is_gift ? (
+                    ) : (pedido.notas?.includes('🎁 Modo Regalo') || pedido.is_gift) ? (
                       <div className="flex gap-2">
                         <button
                           onClick={() => actualizarEstado(pedido.id, 'rechazado')}

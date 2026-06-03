@@ -60,12 +60,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         if (error) errors.push(`cupon ${cupon.id}: ${error.message}`)
       }
     }
-    if (data.tickets?.length) {
-      for (const ticket of data.tickets) {
-        const { error } = await supabase.from('tickets').upsert(ticket, { onConflict: 'id' })
-        if (error) errors.push(`ticket ${ticket.id}: ${error.message}`)
-      }
-    }
     if (data.regalos?.length) {
       for (const regalo of data.regalos) {
         const { error } = await supabase.from('gift_experiences').upsert(regalo, { onConflict: 'id' })

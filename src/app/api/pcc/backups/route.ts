@@ -54,13 +54,12 @@ export async function POST(req: NextRequest) {
 
     if (idTienda) {
       // Single store backup
-      const [tiendaR, prodR, pedidosR, perfilR, cuponesR, ticketsR, regalosR, colabR, catalogoR] = await Promise.all([
+      const [tiendaR, prodR, pedidosR, perfilR, cuponesR, regalosR, colabR, catalogoR] = await Promise.all([
         supabase.from('tiendas').select('*').eq('id', idTienda).single(),
         supabase.from('productos').select('*').eq('id_tienda', idTienda),
         supabase.from('pedidos').select('*, detalles_pedido(*)').eq('id_tienda', idTienda),
         supabase.from('perfil_tienda').select('*').eq('id_tienda', idTienda).maybeSingle(),
         supabase.from('coupons').select('*').eq('store_id', idTienda),
-        supabase.from('tickets').select('*').eq('store_id', idTienda),
         supabase.from('gift_experiences').select('*').eq('store_id', idTienda),
         supabase.from('colaboradores').select('*').eq('id_tienda', idTienda),
         supabase.from('nexus_catalogo_modal').select('*').eq('id_tienda', idTienda).maybeSingle(),
@@ -83,7 +82,6 @@ export async function POST(req: NextRequest) {
         pedidos: pedidosR.data || [],
         perfil: perfilR.data || null,
         cupones: cuponesR.data || [],
-        tickets: ticketsR.data || [],
         regalos: regalosR.data || [],
         colaboradores: colabR.data || [],
         catalogo_modal: catalogoR.data ? [catalogoR.data] : [],
@@ -93,14 +91,13 @@ export async function POST(req: NextRequest) {
       // All stores backup — incluye TODO
       const [
         tiendasR, prodR, pedidosR, perfilesR,
-        cuponesR, ticketsR, regalosR, colabR, catalogoR,
+        cuponesR, regalosR, colabR, catalogoR,
       ] = await Promise.all([
         supabase.from('tiendas').select('*'),
         supabase.from('productos').select('*'),
         supabase.from('pedidos').select('*, detalles_pedido(*)'),
         supabase.from('perfil_tienda').select('*'),
         supabase.from('coupons').select('*'),
-        supabase.from('tickets').select('*'),
         supabase.from('gift_experiences').select('*'),
         supabase.from('colaboradores').select('*'),
         supabase.from('nexus_catalogo_modal').select('*'),
@@ -124,7 +121,6 @@ export async function POST(req: NextRequest) {
         pedidos: pedidosR.data || [],
         perfiles: perfilesR.data || [],
         cupones: cuponesR.data || [],
-        tickets: ticketsR.data || [],
         regalos: regalosR.data || [],
         colaboradores: colabR.data || [],
         catalogo_modal: catalogoR.data || [],
