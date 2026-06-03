@@ -1868,3 +1868,185 @@ Todos los flujos ahora usan el mismo `gestionarStock()` de `@/lib/stock`.
 | JWT | JSON Web Token — usado para sesión custom |
 | scrypt | Algoritmo de derivación de clave para hash de passwords |
 | HMAC-SHA256 | Algoritmo de firma simétrica usado para tokens de sesión |
+
+---
+
+## Product Vision
+
+Nexus ya no se encuentra en fase de hardening.
+
+La visión a largo plazo es convertir Nexus en el sistema operativo para pequeños negocios.
+
+### Objetivos
+
+- Inventario centralizado
+- Pedidos digitales
+- Ventas presenciales
+- WhatsApp operativo
+- Marketing automatizado
+- Fidelización de clientes
+- Analíticas empresariales
+- Automatización de tareas repetitivas
+
+### Principio
+
+Cada nueva funcionalidad debe cumplir al menos uno de estos objetivos:
+
+- aumentar ventas
+- ahorrar tiempo
+- mejorar retención
+- aumentar recurrencia
+- generar hábito de uso
+
+---
+
+## Product Roadmap Ideas
+
+> **NOTA:** Las siguientes ideas **NO representan compromisos de implementación.**  
+> Son oportunidades estratégicas identificadas para futuras versiones.  
+> La prioridad podrá cambiar según feedback de usuarios reales y necesidades del negocio.
+
+---
+
+### P-01 — Cierre de Caja Automatizado
+
+**Objetivo:** Entregar un resumen diario automático del desempeño del negocio.
+
+**Posibles métricas:**
+- ventas brutas
+- costo de mercancía
+- ganancia neta
+- producto más vendido
+- comparación contra el día anterior
+
+**Beneficio:** Genera hábito diario y claridad financiera para el comerciante.
+
+**Impacto estimado:** Muy alto.
+
+---
+
+### P-02 — Multiplicador de Ticket
+
+**Objetivo:** Implementar cross-selling automático dentro del catálogo.
+
+**Ejemplos:**
+- desayuno → globo personalizado
+- vestido → aretes
+- regalo → tarjeta personalizada
+
+**Beneficio:** Incrementar ticket promedio y ventas por pedido.
+
+**Impacto estimado:** Alto.
+
+---
+
+### P-03 — Revive-Muertos
+
+**Objetivo:** Detectar clientes que llevan un período prolongado sin comprar.
+
+**Acción:** Permitir enviar mensajes de reactivación mediante WhatsApp con un clic.
+
+**Beneficio:** Incrementar recompra y retención.
+
+**Impacto estimado:** Muy alto.
+
+---
+
+### P-04 — Despachador Express
+
+**Objetivo:** Enviar información de entrega al mensajero mediante WhatsApp en un clic.
+
+**Información incluida:**
+- nombre cliente
+- teléfono
+- dirección
+- monto a cobrar
+- enlace Google Maps
+
+**Beneficio:** Reducir tiempo operativo y errores manuales.
+
+**Impacto estimado:** Muy alto.
+
+---
+
+### P-05 — Copiloto de Estados
+
+**Objetivo:** Generar textos promocionales para WhatsApp Status e Instagram Stories.
+
+**Acción:** Botón disponible desde productos del inventario.
+
+**Beneficio:** Reducir fricción de marketing para pequeños negocios.
+
+**Impacto estimado:** Medio-Alto.
+
+---
+
+### P-06 — Radar VIP
+
+**Objetivo:** Identificar y visualizar clientes más valiosos.
+
+**Posibles funciones:**
+- ranking mensual
+- clientes recurrentes
+- top compradores
+
+**Beneficio:** Fidelización y seguimiento de clientes importantes.
+
+**Impacto estimado:** Alto.
+
+---
+
+### P-07 — Simulador de Escasez
+
+**Objetivo:** Mostrar mensajes de urgencia basados en stock real.
+
+**Ejemplos:**
+- Solo quedan 2 disponibles
+- Últimas unidades
+
+**Regla:** Nunca mostrar información falsa.
+
+**Beneficio:** Incrementar conversión utilizando stock real.
+
+**Impacto estimado:** Alto.
+
+---
+
+### P-08 — Capturador de Reseñas
+
+**Objetivo:** Solicitar opiniones automáticamente después de una entrega.
+
+**Posibles funciones:**
+- estrellas
+- comentarios
+- reputación pública
+- métricas de satisfacción
+
+**Beneficio:** Generar prueba social y aumentar confianza.
+
+**Impacto estimado:** Muy alto.
+
+---
+
+### P-09 — Caja Física (Mini POS)
+
+**Objetivo:** Permitir registrar ventas presenciales utilizando la misma infraestructura de inventario y pedidos.
+
+**Posibles características:**
+- venta rápida
+- selección de productos
+- efectivo
+- transferencia
+- tarjeta
+
+**Comportamiento esperado:**
+- descontar inventario
+- registrar pedido
+- marcar como pagado
+- marcar como entregado
+
+**Beneficio:** Unificar ventas físicas y digitales.
+
+**Impacto estratégico:** Transformar Nexus de catálogo digital a sistema operativo completo del negocio.
+
+**Impacto estimado:** Extremadamente alto.
