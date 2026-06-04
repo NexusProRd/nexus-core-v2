@@ -2050,3 +2050,191 @@ Cada nueva funcionalidad debe cumplir al menos uno de estos objetivos:
 **Impacto estratégico:** Transformar Nexus de catálogo digital a sistema operativo completo del negocio.
 
 **Impacto estimado:** Extremadamente alto.
+
+---
+
+# Business Strategy & Commercial Model (Planned)
+
+Estado: **Planificación.** No implementado.
+
+Estas decisiones representan la estrategia comercial y de crecimiento posterior a la fase de hardening.
+
+---
+
+## Founder Program
+
+**Objetivo:** Construir un grupo reducido de negocios reales que utilicen Nexus antes del lanzamiento comercial.
+
+**Propósito:**
+- detectar bugs
+- identificar problemas de UX
+- validar flujos reales
+- recibir feedback continuo
+- priorizar futuras funcionalidades
+
+**Beneficios Founder:**
+- acceso vitalicio a Nexus
+- acceso a todas las funcionalidades disponibles
+- acceso a funcionalidades futuras
+- participación directa en la evolución del producto
+
+**Restricciones:**
+- asignación manual únicamente desde PCC
+- no disponible públicamente
+- no forma parte de los planes comerciales
+- cantidad limitada de participantes
+
+**Implementación futura prevista:**
+```text
+is_founder
+founder_since
+founder_notes
+```
+
+> **Nota:** Founder es un privilegio administrativo y **NO** un plan comercial.
+
+---
+
+## Founder Program Timeline
+
+**Junio 2026**
+
+**Objetivos:**
+- completar grupo Founder
+- obtener feedback real de negocios
+- validar experiencia de uso
+- detectar mejoras prioritarias
+- corregir bugs encontrados
+
+**Meta inicial:** 5-15 negocios Founder activos.
+
+---
+
+## Commercial Plans V2
+
+Estado: **Planificado.** No implementado.
+
+### Emprendedor
+
+**Precio previsto:** RD$380 mensuales
+
+**Características previstas:**
+- catálogo digital
+- pedidos
+- WhatsApp
+- dashboard
+- regalos
+- funcionalidades esenciales
+
+**Límite previsto:** 10-15 productos
+
+---
+
+### Pro
+
+**Precio previsto:** RD$900 mensuales
+
+**Características previstas:**
+- todas las funciones de Emprendedor
+- productos ilimitados
+- futuras funciones premium
+
+**Límite previsto:** sin límite de productos
+
+---
+
+### Omnicanal
+
+Estado: **Futuro.**
+
+**Precio previsto:** RD$1600 mensuales
+
+**Características previstas:**
+- productos ilimitados
+- caja física
+- ventas presenciales
+- reportes omnicanal
+- futuras herramientas avanzadas
+
+> **Nota:** No será considerado para lanzamiento inicial hasta completar las funcionalidades asociadas.
+
+---
+
+## Commercial Launch Target
+
+**Julio 2026**
+
+**Objetivo:** Primer lanzamiento comercial de Nexus.
+
+**Planes previstos para lanzamiento:**
+- Emprendedor
+- Pro
+
+Founder mantiene acceso vitalicio.
+
+---
+
+## Pricing Management (Future)
+
+**Situación actual:** PCC administra un único precio visible en landing.
+
+**Objetivo futuro:** Permitir administrar múltiples planes desde PCC.
+
+**Planes previstos:**
+- Emprendedor
+- Pro
+- Omnicanal
+
+**Capacidades previstas:**
+- nombre del plan
+- precio
+- descripción
+- límites
+- activación/desactivación
+
+Sin necesidad de modificar código.
+
+---
+
+## Wildcard Subdomains (Future)
+
+**Objetivo:** Permitir subdominios automáticos para cada tienda.
+
+**Ejemplos:**
+- tienda-a.nexuscore.com
+- tienda-b.nexuscore.com
+- tienda-c.nexuscore.com
+
+**Dependencia:** Configuración de wildcard DNS una vez disponible el dominio principal definitivo.
+
+---
+
+## Custom Domains (Future)
+
+**Objetivo:** Permitir dominios propios para tiendas.
+
+**Ejemplos:**
+- mitienda.com
+- pastelesmaria.com
+
+**Estado:** Planificación futura.
+
+Posible relación con planes superiores.
+
+---
+
+## Founder Feedback System (Future)
+
+**Idea:** Sistema interno para gestionar feedback de Founders.
+
+**Funciones previstas:**
+- generación de formularios
+- formularios semanales
+- enlaces únicos
+- respuestas almacenadas
+- visualización desde PCC
+- seguimiento de participación
+
+**Objetivo:** Centralizar feedback y evitar depender de mensajes dispersos por WhatsApp.
+
+**Estado:** Documentado. No implementado.
