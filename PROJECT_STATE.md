@@ -17,7 +17,7 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `41c1ea7` — Sprint 4B Commercial Management Modal (Jun 6) |
+| Último commit | `dd8f603` — Sprint 4B Commercial Management Modal (Jun 6) |
 | Última verificación | 2026-06-06 — Sprint 4B completado + Typecheck PASS + Build PASS |
 
 ### Módulos
@@ -75,7 +75,7 @@ Todos los sprints de seguridad, hardening, data integrity, gift unification y co
 - **P3-C**: Gift subsystem migration B→A — legacy_code, tickets drop, is_gift defer (`ef92631`)
 - **Sprint 3**: Commercial Infrastructure Foundation (`d305ced` + `3268d49`)
 - **Sprint 4A**: Commercial Normalization (`d461c54`)
-- **Sprint 4B**: Commercial Management Modal (`41c1ea7`)
+- **Sprint 4B**: Commercial Management Modal (`dd8f603`)
 
 ### Estado de vulnerabilidades
 
@@ -1202,7 +1202,7 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 - Build PASS ✅
 
 ### Sprint completado — Sprint 4B (Commercial Management Modal)
-**Commits:** `41c1ea7`
+**Commits:** `dd8f603`
 - Modal "Config. Comercial" en PCC Tiendas con edición de `plan_tipo`, `plan_status`, `is_founder` ✅
 - Acceso desde menú de acciones desktop y mobile ✅
 - Handler `handleGuardarComercial` con `supabase.from('tiendas').update()` y logging a `nexus_logs` ✅
@@ -1568,7 +1568,7 @@ async function diag() {
 
 ## Changelog
 
-### 2026-06-06 — Sprint 4B — Commercial Management Modal (`41c1ea7`)
+### 2026-06-06 — Sprint 4B — Commercial Management Modal (`dd8f603`)
 
 ##### Cambios
 
