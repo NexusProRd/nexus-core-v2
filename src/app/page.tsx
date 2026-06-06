@@ -35,26 +35,37 @@ function Reveal({ children, className = '' }: { children: React.ReactNode; class
 
 export default function HomePage() {
   const [user, setUser] = useState<boolean | null>(null)
-  const [precioToken, setPrecioToken] = useState(49)
   const [landingLogoUrl, setLandingLogoUrl] = useState('')
   const { theme, toggleTheme } = useTheme()
   const router = useRouter()
 
+  const [emprendedorPrice, setEmprendedorPrice] = useState(380)
+  const [emprendedorLimit, setEmprendedorLimit] = useState(15)
+  const [proPrice, setProPrice] = useState(900)
+  const [proLimit, setProLimit] = useState(-1)
+
   const [vitrinaConfig, setVitrinaConfig] = useState<CatalogoModalConfig | null>(null)
   const [vitrinaActiva, setVitrinaActiva] = useState(false)
   const [whatsappSoporte, setWhatsappSoporte] = useState('')
+  const [faqAbierta, setFaqAbierta] = useState<number | null>(null)
 
   useEffect(() => {
     const hasSession = document.cookie.includes('nx_session=')
     setUser(hasSession)
     const supabase = createClient()
     Promise.all([
-      supabase.from('nexus_config').select('valor').eq('clave', 'precio_servicio').maybeSingle(),
+      supabase.from('nexus_config').select('valor').eq('clave', 'plan_emprendedor_price').maybeSingle(),
+      supabase.from('nexus_config').select('valor').eq('clave', 'plan_emprendedor_limit').maybeSingle(),
+      supabase.from('nexus_config').select('valor').eq('clave', 'plan_pro_price').maybeSingle(),
+      supabase.from('nexus_config').select('valor').eq('clave', 'plan_pro_limit').maybeSingle(),
       supabase.from('nexus_config').select('valor').eq('clave', 'landing_logo_url').maybeSingle(),
       supabase.from('nexus_config').select('valor').eq('clave', 'whatsapp_soporte').maybeSingle(),
       supabase.from('nexus_landing_vitrina').select('*').eq('clave', 'global').maybeSingle(),
-    ]).then(([precioRes, logoRes, wspRes, vitrinaRes]) => {
-      if (precioRes.data?.valor) setPrecioToken(parseInt(precioRes.data.valor, 10))
+    ]).then(([empPriceRes, empLimitRes, proPriceRes, proLimitRes, logoRes, wspRes, vitrinaRes]) => {
+      if (empPriceRes.data?.valor) setEmprendedorPrice(parseInt(empPriceRes.data.valor, 10))
+      if (empLimitRes.data?.valor) setEmprendedorLimit(parseInt(empLimitRes.data.valor, 10))
+      if (proPriceRes.data?.valor) setProPrice(parseInt(proPriceRes.data.valor, 10))
+      if (proLimitRes.data?.valor) setProLimit(parseInt(proLimitRes.data.valor, 10))
       if (logoRes.data?.valor) setLandingLogoUrl(logoRes.data.valor)
       if (wspRes.data?.valor) setWhatsappSoporte(wspRes.data.valor)
       if (vitrinaRes.data?.activo) {
@@ -141,55 +152,28 @@ export default function HomePage() {
               Hecho en República Dominicana
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-7xl font-extrabold text-white leading-[1.1] tracking-tight">
-              Tu negocio merece{' '}
+              Tus clientes te piden por{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 via-emerald-300 to-teal-400">
-                estar online
+                WhatsApp
               </span>
+              {' '}y pierdes los pedidos
             </h1>
             <p className="mt-6 text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
-              Crea tu catálogo digital en minutos, sin saber de tecnología — 
-              solo subes tus fotos y compartes tu link. O si prefieres, te diseñamos una página web a tu medida.
+              Nexus crea tu catálogo online en minutos. Tus clientes compran desde tu link 
+              y cada pedido te llega completo y ordenado directamente a tu WhatsApp.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link href="/register"
                 className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold text-base rounded-2xl hover:brightness-110 hover:scale-[1.02] transition-all shadow-lg shadow-teal-500/20">
-                Probar 7 Días Gratis
+                Probar 30 Días Gratis
                 <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
               </Link>
-              <button onClick={() => document.getElementById('caminos')?.scrollIntoView({ behavior: 'smooth' })}
+              <button onClick={() => document.getElementById('como-funciona')?.scrollIntoView({ behavior: 'smooth' })}
                 className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 border border-slate-600 text-slate-300 font-semibold text-base rounded-2xl hover:bg-slate-800 hover:border-slate-500 transition-all">
-                Ver opciones
+                Ver cómo funciona
               </button>
             </div>
           </div>
-
-          <Reveal className="mt-14 sm:mt-16">
-            <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-0 max-w-lg mx-auto">
-              <button onClick={() => document.getElementById('caminos')?.scrollIntoView({ behavior: 'smooth' })} className="w-full sm:w-48 text-left bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700/50 rounded-2xl p-4 sm:p-5 hover:border-amber-500/30 hover:shadow-lg hover:shadow-amber-500/5 hover:-translate-y-0.5 cursor-pointer transition-all duration-500">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white text-lg shadow-md shrink-0">📱</div>
-                  <div className="text-left">
-                    <p className="text-sm font-bold text-white">Catálogo Digital</p>
-                    <p className="text-xs text-slate-500">Lo creas tú mismo</p>
-                  </div>
-                </div>
-              </button>
-              <div className="flex items-center gap-2 sm:mx-3 shrink-0">
-                <div className="hidden sm:block w-8 h-px bg-slate-700" />
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">o</span>
-                <div className="hidden sm:block w-8 h-px bg-slate-700" />
-              </div>
-              <button onClick={() => document.getElementById('personalizadas')?.scrollIntoView({ behavior: 'smooth' })} className="w-full sm:w-48 text-left bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700/50 rounded-2xl p-4 sm:p-5 hover:border-teal-500/30 hover:shadow-lg hover:shadow-teal-500/5 hover:-translate-y-0.5 cursor-pointer transition-all duration-500">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white text-lg shadow-md shrink-0">🛠️</div>
-                  <div className="text-left">
-                    <p className="text-sm font-bold text-white">Página Web</p>
-                    <p className="text-xs text-slate-500">La creamos para ti</p>
-                  </div>
-                </div>
-              </button>
-            </div>
-          </Reveal>
         </div>
       </section>
 
@@ -244,7 +228,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8">
             {[
-              { numero: '100+', label: 'Negocios activos' },
+              { numero: '100%', label: 'Dominicano' },
               { numero: '5 min', label: 'En línea' },
               { numero: '0%', label: 'Comisiones' },
               { numero: '24/7', label: 'Soporte local' },
@@ -305,59 +289,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== DOS CAMINOS ===== */}
-      <section id="caminos" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <Reveal className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900">Dos caminos, un mismo objetivo</h2>
-            <p className="text-lg text-slate-500 mt-4 max-w-2xl mx-auto">Llevar tu negocio al mundo digital. Tú eliges cómo.</p>
-          </Reveal>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-            <Reveal>
-              <div className="group relative bg-white rounded-3xl border-2 border-slate-200 p-8 sm:p-10 hover:border-amber-400/50 hover:shadow-2xl hover:shadow-amber-500/5 transition-all duration-500 flex flex-col h-full">
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-orange-600 rounded-t-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white text-2xl mb-5 shadow-md">📱</div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">Catálogo Digital</h3>
-                <p className="text-slate-500 mb-6">Tú mismo creas y gestionas tu tienda online. Si sabes usar WhatsApp, ya sabes usar Nexus.</p>
-                <ul className="space-y-3 mb-8 flex-1">
-                  {['Gestión propia desde tu teléfono o computadora', 'Plan único sin comisiones ni sorpresas', 'Listo en 5 minutos, sin conocimientos técnicos', 'Pedidos por WhatsApp automáticos al llegar'].map((f, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-slate-600">
-                      <svg className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/register"
-                  className="w-full inline-flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-bold text-sm rounded-xl hover:brightness-110 hover:scale-[1.01] transition-all shadow-md shadow-amber-500/20">
-                  Probar Gratis
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                </Link>
-              </div>
-            </Reveal>
-            <Reveal>
-              <div className="group relative bg-white rounded-3xl border-2 border-slate-200 p-8 sm:p-10 hover:border-teal-400/50 hover:shadow-2xl hover:shadow-teal-500/5 transition-all duration-500 flex flex-col h-full">
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-teal-500 to-emerald-600 rounded-t-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white text-2xl mb-5 shadow-md">🛠️</div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">Página Personalizada</h3>
-                <p className="text-slate-500 mb-6">Diseño a medida — te hacemos la página web que tu negocio necesita, sin plantillas.</p>
-                <ul className="space-y-3 mb-8 flex-1">
-                  {['Diseño completamente a medida, único para tu marca', 'Tú eliges las funcionalidades que necesitas', 'Entrega acordada contigo, sin prisas', 'Soporte y mantenimiento incluido después del lanzamiento'].map((f, i) => (
-                    <li key={i} className="flex items-start gap-3 text-sm text-slate-600">
-                      <svg className="w-5 h-5 text-teal-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <a href={`https://wa.me/${whatsappSoporte || '18299999999'}?text=Hola%2C%20quiero%20cotizar%20una%20p%C3%A1gina%20personalizada`} target="_blank" rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold text-sm rounded-xl hover:brightness-110 hover:scale-[1.01] transition-all shadow-md shadow-teal-500/20">
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
-                  Solicitar Cotización
-                </a>
-              </div>
-            </Reveal>
-          </div>
-        </div>
-      </section>
+
 
       {/* ===== VITRINA ===== */}
       {vitrinaActiva && vitrinaConfig && (
@@ -419,21 +351,22 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ===== CÓMO FUNCIONA ===== */}
-      <section className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50">
+      {/* ===== CÓMO FUNCIONA / WHATSAPP FLOW ===== */}
+      <section id="como-funciona" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50">
         <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900">Cómo empezar</h2>
-            <p className="text-lg text-slate-500 mt-4 max-w-2xl mx-auto">Solo 3 pasos, y ninguno necesita que sepas de tecnología.</p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900">Así funciona Nexus</h2>
+            <p className="text-lg text-slate-500 mt-4 max-w-2xl mx-auto">De tu catálogo a tu WhatsApp en segundos. Sin que tú hagas nada.</p>
           </Reveal>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {[
-              { paso: '1', icon: '💡', titulo: 'Cuéntanos tu idea', desc: '¿Catálogo digital o página personalizada? Elige el camino que mejor se ajuste a tu negocio.' },
-              { paso: '2', icon: '⚡', titulo: 'Ponemos tu negocio online', desc: 'Si eliges catálogo, lo tienes listo en minutos. Si es personalizada, coordinamos contigo cada detalle.' },
-              { paso: '3', icon: '🚀', titulo: 'Empieza a vender', desc: 'Compartes tu enlace con tus clientes y empiezas a recibir pedidos por WhatsApp.' },
+              { paso: '1', icon: '📱', titulo: 'Compartes tu link', desc: 'Subes tus productos y compartes el enlace de tu catálogo. Tus clientes lo abren sin instalar nada.' },
+              { paso: '2', icon: '🛒', titulo: 'Cliente compra', desc: 'Ven precios, tallas y disponibilidad. Eligen productos y cantidades sin que tú respondas una sola vez.' },
+              { paso: '3', icon: '💬', titulo: 'Pedido por WhatsApp', desc: 'Al comprar, se abre su WhatsApp con el pedido completo: productos, cantidades, total y sus datos.' },
+              { paso: '4', icon: '✅', titulo: 'Tú solo recibes', desc: 'El pedido te llega ordenado a tu WhatsApp. El inventario se descuenta solo. Sin perder ninguno.' },
             ].map((p, i) => (
               <Reveal key={i}>
-                <div className="group text-center">
+                <div className="group text-center h-full">
                   <div className="relative w-16 h-16 mx-auto mb-5">
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white text-2xl shadow-lg shadow-teal-500/20 group-hover:scale-105 transition-transform duration-300">
                       {p.icon}
@@ -446,6 +379,12 @@ export default function HomePage() {
               </Reveal>
             ))}
           </div>
+          <Reveal className="mt-10 text-center">
+            <div className="inline-flex items-center gap-2 px-5 py-3 bg-white rounded-2xl border border-slate-200 shadow-sm">
+              <span className="text-sm text-slate-700 font-semibold">Tú solo compartes tu link.</span>
+              <span className="text-sm text-teal-600 font-bold">Nexus hace todo el trabajo.</span>
+            </div>
+          </Reveal>
         </div>
       </section>
 
@@ -478,89 +417,112 @@ export default function HomePage() {
 
       {/* ===== PRECIOS ===== */}
       <section className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-slate-50">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <Reveal className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900">Un solo plan. Tú decides</h2>
-            <p className="text-lg text-slate-500 mt-4">Sin contratos, sin tarjetas amarradas. 1 token = 1 mes de servicio completo.</p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900">Planes para tu negocio</h2>
+            <p className="text-lg text-slate-500 mt-4">Sin contratos, sin tarjetas amarradas. 30 días de prueba gratuita.</p>
           </Reveal>
-          <Reveal>
-            <div className="bg-white rounded-3xl border-2 border-slate-200 p-8 sm:p-10 shadow-xl hover:shadow-2xl transition-shadow duration-300">
-              <div className="text-center mb-8">
-                <span className="text-5xl sm:text-6xl font-extrabold text-slate-900">RD${precioToken.toLocaleString('en-US')}</span>
-                <span className="text-lg text-slate-400 ml-2">/ token</span>
-                <p className="text-sm text-slate-500 mt-2">Cada token te da 1 mes de servicio completo del catálogo digital</p>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-                {[
-                  { tokens: 1, label: '1 mes' },
-                  { tokens: 3, label: '3 meses' },
-                  { tokens: 6, label: '6 meses' },
-                  { tokens: 12, label: '1 año' },
-                ].map((op, i) => (
-                  <div key={i} className="text-center bg-slate-50 rounded-2xl border border-slate-200 p-4 hover:border-amber-300 transition-colors">
-                    <p className="text-2xl font-extrabold text-amber-600">{op.tokens}</p>
-                    <p className="text-xs text-slate-500 mt-1">{op.label}</p>
-                    <p className="text-sm font-bold text-slate-700 mt-1">RD${(precioToken * op.tokens).toLocaleString('en-US')}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+            {/* Emprendedor */}
+            <Reveal>
+              <div className="group relative bg-white rounded-3xl border-2 border-emerald-200 p-8 sm:p-10 hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-t-3xl" />
+                <div className="text-center mb-6">
+                  <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full uppercase tracking-wider">Emprendedor</span>
+                  <div className="mt-4">
+                    <span className="text-5xl sm:text-6xl font-extrabold text-slate-900">RD${emprendedorPrice.toLocaleString('en-US')}</span>
+                    <span className="text-lg text-slate-400 ml-2">/ mes</span>
                   </div>
-                ))}
-              </div>
-              <div className="border-t border-slate-100 pt-6">
-                <p className="text-sm font-bold text-slate-700 mb-4 text-center">Todas las funciones incluidas:</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-md mx-auto">
-                  {['Productos ilimitados', 'Catálogo público', 'Pedidos por WhatsApp', 'Cupones de descuento', 'Regalos con código', 'Analíticas', 'Dashboard en vivo', 'Soporte'].map((f, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm text-slate-600">
-                      <svg className="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <p className="text-sm text-slate-500 mt-2">Hasta {emprendedorLimit} productos</p>
+                </div>
+                <div className="space-y-3 mb-8 flex-1">
+                  {['Catálogo online público', 'Pedidos por WhatsApp automáticos', 'Dashboard en vivo', 'Cupones de descuento', 'Regalos con código', 'Control de inventario', 'Soporte por WhatsApp'].map((f, i) => (
+                    <div key={i} className="flex items-center gap-3 text-sm text-slate-600">
+                      <svg className="w-5 h-5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
                       {f}
                     </div>
                   ))}
                 </div>
-              </div>
-              <div className="mt-8 text-center">
                 <Link href="/register"
-                  className="inline-flex items-center justify-center gap-2 px-10 py-3.5 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold text-base rounded-2xl hover:brightness-110 hover:scale-[1.02] transition-all shadow-lg shadow-teal-500/20">
-                  Probar 7 Días Gratis
+                  className="w-full inline-flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-sm rounded-xl hover:brightness-110 hover:scale-[1.01] transition-all shadow-md shadow-emerald-500/20">
+                  Probar 30 Días Gratis
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                 </Link>
               </div>
-            </div>
+            </Reveal>
+            {/* Pro */}
+            <Reveal>
+              <div className="group relative bg-white rounded-3xl border-2 border-indigo-200 p-8 sm:p-10 hover:shadow-2xl transition-all duration-300 h-full flex flex-col">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-t-3xl" />
+                <div className="text-center mb-6">
+                  <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full uppercase tracking-wider">Pro</span>
+                  <div className="mt-4">
+                    <span className="text-5xl sm:text-6xl font-extrabold text-slate-900">RD${proPrice.toLocaleString('en-US')}</span>
+                    <span className="text-lg text-slate-400 ml-2">/ mes</span>
+                  </div>
+                  <p className="text-sm text-slate-500 mt-2">{proLimit === -1 ? 'Productos ilimitados' : `Hasta ${proLimit} productos`}</p>
+                </div>
+                <div className="space-y-3 mb-8 flex-1">
+                  {['Todo lo de Emprendedor +', 'Productos ilimitados', 'Dashboard avanzado con analíticas', 'Soporte prioritario', 'Todas las funciones disponibles'].map((f, i) => (
+                    <div key={i} className="flex items-center gap-3 text-sm text-slate-600">
+                      <svg className="w-5 h-5 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {f}
+                    </div>
+                  ))}
+                </div>
+                <Link href="/register"
+                  className="w-full inline-flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-sm rounded-xl hover:brightness-110 hover:scale-[1.01] transition-all shadow-md shadow-indigo-500/20">
+                  Probar 30 Días Gratis
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                </Link>
+              </div>
+            </Reveal>
+          </div>
+          <Reveal className="mt-6 text-center">
+            <p className="text-xs text-slate-400">Todos los planes incluyen 30 días de prueba gratis. Sin tarjeta de crédito. Sin contratos. Cancela cuando quieras.</p>
           </Reveal>
         </div>
       </section>
 
-      {/* ===== PERSONALIZADAS ===== */}
-      <section id="personalizadas" className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-5xl mx-auto">
-          <Reveal className="text-center mb-14">
-            <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-teal-100 text-teal-700 uppercase tracking-wider mb-4">Soluciones a la medida</span>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900">¿El catálogo no es para ti?</h2>
-            <p className="text-lg text-slate-500 mt-4 max-w-2xl mx-auto">Te ayudo con una página web completamente personalizada para tu negocio.</p>
+      {/* ===== FAQ ===== */}
+      <section className="py-20 sm:py-28 px-4 sm:px-6 lg:px-8 bg-white">
+        <div className="max-w-3xl mx-auto">
+          <Reveal className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-900">Preguntas frecuentes</h2>
+            <p className="text-lg text-slate-500 mt-4">Todo lo que necesitas saber antes de empezar.</p>
           </Reveal>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6 mb-12">
+          <div className="space-y-3">
             {[
-              { icon: '🌐', titulo: 'Landing Page', desc: 'Página profesional para promocionar tu negocio o servicio con diseño único.' },
-              { icon: '🎨', titulo: 'Portafolio Web', desc: 'Muestra tu trabajo con estilo. Ideal para fotógrafos, diseñadores y creativos.' },
-              { icon: '🛒', titulo: 'Tienda Custom', desc: 'Una tienda online completamente personalizada, más allá del catálogo estándar.' },
-            ].map((c, i) => (
+              { p: '¿Necesito tarjeta de crédito para probar?', r: 'No. Solo registras con tu nombre, WhatsApp y una contraseña. 30 días gratis, sin compromiso, sin tarjeta.' },
+              { p: '¿Puedo cancelar cuando quiera?', r: 'Sí. Pagas mes a mes, sin contratos. Si cancelas, tu catálogo se pausa pero no perdemos tu información.' },
+              { p: '¿Qué pasa si supero los 15 productos en Emprendedor?', r: 'No podrás agregar más productos hasta que actualices al plan Pro (productos ilimitados) o elimines productos inactivos.' },
+              { p: '¿Mis clientes necesitan instalar algo?', r: 'No. Solo abren tu link desde cualquier teléfono. Para hacer un pedido, se abre su WhatsApp automáticamente.' },
+              { p: '¿Puedo cambiar de plan después?', r: 'Sí. Puedes solicitar un cambio de plan en cualquier momento. Nuestro equipo realizará la actualización y conservarás toda tu información.' },
+              { p: '¿Cómo sé qué productos se venden más?', r: 'El dashboard te muestra ventas del día, productos populares e ingresos del mes en tiempo real.' },
+              { p: '¿Qué incluye el período de prueba?', r: 'Los 30 días son con todas las funciones del plan Pro. Sin limitaciones. Pruebas todo antes de decidir.' },
+            ].map((faq, i) => (
               <Reveal key={i}>
-                <div className="group bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-xl hover:-translate-y-1 hover:border-teal-200 transition-all duration-300">
-                  <div className="text-3xl mb-3 group-hover:scale-110 transition-transform">{c.icon}</div>
-                  <h3 className="text-base font-bold text-slate-900 mb-1.5">{c.titulo}</h3>
-                  <p className="text-sm text-slate-500 leading-relaxed">{c.desc}</p>
+                <div className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden transition-all duration-300">
+                  <button onClick={() => setFaqAbierta(faqAbierta === i ? null : i)}
+                    className="w-full flex items-center justify-between px-6 py-4 text-left text-sm font-bold text-slate-900 hover:bg-slate-100/50 transition-colors">
+                    {faq.p}
+                    <svg className={`w-5 h-5 text-slate-400 shrink-0 ml-4 transition-transform duration-300 ${faqAbierta === i ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {faqAbierta === i && (
+                    <div className="px-6 pb-4 text-sm text-slate-500 leading-relaxed animate-fade-in-up">
+                      {faq.r}
+                    </div>
+                  )}
                 </div>
               </Reveal>
             ))}
           </div>
-          <Reveal>
-            <div className="text-center">
-              <a href={`https://wa.me/${whatsappSoporte || '18299999999'}?text=Hola%2C%20quiero%20cotizar%20una%20p%C3%A1gina%20personalizada`} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2.5 px-8 py-3.5 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold text-base rounded-2xl hover:brightness-110 hover:scale-[1.02] transition-all shadow-lg shadow-teal-500/20">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
-                Solicitar Cotización
-              </a>
-            </div>
-          </Reveal>
         </div>
       </section>
 
@@ -571,20 +533,25 @@ export default function HomePage() {
         </div>
         <div className="relative z-10 max-w-3xl mx-auto text-center">
           <Reveal>
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight">¿Listo para llevar tu negocio al siguiente nivel?</h2>
-            <p className="text-lg text-slate-400 mt-4">Regístrate gratis y prueba el catálogo digital 7 días sin compromiso. O contáctame y conversamos sobre tu página personalizada.</p>
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white leading-tight">¿Listo para no perder más pedidos?</h2>
+            <p className="text-lg text-slate-400 mt-4">Regístrate gratis y prueba Nexus 30 días sin compromiso. Sin tarjeta, sin contratos.</p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
               <Link href="/register"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold text-base rounded-2xl hover:brightness-110 hover:scale-[1.02] transition-all shadow-lg shadow-teal-500/20">
-                Probar Gratis
+                Probar 30 Días Gratis
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
               </Link>
-              <a href={`https://wa.me/${whatsappSoporte || '18299999999'}?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20una%20p%C3%A1gina%20personalizada`} target="_blank" rel="noopener noreferrer"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 border border-slate-600 text-slate-300 font-semibold text-base rounded-2xl hover:bg-slate-800 hover:border-slate-500 transition-all">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
-                Quiero una página personalizada
-              </a>
             </div>
+            <Reveal className="mt-8">
+              <div className="border-t border-slate-700/50 pt-8">
+                <p className="text-sm text-slate-500 mb-3">¿Necesitas algo más avanzado?</p>
+                <a href={`https://wa.me/${whatsappSoporte || '18299999999'}?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20una%20p%C3%A1gina%20personalizada`} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 border border-slate-600 text-slate-300 font-semibold text-sm rounded-xl hover:bg-slate-800 hover:border-slate-500 transition-all">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" /></svg>
+                  Solicitar Cotización
+                </a>
+              </div>
+            </Reveal>
           </Reveal>
         </div>
       </section>
