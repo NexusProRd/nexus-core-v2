@@ -2196,16 +2196,105 @@ Sin necesidad de modificar código.
 
 ---
 
-## Wildcard Subdomains (Future)
+## Wildcard Subdomains (Auditado)
 
-**Objetivo:** Permitir subdominios automáticos para cada tienda.
+**Estado:** AUDITADO
 
-**Ejemplos:**
-- tienda-a.nexuscore.com
-- tienda-b.nexuscore.com
-- tienda-c.nexuscore.com
+**Resultado:** VIABLE SIN REESTRUCTURACIÓN MAYOR
 
-**Dependencia:** Configuración de wildcard DNS una vez disponible el dominio principal definitivo.
+**Complejidad:** MEDIA
+
+---
+
+### Objetivo Futuro
+
+Soportar:
+
+* pcc.nexusrd.do
+* dashboard.nexusrd.do
+* {slug}.nexusrd.do
+
+Ejemplos:
+
+* pastelesmaria.nexusrd.do
+* boutiqueana.nexusrd.do
+* floristeriarosa.nexusrd.do
+
+---
+
+### Arquitectura Recomendada
+
+Patrón:
+
+Host Detection
+↓
+Middleware Rewrite
+↓
+/c/[slug]
+
+Reutilizar completamente:
+
+/c/[slug]
+
+como catálogo canónico.
+
+No duplicar lógica.
+
+No crear una segunda implementación del catálogo.
+
+---
+
+### Hallazgos de la Auditoría
+
+**Compatibilidad actual:**
+
+* Base de datos compatible mediante slug único.
+* Catálogo actual reutilizable.
+* App Router compatible.
+* Next.js compatible.
+* Arquitectura compatible.
+
+**Bloqueadores:**
+
+1. Middleware no detecta subdominios actualmente.
+2. No existen rewrites para host.
+3. Cookies no comparten sesión entre subdominios.
+4. MetadataBase usa dominio principal fijo.
+
+---
+
+### Cambios Futuros Requeridos
+
+1. **Middleware:** Detección de host.
+2. **Rewrite:** {subdominio}.nexusrd.do → /c/[slug]
+3. **Cookies:** domain=.nexusrd.do
+4. **Metadata dinámica por host.**
+
+---
+
+### Riesgo Principal
+
+Cookies cross-subdomain.
+
+Clasificación: MEDIA
+
+---
+
+### Compatibilidad con Planes
+
+**Emprendedor:** nexusrd.do/c/slug
+
+**Pro:** slug.nexusrd.do
+
+**Omnicanal (futuro):** midominio.com
+
+---
+
+### Prioridad
+
+POST-LANZAMIENTO
+
+No implementar antes del lanzamiento comercial inicial.
 
 ---
 
