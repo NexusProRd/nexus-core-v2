@@ -101,7 +101,7 @@ export default function PccTiendasPage() {
     return tiendas.filter(t => {
       if (!mostrarEliminadas && t.soft_deleted_at) return false
       if (q && !t.nombre_tienda.toLowerCase().includes(q) && !(t.nombre_socio || '').toLowerCase().includes(q) && !t.whatsapp_num?.includes(q)) return false
-      if (filtroPlan && t.plan_nivel !== filtroPlan) return false
+      if (filtroPlan && t.plan_tipo !== filtroPlan) return false
       if (filtroStatus && t.plan_status !== filtroStatus) return false
       return true
     })
@@ -480,9 +480,8 @@ export default function PccTiendasPage() {
             <select value={filtroPlan} onChange={e => setFiltroPlan(e.target.value)}
               className="px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm">
               <option value="">Todos los planes</option>
-              <option value="basico">Básico</option>
+              <option value="emprendedor">Emprendedor</option>
               <option value="pro">Pro</option>
-              <option value="ilimitado">Ilimitado</option>
             </select>
             <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}
               className="px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm">

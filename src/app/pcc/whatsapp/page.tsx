@@ -36,7 +36,7 @@ export default function WhatsAppBroadcastPage() {
   const filtradas = useMemo(() => {
     return tiendas.filter(t => {
       const matchBusq = !busqueda || t.nombre_tienda.toLowerCase().includes(busqueda.toLowerCase()) || t.whatsapp_num?.includes(busqueda)
-      const matchPlan = !filtroPlan || t.plan_nivel === filtroPlan
+      const matchPlan = !filtroPlan || t.plan_tipo === filtroPlan
       return matchBusq && matchPlan && t.whatsapp_num
     })
   }, [tiendas, busqueda, filtroPlan])
@@ -61,7 +61,7 @@ export default function WhatsAppBroadcastPage() {
   const reemplazarVariables = (texto: string, t: SocioTienda): string => {
     return texto
       .replace(/{nombre_tienda}/g, t.nombre_tienda)
-      .replace(/{plan}/g, t.plan_nivel || 'Sin plan')
+      .replace(/{plan}/g, t.plan_tipo || 'Sin plan')
       .replace(/{whatsapp}/g, t.whatsapp_num || '')
       .replace(/{vencimiento}/g, t.fecha_vencimiento ? new Date(t.fecha_vencimiento).toLocaleDateString('es-DO') : 'N/A')
   }
@@ -153,9 +153,8 @@ export default function WhatsAppBroadcastPage() {
                 <select value={filtroPlan} onChange={e => setFiltroPlan(e.target.value)}
                   className="px-2 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none">
                   <option value="">Todos</option>
-                  <option value="basico">Básico</option>
+                  <option value="emprendedor">Emprendedor</option>
                   <option value="pro">Pro</option>
-                  <option value="ilimitado">Ilimitado</option>
                 </select>
               </div>
 
@@ -176,7 +175,7 @@ export default function WhatsAppBroadcastPage() {
                       <p className="text-sm font-medium text-gray-900 truncate">{t.nombre_tienda}</p>
                       <p className="text-[10px] text-gray-400 truncate">{t.whatsapp_num || 'Sin WhatsApp'}</p>
                     </div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase shrink-0">{t.plan_nivel}</span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase shrink-0">{t.plan_tipo}</span>
                   </label>
                 ))}
                 {filtradas.length === 0 && (

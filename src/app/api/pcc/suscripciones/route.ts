@@ -9,7 +9,7 @@ export async function GET() {
 
   const { data: tiendas } = await supabase
     .from('tiendas')
-    .select('id, nombre_tienda, plan_nivel, tokens_disponibles, token_productos_limite, esta_activa, fecha_creacion, fecha_vencimiento, fecha_bloqueo_panel')
+    .select('id, nombre_tienda, plan_tipo, plan_status, tokens_disponibles, token_productos_limite, esta_activa, fecha_creacion, fecha_vencimiento, fecha_bloqueo_panel')
 
   if (!tiendas) {
     return NextResponse.json({ data: [] })
@@ -24,7 +24,8 @@ export async function GET() {
     return {
       id: t.id,
       nombre: t.nombre_tienda,
-      plan: t.plan_nivel,
+      plan_tipo: t.plan_tipo,
+      plan_status: t.plan_status,
       tokens: t.tokens_disponibles || 0,
       limite: t.token_productos_limite || 0,
       activa: t.esta_activa && !vencida,

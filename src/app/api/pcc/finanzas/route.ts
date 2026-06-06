@@ -10,8 +10,8 @@ export async function GET() {
     const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1).toISOString()
 
     const [tiendasRes, configRes, tokensRes, otrosRes] = await Promise.all([
-      supabase.from('tiendas').select('id, nombre_tienda, plan_nivel, esta_activa, fecha_vencimiento'),
-      supabase.from('nexus_config').select('clave, valor').eq('clave', 'precio_servicio'),
+      supabase.from('tiendas').select('id, nombre_tienda, plan_tipo, esta_activa, fecha_vencimiento'),
+      supabase.from('nexus_config').select('clave, valor').in('clave', ['precio_servicio', 'plan_emprendedor_price', 'plan_pro_price']),
       supabase.from('nexus_logs').select('id', { count: 'exact', head: true }).eq('accion', 'recarga_token').gte('created_at', inicioMes),
       supabase.from('nexus_otros_ingresos').select('*').order('creado_en', { ascending: false }),
     ])
@@ -19,11 +19,16 @@ export async function GET() {
     if (tiendasRes.error) throw new Error(tiendasRes.error.message)
 
     const tiendas = tiendasRes.data || []
-    const precioServicio = parseInt(configRes.data?.[0]?.valor || '49', 10)
+    const configMap = new Map(configRes.data?.map(r => [r.clave, r.valor]) ?? [])
+    const precioServicio = parseInt(configMap.get('precio_servicio') || '49', 10)
+    const emprendedorPrice = parseInt(configMap.get('plan_emprendedor_price') || '380', 10)
+    const proPrice = parseInt(configMap.get('plan_pro_price') || '900', 10)
 
-    // --- MRR ---
+    // --- MRR (basado en plan_tipo real) ---
     const activas = tiendas.filter(t => t.esta_activa)
-    const mrr = activas.length * precioServicio
+    const emprendedorasActivas = activas.filter(t => t.plan_tipo === 'emprendedor').length
+    const prosActivas = activas.filter(t => t.plan_tipo === 'pro').length
+    const mrr = (emprendedorasActivas * emprendedorPrice) + (prosActivas * proPrice)
 
     // --- Ingresos por Tokens (este mes) ---
     const tokensEsteMes = tokensRes.count ?? 0
@@ -52,18 +57,20 @@ export async function GET() {
       .map(t => ({
         id: t.id,
         nombre: t.nombre_tienda,
-        plan: t.plan_nivel,
+        plan_tipo: t.plan_tipo,
         vence: t.fecha_vencimiento,
-        precio: precioServicio,
+        precio: t.plan_tipo === 'pro' ? proPrice : emprendedorPrice,
         vencida: new Date(t.fecha_vencimiento) < ahora,
       }))
       .sort((a, b) => new Date(a.vence).getTime() - new Date(b.vence).getTime())
 
     return NextResponse.json({
-      config: { precioServicio },
+      config: { precioServicio, plan_emprendedor_price: emprendedorPrice, plan_pro_price: proPrice },
       resumen: {
         mrr,
         activas: activas.length,
+        emprendedorasActivas,
+        prosActivas,
         tokensEsteMes,
         ingresoToken,
         totalOtros,

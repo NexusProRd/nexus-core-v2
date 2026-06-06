@@ -15,11 +15,22 @@ export async function GET() {
   // Tiendas activas vs suspendidas
   const { data: tiendas } = await supabase
     .from('tiendas')
-    .select('id, fecha_bloqueo_panel, created_at, nombre_tienda')
+    .select('id, plan_tipo, fecha_bloqueo_panel, created_at, nombre_tienda')
+
+  const { data: configPrices } = await supabase
+    .from('nexus_config')
+    .select('clave, valor')
+    .in('clave', ['plan_emprendedor_price', 'plan_pro_price'])
+
+  const priceMap = new Map(configPrices?.map(r => [r.clave, parseInt(r.valor, 10)]) ?? [])
+  const emprendedorPrice = priceMap.get('plan_emprendedor_price') || 380
+  const proPrice = priceMap.get('plan_pro_price') || 900
 
   const ahora = new Date()
   let activas = 0
   let suspendidas = 0
+  let emprendedoresActivos = 0
+  let prosActivos = 0
   const tiendasPorVencer: { id: string; nombre: string; vence: string }[] = []
   const tiendasNuevasHoy: { id: string; nombre: string; creado_en: string }[] = []
   const hoyStr = ahora.toISOString().split('T')[0]
@@ -29,6 +40,8 @@ export async function GET() {
       suspendidas++
     } else {
       activas++
+      if (t.plan_tipo === 'pro') prosActivos++
+      else emprendedoresActivos++
     }
 
     // Tiendas por vencer (próximos 7 días)
@@ -56,8 +69,8 @@ export async function GET() {
 
   const totalVentas = pedidos?.reduce((s, p) => s + (p.total || 0), 0) || 0
 
-  // MRR (simplificado: activas * 150)
-  const mrr = activas * 150
+  // MRR basado en plan_tipo real y precios desde nexus_config
+  const mrr = (emprendedoresActivos * emprendedorPrice) + (prosActivos * proPrice)
 
   // Revendedores
   const { count: revendedores } = await supabase
