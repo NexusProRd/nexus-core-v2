@@ -64,6 +64,9 @@ export default function PccTiendasPage() {
   const [enlaceGenerado, setEnlaceGenerado] = useState('')
   const [regenerandoCodigo, setRegenerandoCodigo] = useState(false)
   const [nuevoCodigo, setNuevoCodigo] = useState('')
+  const [comercialModal, setComercialModal] = useState<{ abierto: boolean; tienda: SocioTienda | null }>({ abierto: false, tienda: null })
+  const [comercialForm, setComercialForm] = useState({ plan_tipo: 'emprendedor' as string, plan_status: 'trial' as string, is_founder: false })
+  const [guardandoComercial, setGuardandoComercial] = useState(false)
   const supabase = createClient()
 
   const cargar = async (showLoading = false) => {
@@ -233,6 +236,35 @@ export default function PccTiendasPage() {
     }
     setGuardandoLimite(false)
     setLimiteModal({ abierto: false, tiendaId: '', nombreTienda: '', limiteActual: 50 })
+  }
+
+  const handleGuardarComercial = async () => {
+    const tienda = comercialModal.tienda
+    if (!tienda) return
+    setGuardandoComercial(true)
+    const { error } = await supabase.from('tiendas').update({
+      plan_tipo: comercialForm.plan_tipo,
+      plan_status: comercialForm.plan_status,
+      is_founder: comercialForm.is_founder,
+    }).eq('id', tienda.id)
+    if (error) {
+      await logError('Sistema', 'Configuración comercial fallida', error.message, { tiendaId: tienda.id })
+      setGuardandoComercial(false)
+      return
+    }
+    setTiendas(prev => prev.map(t => t.id === tienda.id ? {
+      ...t,
+      plan_tipo: comercialForm.plan_tipo as any,
+      plan_status: comercialForm.plan_status as any,
+      is_founder: comercialForm.is_founder,
+    } : t))
+    await supabase.from('nexus_logs').insert({
+      modulo: 'Sistema', accion: 'cambio_plan_comercial',
+      detalle: `Tienda: ${tienda.nombre_tienda} — plan_tipo: ${comercialForm.plan_tipo}, plan_status: ${comercialForm.plan_status}, is_founder: ${comercialForm.is_founder}`,
+      metadata: { id_tienda: tienda.id },
+    })
+    setGuardandoComercial(false)
+    setComercialModal({ abierto: false, tienda: null })
   }
 
   const handleLoginAs = (t: SocioTienda) => {
@@ -688,6 +720,10 @@ export default function PccTiendasPage() {
                             className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-medium text-amber-700 hover:bg-amber-50 transition-colors">
                             🔑 Recuperación
                           </button>
+                          <button onClick={() => (setComercialModal({ abierto: true, tienda: t }), setComercialForm({ plan_tipo: t.plan_tipo, plan_status: t.plan_status, is_founder: t.is_founder }), setAccionAbierta(null), setAccionRect(null))}
+                            className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-medium text-purple-700 hover:bg-purple-50 transition-colors">
+                            💼 Config. Comercial
+                          </button>
                           <div className="h-px bg-slate-100 my-1" />
                           <button onClick={() => (handleToggleSuspender(t), setAccionAbierta(null), setAccionRect(null))}
                             className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-medium text-orange-700 hover:bg-orange-50 transition-colors">
@@ -787,6 +823,8 @@ export default function PccTiendasPage() {
                             className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50 transition-colors">🕵️ Entrar como socio</button>
                           <button onClick={() => (setLimiteModal({ abierto: true, tiendaId: t.id, nombreTienda: t.nombre_tienda, limiteActual: t.token_productos_limite || 50 }), setLimiteInput(t.token_productos_limite || 50), setAccionAbierta(null))}
                             className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-medium text-blue-700 hover:bg-blue-50 transition-colors">📦 Límite productos</button>
+                          <button onClick={() => (setComercialModal({ abierto: true, tienda: t }), setComercialForm({ plan_tipo: t.plan_tipo, plan_status: t.plan_status, is_founder: t.is_founder }), setAccionAbierta(null))}
+                            className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-medium text-purple-700 hover:bg-purple-50 transition-colors">💼 Config. Comercial</button>
                           <div className="h-px bg-slate-100 my-1" />
                           <button onClick={() => (handleToggleSuspender(t), setAccionAbierta(null))}
                             className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-medium text-orange-700 hover:bg-orange-50 transition-colors">
@@ -988,6 +1026,60 @@ export default function PccTiendasPage() {
                   <button onClick={() => handleMarcarResuelto(recuperacionModal.tienda!.id)}
                     className="flex-1 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-bold hover:bg-emerald-600 transition-colors shadow-sm">
                     ✅ Marcar como resuelto
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Config. Comercial Modal */}
+        {comercialModal.abierto && comercialModal.tienda && (
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in"
+            onClick={() => setComercialModal({ abierto: false, tienda: null })}>
+            <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl max-w-sm w-full p-6 border border-slate-200/80 relative overflow-hidden" onClick={e => e.stopPropagation()}>
+              <ModalBokeh />
+              <div className="text-center mb-5">
+                <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-purple-100 flex items-center justify-center">
+                  <span className="text-2xl">💼</span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">Configuración Comercial</h3>
+                <p className="text-sm text-gray-500 mt-1">{comercialModal.tienda.nombre_tienda}</p>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Plan Tipo</label>
+                  <select value={comercialForm.plan_tipo} onChange={e => setComercialForm(p => ({ ...p, plan_tipo: e.target.value }))}
+                    className="w-full px-4 py-2.5 text-sm font-medium text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none">
+                    <option value="emprendedor">Emprendedor</option>
+                    <option value="pro">Pro</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Estado del Plan</label>
+                  <select value={comercialForm.plan_status} onChange={e => setComercialForm(p => ({ ...p, plan_status: e.target.value }))}
+                    className="w-full px-4 py-2.5 text-sm font-medium text-gray-900 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none">
+                    <option value="trial">Trial</option>
+                    <option value="active">Active</option>
+                    <option value="grace">Grace</option>
+                    <option value="dashboard_suspended">Dashboard Suspendido</option>
+                    <option value="catalog_suspended">Catálogo Suspendido</option>
+                    <option value="deleted">Deleted</option>
+                  </select>
+                </div>
+                <div className="flex items-center justify-between py-2">
+                  <span className="text-sm font-semibold text-gray-700">🌟 Fundador</span>
+                  <button onClick={() => setComercialForm(p => ({ ...p, is_founder: !p.is_founder }))}
+                    className={`relative w-12 h-6 rounded-full transition-colors ${comercialForm.is_founder ? 'bg-purple-600' : 'bg-gray-300'}`}>
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${comercialForm.is_founder ? 'translate-x-6' : ''}`} />
+                  </button>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => setComercialModal({ abierto: false, tienda: null })}
+                    className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Cancelar</button>
+                  <button onClick={handleGuardarComercial} disabled={guardandoComercial}
+                    className="flex-1 py-2.5 bg-purple-600 text-white rounded-xl text-sm font-bold hover:bg-purple-700 disabled:opacity-50 transition-colors shadow-sm">
+                    {guardandoComercial ? 'Guardando...' : 'Guardar'}
                   </button>
                 </div>
               </div>

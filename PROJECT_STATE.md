@@ -17,8 +17,8 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `d461c54` — Sprint 4A Commercial Normalization (Jun 6) |
-| Última verificación | 2026-06-06 — Sprint 4A completado + Typecheck PASS + Build PASS |
+| Último commit | `41c1ea7` — Sprint 4B Commercial Management Modal (Jun 6) |
+| Última verificación | 2026-06-06 — Sprint 4B completado + Typecheck PASS + Build PASS |
 
 ### Módulos
 
@@ -48,6 +48,7 @@
 **Sprint P3-C — Migración Subsistema B → A** + **Production Readiness Audit**
 **Sprint 3 — Commercial Infrastructure Foundation**
 **Sprint 4A — Commercial Normalization**
+**Sprint 4B — Commercial Management Modal**
 
 ### Estado
 
@@ -58,6 +59,8 @@
 **Sprint 3 Completado.** Nuevas columnas comerciales en tiendas (`plan_tipo`, `plan_status`, `is_founder`, `trial_started_at`, `trial_ends_at`). Backfill aplicado para tiendas existentes. Registro migrado a trial de 30 días. Helper comercial centralizado (`src/lib/commercial.ts`). PCC Tiendas muestra Plan, Estado y Founder. Typecheck PASS. Build PASS.
 
 **Sprint 4A Completado.** Migración de `plan_nivel` a `plan_tipo` en PCC Tiendas (filtro), WhatsApp Broadcast (filtro, display, template), Suscripciones API (response). MRR real basado en `plan_tipo` y precios desde `nexus_config` — reemplaza hardcodeo (`activas * 150`) en metrics y precio único en finanzas. Fix de backfill en migración 058 (`WHERE plan_tipo IS NULL` → `WHERE trial_started_at IS NULL`). Typecheck PASS. Build PASS.
+
+**Sprint 4B Completado.** Modal de configuración comercial en PCC Tiendas para editar `plan_tipo`, `plan_status` e `is_founder` de cada tienda. Acceso desde menú de acciones (desktop y mobile) con "Config. Comercial". Modal con dropdowns para plan_tipo (Emprendedor/Pro), plan_status (6 estados) y toggle is_founder. Actualización directa vía `supabase.from('tiendas').update()` con logging a `nexus_logs`. Typecheck PASS. Build PASS.
 
 Todos los sprints de seguridad, hardening, data integrity, gift unification y commercial foundation ejecutados:
 - **P0-B/C**: Security Hardening (`0f4bba5`)
@@ -72,6 +75,7 @@ Todos los sprints de seguridad, hardening, data integrity, gift unification y co
 - **P3-C**: Gift subsystem migration B→A — legacy_code, tickets drop, is_gift defer (`ef92631`)
 - **Sprint 3**: Commercial Infrastructure Foundation (`d305ced` + `3268d49`)
 - **Sprint 4A**: Commercial Normalization (`d461c54`)
+- **Sprint 4B**: Commercial Management Modal (`41c1ea7`)
 
 ### Estado de vulnerabilidades
 
@@ -1197,14 +1201,22 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 - Typecheck PASS ✅
 - Build PASS ✅
 
-### Pendientes (próximo sprint — Sprint 4B)
+### Sprint completado — Sprint 4B (Commercial Management Modal)
+**Commits:** `41c1ea7`
+- Modal "Config. Comercial" en PCC Tiendas con edición de `plan_tipo`, `plan_status`, `is_founder` ✅
+- Acceso desde menú de acciones desktop y mobile ✅
+- Handler `handleGuardarComercial` con `supabase.from('tiendas').update()` y logging a `nexus_logs` ✅
+- Typecheck PASS ✅
+- Build PASS ✅
+
+### Pendientes (próximo sprint — Sprint 4C)
 
 | Tarea | Prioridad | Estado |
 |-------|-----------|--------|
-| **Sprint 4B — Acciones comerciales inline** | P1 | ⬜ |
-| Editar plan_tipo (emprendedor ↔ pro) en PCC Tiendas | P1 | ⬜ |
-| Editar plan_status (trial → active → grace → suspendido) en PCC Tiendas | P1 | ⬜ |
-| Toggle is_founder en PCC Tiendas | P1 | ⬜ |
+| **Sprint 4B — Acciones comerciales inline** | P1 | ✅ |
+| Editar plan_tipo (emprendedor ↔ pro) en PCC Tiendas | P1 | ✅ |
+| Editar plan_status (trial → active → grace → suspendido) en PCC Tiendas | P1 | ✅ |
+| Toggle is_founder en PCC Tiendas | P1 | ✅ |
 | **Sprint 4C — Migración 059 (drop plan_nivel)** | P1 | ⬜ |
 | Migración SQL para dropear `plan_nivel` de `tiendas` | P1 | ⬜ |
 | Limpiar referencias a `plan_nivel` en código restante | P1 | ⬜ |
@@ -1555,6 +1567,55 @@ async function diag() {
 ---
 
 ## Changelog
+
+### 2026-06-06 — Sprint 4B — Commercial Management Modal (`41c1ea7`)
+
+##### Cambios
+
+- **PCC Tiendas** — Nuevo modal "Config. Comercial" en el menú de acciones de cada tienda (desktop y mobile)
+- **Plan Tipo** — Dropdown editable (Emprendedor / Pro)
+- **Plan Status** — Dropdown editable (trial / active / grace / dashboard_suspended / catalog_suspended / deleted)
+- **is_founder** — Toggle editable
+- **Handler `handleGuardarComercial`** — Actualiza vía `supabase.from('tiendas').update()` con logging a `nexus_logs`
+- **Estados** — Loading, disabled guard, cancelar/guardar buttons
+
+##### Verificación
+
+- Typecheck PASS ✅
+- Build PASS ✅
+
+##### Archivos modificados
+
+```
+src/app/pcc/tiendas/page.tsx | +80 líneas (3 estados, handler, modal, item menú)
+```
+
+### 2026-06-06 — Sprint 4A — Commercial Normalization
+
+##### Cambios
+
+- **Fix backfill** — Migración 058: `WHERE plan_tipo IS NULL` → `WHERE trial_started_at IS NULL`
+- **PCC Tiendas** — Filtro de plan migrado de `plan_nivel` a `plan_tipo`
+- **PCC WhatsApp** — Filtro, display y template `{plan}` migrados a `plan_tipo`
+- **Suscripciones API** — Response migrado a `plan_tipo` + `plan_status`
+- **MRR metrics** — Reemplazado `activas * 150` por suma basada en `plan_tipo` y precios desde `nexus_config`
+- **MRR finanzas** — MRR diferenciado por plan, `plan_tipo` en pagos pendientes
+
+##### Verificación
+
+- Typecheck PASS ✅
+- Build PASS ✅
+
+##### Archivos modificados
+
+```
+src/app/api/pcc/metrics/route.ts      | +24 / -12
+src/app/api/pcc/finanzas/route.ts     | +16 / -8
+src/app/api/pcc/suscripciones/route.ts | +6 / -3
+src/app/pcc/tiendas/page.tsx          | +4 / -4
+src/app/pcc/whatsapp/page.tsx         | +12 / -12
+supabase/migrations/058_commercial_infrastructure.sql | +2 / -2
+```
 
 ### 2026-06-05 — Sprint 3 — Commercial Infrastructure Foundation
 
