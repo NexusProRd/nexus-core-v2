@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /pcc/
+Disallow: /pcc-login
+Disallow: /login
+Disallow: /onboarding
+Disallow: /register
+Disallow: /api/
+
+Host: https://nexusrd.do
+Sitemap: https://nexusrd.do/sitemap.xml

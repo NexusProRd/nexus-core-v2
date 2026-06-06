@@ -43,9 +43,26 @@ const bebas = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
-  title: "Nexus Core",
-  description: "Tu tienda online",
-  icons: { icon: "/api/favicon" },
+  metadataBase: new URL('https://nexusrd.do'),
+  title: {
+    default: 'Nexus',
+    template: '%s | Nexus',
+  },
+  description: 'Tu tienda online en República Dominicana. Catálogo digital, pedidos por WhatsApp e inventario, sin saber de tecnología.',
+  keywords: ['tienda online', 'catálogo digital', 'WhatsApp', 'República Dominicana', 'ecommerce', 'inventario', 'pedidos'],
+  icons: { icon: '/api/favicon' },
+  openGraph: {
+    type: 'website',
+    siteName: 'Nexus',
+    title: 'Nexus — Tu negocio merece estar online',
+    description: 'Crea tu catálogo digital en minutos, sin saber de tecnología. Solo subes tus fotos y compartes tu link.',
+    locale: 'es_DO',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Nexus — Tu negocio merece estar online',
+    description: 'Crea tu catálogo digital en minutos, sin saber de tecnología.',
+  },
 };
 
 export default function RootLayout({

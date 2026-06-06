@@ -61,6 +61,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id_tienda
   return {
     title: `${nombre} | Catálogo Oficial`,
     icons: { icon: perfil?.logo_url || '/favicon.svg' },
+    alternates: { canonical: `/catalogo/${id_tienda}` },
   }
 }
 

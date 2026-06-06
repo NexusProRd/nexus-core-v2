@@ -32,6 +32,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: `${productoPorSlug.nombre} | ${tienda.nombre_tienda}`,
       description: productoPorSlug.descripcion || '',
       openGraph: productoPorSlug.imagen_url ? { images: [{ url: productoPorSlug.imagen_url }] } : undefined,
+      alternates: { canonical: `/catalogo/${id_tienda}/producto/${producto_slug}` },
     }
   }
 
@@ -48,6 +49,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: `${productoPorId.nombre} | ${tienda.nombre_tienda}`,
     description: productoPorId.descripcion || '',
     openGraph: productoPorId.imagen_url ? { images: [{ url: productoPorId.imagen_url }] } : undefined,
+    alternates: { canonical: `/catalogo/${id_tienda}/producto/${producto_slug}` },
   }
 }
 

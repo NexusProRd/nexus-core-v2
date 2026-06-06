@@ -168,7 +168,7 @@ export default function RegisterPage() {
     setLoading(false)
   }
 
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://nexus.app'
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'https://nexusrd.do')
 
   if (exito) {
     const catalogoUrl = `${baseUrl}/c/${slug}`
