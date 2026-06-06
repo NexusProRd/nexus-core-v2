@@ -93,9 +93,7 @@ export async function POST(req: Request) {
       || 'desconocida'
 
     const ahora = new Date()
-    const fechaVen = new Date(ahora.getTime() + 7 * 24 * 60 * 60 * 1000)
-    const fechaSusp = new Date(ahora.getTime() + 14 * 24 * 60 * 60 * 1000)
-    const fechaElim = new Date(ahora.getTime() + 30 * 24 * 60 * 60 * 1000)
+    const trialEnd = new Date(ahora.getTime() + 30 * 24 * 60 * 60 * 1000)
 
     const { error: insertError } = await supabase!.from('tiendas').insert({
       nombre_socio: nombre_socio.trim(),
@@ -105,15 +103,16 @@ export async function POST(req: Request) {
       id_owner: crypto.randomUUID(),
       esta_activa: true,
       plan_nivel: 'basico',
+      plan_tipo: 'emprendedor',
+      plan_status: 'trial',
+      is_founder: false,
+      trial_started_at: ahora.toISOString(),
+      trial_ends_at: trialEnd.toISOString(),
       tokens_disponibles: 0,
       password_hash,
       preguntas_recuperacion: preguntas,
       codigo_verificacion_hash: codigoHash,
       ultima_ip: ipReal,
-      fecha_vencimiento: fechaVen.toISOString(),
-      fecha_bloqueo_panel: fechaVen.toISOString(),
-      fecha_suspension_catalogo: fechaSusp.toISOString(),
-      fecha_eliminacion_total: fechaElim.toISOString(),
     })
 
     if (insertError) {

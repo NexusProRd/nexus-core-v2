@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase'
-import type { SocioTienda, PlanNivel } from '@/types/database'
+import type { SocioTienda } from '@/types/database'
+import { getPlanLabel, getPlanColor, getStatusLabel, getStatusColor } from '@/lib/commercial'
 import { ModalBokeh } from '@/components/pcc/BokehBackground'
 
 function diasRestantes(fecha: string | null): number | null {
@@ -30,6 +31,7 @@ export default function PccTiendasPage() {
   const [tiendas, setTiendas] = useState<SocioTienda[]>([])
   const [busqueda, setBusqueda] = useState('')
   const [filtroPlan, setFiltroPlan] = useState<string>('')
+  const [filtroStatus, setFiltroStatus] = useState<string>('')
   const [mostrarEliminadas, setMostrarEliminadas] = useState(false)
   const [tokenModal, setTokenModal] = useState<TokenModalState>({ abierto: false, tiendaId: '', nombreTienda: '' })
   const [tokenInput, setTokenInput] = useState(1)
@@ -100,9 +102,10 @@ export default function PccTiendasPage() {
       if (!mostrarEliminadas && t.soft_deleted_at) return false
       if (q && !t.nombre_tienda.toLowerCase().includes(q) && !(t.nombre_socio || '').toLowerCase().includes(q) && !t.whatsapp_num?.includes(q)) return false
       if (filtroPlan && t.plan_nivel !== filtroPlan) return false
+      if (filtroStatus && t.plan_status !== filtroStatus) return false
       return true
     })
-  }, [tiendas, busqueda, filtroPlan, mostrarEliminadas])
+  }, [tiendas, busqueda, filtroPlan, filtroStatus, mostrarEliminadas])
 
   async function logError(modulo: string, accion: string, detalle: string, metadata: Record<string, unknown>) {
     try { await supabase.from('nexus_logs').insert({ modulo, accion, detalle, metadata }) } catch {}
@@ -441,29 +444,11 @@ export default function PccTiendasPage() {
     }
   }
 
-  const estadoBadge = (t: SocioTienda) => {
-    if (t.soft_deleted_at) return { label: 'Eliminada', cls: 'bg-red-100 text-red-800' }
-    if (!t.esta_activa) return { label: 'Inactiva', cls: 'bg-yellow-100 text-yellow-800' }
-    if (t.fecha_bloqueo_panel && diasRestantes(t.fecha_bloqueo_panel)! <= 0) return { label: 'Suspendida', cls: 'bg-red-100 text-red-800' }
-    if (t.tokens_disponibles === 0 && t.fecha_vencimiento && diasRestantes(t.fecha_vencimiento)! > 0) return { label: 'Trial', cls: 'bg-blue-100 text-blue-800' }
-    return { label: 'Activa', cls: 'bg-green-100 text-green-800' }
-  }
-
-  const planBadge = (plan: PlanNivel) => {
-    const estilos: Record<PlanNivel, string> = {
-      basico: 'bg-slate-100 text-slate-700 border-slate-200',
-      pro: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-      ilimitado: 'bg-amber-50 text-amber-700 border-amber-200',
-    }
-    return estilos[plan] || estilos.basico
-  }
-
   const enhanced = useMemo(() => filtradas.map(t => ({
     ...t,
     _dv: diasRestantes(t.fecha_vencimiento),
     _db: diasRestantes(t.fecha_bloqueo_panel),
     _ds: diasRestantes(t.fecha_suspension_catalogo),
-    _eb: estadoBadge(t),
     _ma: accionAbierta === t.id,
   })), [filtradas, accionAbierta])
 
@@ -498,6 +483,16 @@ export default function PccTiendasPage() {
               <option value="basico">Básico</option>
               <option value="pro">Pro</option>
               <option value="ilimitado">Ilimitado</option>
+            </select>
+            <select value={filtroStatus} onChange={e => setFiltroStatus(e.target.value)}
+              className="px-3 py-2.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none shadow-sm">
+              <option value="">Todos los estados</option>
+              <option value="trial">Trial</option>
+              <option value="active">Activo</option>
+              <option value="grace">Gracia</option>
+              <option value="dashboard_suspended">Panel Suspendido</option>
+              <option value="catalog_suspended">Catálogo Suspendido</option>
+              <option value="deleted">Eliminado</option>
             </select>
             <button onClick={() => setMostrarEliminadas(!mostrarEliminadas)}
               className={`px-3 py-2.5 text-sm font-bold rounded-xl border transition-colors shadow-sm ${
@@ -553,7 +548,7 @@ export default function PccTiendasPage() {
                       className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" />
                   </th>
                   <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tienda / WhatsApp</th>
-                  <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Plan & Tokens</th>
+                  <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Plan</th>
                   <th className="p-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Ventas</th>
                   <th className="p-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Ganancia Neta</th>
                   <th className="p-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Vencimiento</th>
@@ -580,8 +575,11 @@ export default function PccTiendasPage() {
                     )}
                   </td>
                   <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${planBadge(t.plan_nivel)}`}>{t.plan_nivel}</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${getPlanColor(t.plan_tipo)}`}>{getPlanLabel(t.plan_tipo)}</span>
+                      {t.is_founder && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">🌟 Fundador</span>
+                      )}
                       {t.tokens_disponibles > 0 && (
                         <span className="flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">🪙 {t.tokens_disponibles}</span>
                       )}
@@ -620,7 +618,7 @@ export default function PccTiendasPage() {
                     </div>
                   </td>
                   <td className="p-4">
-                    <span className={`inline-flex items-center px-2.5 py-1 text-xs font-bold rounded-full ${t._eb.cls}`}>{t._eb.label}</span>
+                    <span className={`inline-flex items-center px-2.5 py-1 text-xs font-bold rounded-full ${getStatusColor(t.plan_status)}`}>{getStatusLabel(t.plan_status)}</span>
                   </td>
                   <td className="p-4 text-center">
                     {(t as any).solicita_cambio ? (
@@ -694,7 +692,7 @@ export default function PccTiendasPage() {
                           <div className="h-px bg-slate-100 my-1" />
                           <button onClick={() => (handleToggleSuspender(t), setAccionAbierta(null), setAccionRect(null))}
                             className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-medium text-orange-700 hover:bg-orange-50 transition-colors">
-                            {t._eb.label === 'Activa' ? '⛔ Suspender tienda' : '✅ Activar tienda'}
+                            {t.esta_activa ? '⛔ Suspender tienda' : '✅ Activar tienda'}
                           </button>
                           <button onClick={() => (setEliminarModal({ abierto: true, id: t.id, nombre: t.nombre_tienda }), setDeleteError(''), setAccionAbierta(null), setAccionRect(null))}
                             className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-medium text-rose-700 hover:bg-rose-50 transition-colors">
@@ -732,9 +730,12 @@ export default function PccTiendasPage() {
                           className="block text-xs text-emerald-600 font-medium mt-1">📱 {t.whatsapp_num}</a>
                       )}
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full ${t._eb.cls}`}>{t._eb.label}</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${planBadge(t.plan_nivel)}`}>{t.plan_nivel}</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full ${getStatusColor(t.plan_status)}`}>{getStatusLabel(t.plan_status)}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getPlanColor(t.plan_tipo)}`}>{getPlanLabel(t.plan_tipo)}</span>
+                      {t.is_founder && (
+                        <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full bg-purple-50 text-purple-700 border border-purple-200">🌟 Fundador</span>
+                      )}
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
@@ -790,7 +791,7 @@ export default function PccTiendasPage() {
                           <div className="h-px bg-slate-100 my-1" />
                           <button onClick={() => (handleToggleSuspender(t), setAccionAbierta(null))}
                             className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-medium text-orange-700 hover:bg-orange-50 transition-colors">
-                            {t._eb.label === 'Activa' ? '⛔ Suspender tienda' : '✅ Activar tienda'}
+                            {t.esta_activa ? '⛔ Suspender tienda' : '✅ Activar tienda'}
                           </button>
                           <button onClick={() => (setEliminarModal({ abierto: true, id: t.id, nombre: t.nombre_tienda }), setDeleteError(''), setAccionAbierta(null))}
                             className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm font-medium text-rose-700 hover:bg-rose-50 transition-colors">🗑️ Eliminar tienda</button>

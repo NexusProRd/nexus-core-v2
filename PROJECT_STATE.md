@@ -17,8 +17,8 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `ef92631` — P3-C Migración Subsistema B → A (Jun 3) |
-| Última verificación | 2026-06-03 — Sprint P3-C completado + Production Readiness Audit |
+| Último commit | `1906499` — Sprint 3 Commercial Infrastructure Foundation (Jun 5) |
+| Última verificación | 2026-06-05 — Sprint 3 completado + Typecheck PASS + Build PASS |
 
 ### Módulos
 
@@ -43,17 +43,20 @@
 
 ## Current Focus
 
-### Sprint completado
+### Sprints completados
 
 **Sprint P3-C — Migración Subsistema B → A** + **Production Readiness Audit**
+**Sprint 3 — Commercial Infrastructure Foundation**
 
 ### Estado
 
-**Completado.** Subsistema B (tickets/pedidos.is_gift) eliminado. Toda la lógica de regalos unificada en Subsistema A (gift_experiences). Tickets migrados con backfill, creación de gifts redirigida a gift_experiences, enlaces legacy redirigen a /canje. Stock management, aprobación y canje permanecen inalterados.
+**P3-C Completado.** Subsistema B (tickets/pedidos.is_gift) eliminado. Toda la lógica de regalos unificada en gift_experiences. Tickets migrados con backfill, creación de gifts redirigida a gift_experiences, enlaces legacy redirigen a /canje. Stock management, aprobación y canje permanecen inalterados.
 
 **Production Readiness Audit completado:** Verdict — LISTO PARA PRODUCCIÓN con 75% confianza. Sin bloqueadores P0. Riesgos aceptados: middleware ausente (corrección: `middleware.ts` SÍ existe en raíz del proyecto, protege /pcc, /dashboard, /login), AUTH_SECRET débil, quick-buy stock failures no mostrados al usuario. Recomendación: lanzar hoy con monitoreo activo.
 
-Todos los sprints de seguridad, hardening, data integrity y gift unification ejecutados:
+**Sprint 3 Completado.** Nuevas columnas comerciales en tiendas (`plan_tipo`, `plan_status`, `is_founder`, `trial_started_at`, `trial_ends_at`). Backfill aplicado para tiendas existentes. Registro migrado a trial de 30 días. Helper comercial centralizado (`src/lib/commercial.ts`). PCC Tiendas muestra Plan, Estado y Founder. Typecheck PASS. Build PASS.
+
+Todos los sprints de seguridad, hardening, data integrity, gift unification y commercial foundation ejecutados:
 - **P0-B/C**: Security Hardening (`0f4bba5`)
 - **P1-A/A.1**: Push + Data Access Hardening (`6890792` / `4037c39`)
 - **P1-B.1/B.2**: Data Integrity — stock en todos los flujos (`13d1e0d` / `0ad023b`)
@@ -64,6 +67,7 @@ Todos los sprints de seguridad, hardening, data integrity y gift unification eje
 - **P2-D**: Gift inventory integrity — I1/I2 (`c6619aa`)
 - **P3-A**: Gift redemption unification — R3 (`df028c2`)
 - **P3-C**: Gift subsystem migration B→A — legacy_code, tickets drop, is_gift defer (`ef92631`)
+- **Sprint 3**: Commercial Infrastructure Foundation (`1906499` + uncommitted)
 
 ### Estado de vulnerabilidades
 
@@ -1155,6 +1159,19 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 - `/api/ticket-redeem`: removed (orphaned) ✅
 - Blocking fix: gift detection regression (notas marker ausente) ✅
 
+### Sprint completado — Sprint 3 (Commercial Infrastructure Foundation)
+**Commits:** `1906499` (+ uncommitted)
+- Migración 057: seed commercial plan configuration (`plan_emprendedor_price`, `plan_pro_price`, limits) ✅
+- Migración 058: add commercial columns to `tiendas` (`plan_tipo`, `plan_status`, `is_founder`, `trial_started_at`, `trial_ends_at`) ✅
+- Backfill aplicado para tiendas existentes (conservative: existing → `emprendedor` + `trial`) ✅
+- Registro migrado a trial de 30 días (nuevas tiendas nacen en trial) ✅
+- Helper comercial centralizado (`src/lib/commercial.ts`) con labels, colores, helpers de plan/status ✅
+- PCC Tiendas: tabla muestra Plan, Estado y Founder (reemplaza badge legacy) + filtro por estado ✅
+- PCC Configuración Comercial (`/pcc/configuracion-comercial`) para precios y límites de planes ✅
+- `src/types/database.ts`: nuevos tipos `PlanTipo`, `PlanStatus` en `SocioTienda` ✅
+- Typecheck PASS ✅
+- Build PASS ✅
+
 ### Pendientes (próximo sprint)
 
 | Tarea | Prioridad | Estado |
@@ -1506,6 +1523,36 @@ async function diag() {
 ---
 
 ## Changelog
+
+### 2026-06-05 — Sprint 3 — Commercial Infrastructure Foundation
+
+##### Cambios
+
+- **Migración 057** — Seed commercial plan configuration keys (`plan_emprendedor_price`, `plan_pro_price`, limits) en `nexus_config`
+- **Migración 058** — Add `plan_tipo`, `plan_status`, `is_founder`, `trial_started_at`, `trial_ends_at` a `tiendas` + backfill stores existentes
+- **Registro** — Migrado a trial de 30 días: nuevas tiendas nacen con `plan_tipo='emprendedor'`, `plan_status='trial'`, `trial_ends_at=30 días`
+- **Helper comercial** — `src/lib/commercial.ts`: `getPlanLabel`, `getPlanColor`, `getStatusLabel`, `getStatusColor`, `getDefaultLimit`, helpers de plan/status
+- **PCC Tiendas** — Tabla y cards mobile ahora muestran Plan (vía `getPlanLabel/getPlanColor`), Estado (vía `getStatusLabel/getStatusColor`), y Founder badge. Filtro por estado agregado.
+- **PCC Configuración Comercial** — Nueva página `/pcc/configuracion-comercial` para gestionar precios y límites de planes
+- **Database types** — Nuevos tipos `PlanTipo`, `PlanStatus` en `SocioTienda`
+
+##### Verificación
+
+- Typecheck PASS ✅
+- Build PASS ✅
+
+##### Archivos modificados
+
+```
+src/app/api/auth/register/route.ts              |  30 ++---
+src/app/pcc/configuracion-comercial/page.tsx    | 214 ++++++++++++++++++++++++++
+src/app/pcc/layout.tsx                          |   1 +
+src/app/pcc/tiendas/page.tsx                    |  70 ++++----
+src/lib/commercial.ts                           |  59 ++++++++
+src/types/database.ts                           |  10 ++
+supabase/migrations/057_commercial_config.sql   |  10 ++
+supabase/migrations/058_commercial_infrastructure.sql |  59 ++++++++
+```
 
 ### 2026-06-03 — Sprint P3-C — Gift Subsystem Migration B→A (+ blocking fix + production audit)
 

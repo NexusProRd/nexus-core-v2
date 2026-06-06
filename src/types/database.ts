@@ -1,4 +1,6 @@
 export type PlanNivel = 'basico' | 'pro' | 'ilimitado';
+export type PlanTipo = 'emprendedor' | 'pro';
+export type PlanStatus = 'trial' | 'active' | 'grace' | 'dashboard_suspended' | 'catalog_suspended' | 'deleted';
 
 export interface SocioTienda {
   id: string;
@@ -9,6 +11,11 @@ export interface SocioTienda {
   pais_codigo: string;
   moneda_simbolo: string;
   plan_nivel: PlanNivel;
+  plan_tipo: PlanTipo;
+  plan_status: PlanStatus;
+  is_founder: boolean;
+  trial_started_at: string | null;
+  trial_ends_at: string | null;
   token_productos_limite: number;
   tokens_disponibles: number;
   esta_activa: boolean;
