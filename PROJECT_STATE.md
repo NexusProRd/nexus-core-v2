@@ -2053,146 +2053,117 @@ Cada nueva funcionalidad debe cumplir al menos uno de estos objetivos:
 
 ---
 
-# Business Strategy & Commercial Model (Planned)
+# Commercial Plans Architecture (Auditado)
 
-Estado: **Planificación.** No implementado.
+**Estado:** AUDITADO
 
-Estas decisiones representan la estrategia comercial y de crecimiento posterior a la fase de hardening.
+**Resultado:** VIABLE SIN REESTRUCTURACIÓN MAYOR
 
----
+**Complejidad:** MEDIA
 
-## Founder Program
-
-**Objetivo:** Construir un grupo reducido de negocios reales que utilicen Nexus antes del lanzamiento comercial.
-
-**Propósito:**
-- detectar bugs
-- identificar problemas de UX
-- validar flujos reales
-- recibir feedback continuo
-- priorizar futuras funcionalidades
-
-**Beneficios Founder:**
-- acceso vitalicio a Nexus
-- acceso a todas las funcionalidades disponibles
-- acceso a funcionalidades futuras
-- participación directa en la evolución del producto
-
-**Restricciones:**
-- asignación manual únicamente desde PCC
-- no disponible públicamente
-- no forma parte de los planes comerciales
-- cantidad limitada de participantes
-
-**Implementación futura prevista:**
-```text
-is_founder
-founder_since
-founder_notes
-```
-
-> **Nota:** Founder es un privilegio administrativo y **NO** un plan comercial.
+**Prioridad:** PRE-LANZAMIENTO — debe implementarse antes del lanzamiento comercial.
 
 ---
 
-## Founder Program Timeline
+## Modelo Comercial Objetivo
 
-**Junio 2026**
+### Founder
 
-**Objetivos:**
-- completar grupo Founder
-- obtener feedback real de negocios
-- validar experiencia de uso
-- detectar mejoras prioritarias
-- corregir bugs encontrados
-
-**Meta inicial:** 5-15 negocios Founder activos.
-
----
-
-## Commercial Plans V2
-
-Estado: **Planificado.** No implementado.
+* Interno.
+* Configurable únicamente desde PCC.
+* Acceso vitalicio.
+* Productos ilimitados.
+* No visible públicamente.
 
 ### Emprendedor
 
-**Precio previsto:** RD$380 mensuales
-
-**Características previstas:**
-- catálogo digital
-- pedidos
-- WhatsApp
-- dashboard
-- regalos
-- funcionalidades esenciales
-
-**Límite previsto:** 10-15 productos
-
----
+* Precio: RD$380 / mes.
+* Límite de productos (pendiente definición final).
+* Dashboard, Catálogo, Gifts.
 
 ### Pro
 
-**Precio previsto:** RD$900 mensuales
+* Precio: RD$900 / mes.
+* Productos ilimitados.
+* Analytics, funciones avanzadas.
 
-**Características previstas:**
-- todas las funciones de Emprendedor
-- productos ilimitados
-- futuras funciones premium
+### Omnicanal (Futuro)
 
-**Límite previsto:** sin límite de productos
-
----
-
-### Omnicanal
-
-Estado: **Futuro.**
-
-**Precio previsto:** RD$1600 mensuales
-
-**Características previstas:**
-- productos ilimitados
-- caja física
-- ventas presenciales
-- reportes omnicanal
-- futuras herramientas avanzadas
-
-> **Nota:** No será considerado para lanzamiento inicial hasta completar las funcionalidades asociadas.
+* Caja Física.
+* Inventario unificado.
+* Ventas presenciales + online.
 
 ---
 
-## Commercial Launch Target
+## Arquitectura Recomendada
 
-**Julio 2026**
+Mantener arquitectura basada en tabla `tiendas`.
 
-**Objetivo:** Primer lanzamiento comercial de Nexus.
+No migrar a sistema complejo de suscripciones.
 
-**Planes previstos para lanzamiento:**
-- Emprendedor
-- Pro
+**Campos a agregar en `tiendas`:**
 
-Founder mantiene acceso vitalicio.
+| Campo | Tipo | Notas |
+|-------|------|-------|
+| `plan_tipo` | TEXT | `founder` \| `emprendedor` \| `pro` \| `omnicanal` \| `enterprise` |
+| `plan_status` | TEXT | `active` \| `expired` \| `cancelled` \| `suspended` \| `trial` |
+| `is_founder` | BOOLEAN | Default false. Solo PCC. |
+| `product_limit` | INT | Default 15. -1 = ilimitado. |
+| `features` | JSONB | Capacidades específicas del plan. |
+
+**Columnas legacy a deprecar:** `token_productos_limite`, `tokens_disponibles`, `plan_nivel`. Mantener durante transición.
 
 ---
 
-## Pricing Management (Future)
+## Feature Flags
 
-**Situación actual:** PCC administra un único precio visible en landing.
+Separar **PLAN** de **CAPACIDADES**.
 
-**Objetivo futuro:** Permitir administrar múltiples planes desde PCC.
+Ejemplos de capacidades:
 
-**Planes previstos:**
-- Emprendedor
-- Pro
-- Omnicanal
+* `analytics_enabled`
+* `gifts_enabled`
+* `physical_pos` (Omnicanal)
+* `custom_domain` (futuro)
+* `unlimited_products`
 
-**Capacidades previstas:**
-- nombre del plan
-- precio
-- descripción
-- límites
-- activación/desactivación
+**Ventaja:** Agregar nuevas características no requiere crear un nuevo plan. Compatible con add-ons futuros y Enterprise.
 
-Sin necesidad de modificar código.
+---
+
+## Founder
+
+Implementación recomendada:
+
+```sql
+is_founder BOOLEAN DEFAULT false
+founder_since TIMESTAMPTZ
+```
+
+Founder **NO** es un plan público.
+Solo configurable desde PCC.
+No visible en register, onboarding ni landing.
+
+---
+
+## Migración
+
+Migración gradual desde **tokens** → **planes**, manteniendo compatibilidad temporal.
+
+**Fases:**
+
+1. Agregar columnas nuevas + backfill desde datos legacy.
+2. Enforcement dual (columnas nuevas + legacy).
+3. Activación: reemplazar enforcement legacy.
+4. Limpieza: deprecar y eliminar columnas legacy (post-lanzamiento).
+
+**Plan inicial para usuarios existentes:**
+
+| Estado actual | Plan asignado |
+|---------------|---------------|
+| Activa con tokens | `emprendedor` + `active` |
+| Trial sin tokens | `emprendedor` + `trial` |
+| Bloqueada | `emprendedor` + `expired` |
 
 ---
 
