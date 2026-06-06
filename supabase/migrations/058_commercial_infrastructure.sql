@@ -50,7 +50,7 @@ SET
   is_founder = false,
   trial_started_at = fecha_creacion,
   trial_ends_at = COALESCE(fecha_vencimiento, fecha_creacion + INTERVAL '7 days')
-WHERE plan_tipo IS NULL;
+WHERE trial_started_at IS NULL;
 
 -- 3. Make default values explicit (avoid relying on DEFAULT for backfill)
 ALTER TABLE public.tiendas
