@@ -17,8 +17,8 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `1906499` — Sprint 3 Commercial Infrastructure Foundation (Jun 5) |
-| Última verificación | 2026-06-05 — Sprint 3 completado + Typecheck PASS + Build PASS |
+| Último commit | `d461c54` — Sprint 4A Commercial Normalization (Jun 6) |
+| Última verificación | 2026-06-06 — Sprint 4A completado + Typecheck PASS + Build PASS |
 
 ### Módulos
 
@@ -47,6 +47,7 @@
 
 **Sprint P3-C — Migración Subsistema B → A** + **Production Readiness Audit**
 **Sprint 3 — Commercial Infrastructure Foundation**
+**Sprint 4A — Commercial Normalization**
 
 ### Estado
 
@@ -55,6 +56,8 @@
 **Production Readiness Audit completado:** Verdict — LISTO PARA PRODUCCIÓN con 75% confianza. Sin bloqueadores P0. Riesgos aceptados: middleware ausente (corrección: `middleware.ts` SÍ existe en raíz del proyecto, protege /pcc, /dashboard, /login), AUTH_SECRET débil, quick-buy stock failures no mostrados al usuario. Recomendación: lanzar hoy con monitoreo activo.
 
 **Sprint 3 Completado.** Nuevas columnas comerciales en tiendas (`plan_tipo`, `plan_status`, `is_founder`, `trial_started_at`, `trial_ends_at`). Backfill aplicado para tiendas existentes. Registro migrado a trial de 30 días. Helper comercial centralizado (`src/lib/commercial.ts`). PCC Tiendas muestra Plan, Estado y Founder. Typecheck PASS. Build PASS.
+
+**Sprint 4A Completado.** Migración de `plan_nivel` a `plan_tipo` en PCC Tiendas (filtro), WhatsApp Broadcast (filtro, display, template), Suscripciones API (response). MRR real basado en `plan_tipo` y precios desde `nexus_config` — reemplaza hardcodeo (`activas * 150`) en metrics y precio único en finanzas. Fix de backfill en migración 058 (`WHERE plan_tipo IS NULL` → `WHERE trial_started_at IS NULL`). Typecheck PASS. Build PASS.
 
 Todos los sprints de seguridad, hardening, data integrity, gift unification y commercial foundation ejecutados:
 - **P0-B/C**: Security Hardening (`0f4bba5`)
@@ -67,7 +70,8 @@ Todos los sprints de seguridad, hardening, data integrity, gift unification y co
 - **P2-D**: Gift inventory integrity — I1/I2 (`c6619aa`)
 - **P3-A**: Gift redemption unification — R3 (`df028c2`)
 - **P3-C**: Gift subsystem migration B→A — legacy_code, tickets drop, is_gift defer (`ef92631`)
-- **Sprint 3**: Commercial Infrastructure Foundation (`1906499` + uncommitted)
+- **Sprint 3**: Commercial Infrastructure Foundation (`d305ced` + `3268d49`)
+- **Sprint 4A**: Commercial Normalization (`d461c54`)
 
 ### Estado de vulnerabilidades
 
@@ -231,7 +235,12 @@ Testing:      Playwright (e2e)
 ### Plan de suscripción
 
 Campos en `tiendas`:
-- `plan_nivel`: `basico` | `pro` | `ilimitado`
+- `plan_tipo`: `emprendedor` | `pro` (nuevo modelo comercial, reemplaza `plan_nivel`)
+- `plan_status`: `trial` | `active` | `grace` | `dashboard_suspended` | `catalog_suspended` | `deleted`
+- `is_founder`: boolean — flag de fundador, solo PCC
+- `trial_started_at`: inicio del periodo trial
+- `trial_ends_at`: fin del periodo trial
+- `plan_nivel`: `basico` | `pro` | `ilimitado` (legacy — pendiente de deprecar)
 - `token_productos_limite`: número máximo de productos permitidos
 - `tokens_disponibles`: saldo de tokens (se consumen por producto creado)
 - `fecha_vencimiento`: fecha de expiración del plan
@@ -327,7 +336,12 @@ Entidad raíz del multi-tenant. Cada fila es un negocio independiente.
 | `nombre_tienda` | text | Nombre comercial |
 | `tipo_negocio` | text | `estandar` \| `ropa` \| `boutique` |
 | `slug` | text | URL amigable (único) |
-| `plan_nivel` | text | `basico` \| `pro` \| `ilimitado` |
+| `plan_tipo` | text | `emprendedor` \| `pro` (nuevo modelo) |
+| `plan_status` | text | `trial` \| `active` \| `grace` \| `dashboard_suspended` \| `catalog_suspended` \| `deleted` |
+| `is_founder` | boolean | Default false. Solo PCC. |
+| `trial_started_at` | timestamptz | Inicio de trial |
+| `trial_ends_at` | timestamptz | Fin de trial |
+| `plan_nivel` | text | `basico` \| `pro` \| `ilimitado` (legacy — deprecar pronto) |
 | `token_productos_limite` | int | Máximo de productos permitidos |
 | `tokens_disponibles` | int | Saldo de tokens para crear productos |
 | `password_hash` | text | Hash scrypt para login del dueño |
@@ -1172,10 +1186,28 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 - Typecheck PASS ✅
 - Build PASS ✅
 
-### Pendientes (próximo sprint)
+### Sprint completado — Sprint 4A (Commercial Normalization)
+**Commits:** `d461c54`
+- Fix backfill en migración 058: `WHERE plan_tipo IS NULL` → `WHERE trial_started_at IS NULL` ✅
+- PCC Tiendas: filtro de plan migrado de `plan_nivel` a `plan_tipo` (Emprendedor/Pro) ✅
+- PCC WhatsApp: filtro, display y template `{plan}` migrados a `plan_tipo` ✅
+- Suscripciones API: response migrado a `plan_tipo` + `plan_status` ✅
+- MRR metrics: reemplazado `activas * 150` por suma basada en `plan_tipo` y precios desde `nexus_config` ✅
+- MRR finanzas: MRR diferenciado por plan, `plan_tipo` en pagos pendientes ✅
+- Typecheck PASS ✅
+- Build PASS ✅
+
+### Pendientes (próximo sprint — Sprint 4B)
 
 | Tarea | Prioridad | Estado |
 |-------|-----------|--------|
+| **Sprint 4B — Acciones comerciales inline** | P1 | ⬜ |
+| Editar plan_tipo (emprendedor ↔ pro) en PCC Tiendas | P1 | ⬜ |
+| Editar plan_status (trial → active → grace → suspendido) en PCC Tiendas | P1 | ⬜ |
+| Toggle is_founder en PCC Tiendas | P1 | ⬜ |
+| **Sprint 4C — Migración 059 (drop plan_nivel)** | P1 | ⬜ |
+| Migración SQL para dropear `plan_nivel` de `tiendas` | P1 | ⬜ |
+| Limpiar referencias a `plan_nivel` en código restante | P1 | ⬜ |
 | Rotar AUTH_SECRET (dev secret débil) | P1 | ⬜ |
 | Quick-buy stock failure UX | P1 | ⬜ |
 | Hooks violation P1 | P2 | ⬜ |
