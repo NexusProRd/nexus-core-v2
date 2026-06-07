@@ -18,7 +18,6 @@ test.beforeAll(async () => {
     whatsapp_num: '8095551234',
     pais_codigo: 'DO',
     moneda_simbolo: 'RD$',
-    plan_nivel: 'basico',
     esta_activa: true,
     token_productos_limite: 50,
     tokens_disponibles: 0,

@@ -72,7 +72,6 @@ export async function POST(req: NextRequest) {
         id: data.tienda.id,
         nombre_tienda: data.tienda.nombre_tienda,
         esta_activa: data.tienda.esta_activa,
-        plan_nivel: data.tienda.plan_nivel,
         tipo_negocio: data.tienda.tipo_negocio,
         slug: data.tienda.slug,
       }, { onConflict: 'id' })

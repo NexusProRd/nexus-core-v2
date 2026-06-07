@@ -82,7 +82,6 @@ export default async function OnboardingPage() {
       whatsapp_num,
       pais_codigo: pais_codigo || 'DO',
       moneda_simbolo: pais_codigo === 'DO' ? 'RD$' : '$',
-      plan_nivel: 'basico',
       token_productos_limite: 50,
       tipo_negocio: tipo_negocio as string,
       esta_activa: true,

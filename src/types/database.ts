@@ -1,4 +1,3 @@
-export type PlanNivel = 'basico' | 'pro' | 'ilimitado';
 export type PlanTipo = 'emprendedor' | 'pro';
 export type PlanStatus = 'trial' | 'active' | 'grace' | 'dashboard_suspended' | 'catalog_suspended' | 'deleted';
 
@@ -10,7 +9,6 @@ export interface SocioTienda {
   whatsapp_num: string;
   pais_codigo: string;
   moneda_simbolo: string;
-  plan_nivel: PlanNivel;
   plan_tipo: PlanTipo;
   plan_status: PlanStatus;
   is_founder: boolean;

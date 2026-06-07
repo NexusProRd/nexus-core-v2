@@ -90,8 +90,7 @@ export default function SuscripcionesPage() {
                       <td className="p-3 text-sm font-medium text-slate-900 whitespace-nowrap">{s.nombre}</td>
                       <td className="p-3 text-center whitespace-nowrap">
                         <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                          s.plan === 'ilimitado' ? 'bg-violet-50 text-violet-700 border border-violet-200'
-                          : s.plan === 'pro' ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                          s.plan === 'pro' ? 'bg-blue-50 text-blue-700 border border-blue-200'
                           : 'bg-slate-100 text-slate-600 border border-slate-200'
                         }`}>{s.plan}</span>
                       </td>
@@ -128,8 +127,7 @@ export default function SuscripcionesPage() {
                   <div className="flex items-start justify-between">
                     <span className="text-sm font-bold text-slate-900">{s.nombre}</span>
                     <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                      s.plan === 'ilimitado' ? 'bg-violet-50 text-violet-700 border border-violet-200'
-                      : s.plan === 'pro' ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      s.plan === 'pro' ? 'bg-blue-50 text-blue-700 border border-blue-200'
                       : 'bg-slate-100 text-slate-600 border border-slate-200'
                     }`}>{s.plan}</span>
                   </div>

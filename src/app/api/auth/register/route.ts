@@ -102,7 +102,6 @@ export async function POST(req: Request) {
       whatsapp_num: whatsapp.trim(),
       id_owner: crypto.randomUUID(),
       esta_activa: true,
-      plan_nivel: 'basico',
       plan_tipo: 'emprendedor',
       plan_status: 'trial',
       is_founder: false,

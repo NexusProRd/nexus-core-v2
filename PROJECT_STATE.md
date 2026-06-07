@@ -17,8 +17,8 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `dd8f603` — Sprint 4B Commercial Management Modal (Jun 6) |
-| Última verificación | 2026-06-06 — Sprint 4B completado + Typecheck PASS + Build PASS |
+| Último commit | Sprint 4C Legacy plan_nivel Removal (Jun 6) |
+| Última verificación | 2026-06-06 — Sprint 4C completado + Typecheck PASS + Build PASS |
 
 ### Módulos
 
@@ -49,6 +49,7 @@
 **Sprint 3 — Commercial Infrastructure Foundation**
 **Sprint 4A — Commercial Normalization**
 **Sprint 4B — Commercial Management Modal**
+**Sprint 4C — Legacy plan_nivel Removal**
 
 ### Estado
 
@@ -61,6 +62,8 @@
 **Sprint 4A Completado.** Migración de `plan_nivel` a `plan_tipo` en PCC Tiendas (filtro), WhatsApp Broadcast (filtro, display, template), Suscripciones API (response). MRR real basado en `plan_tipo` y precios desde `nexus_config` — reemplaza hardcodeo (`activas * 150`) en metrics y precio único en finanzas. Fix de backfill en migración 058 (`WHERE plan_tipo IS NULL` → `WHERE trial_started_at IS NULL`). Typecheck PASS. Build PASS.
 
 **Sprint 4B Completado.** Modal de configuración comercial en PCC Tiendas para editar `plan_tipo`, `plan_status` e `is_founder` de cada tienda. Acceso desde menú de acciones (desktop y mobile) con "Config. Comercial". Modal con dropdowns para plan_tipo (Emprendedor/Pro), plan_status (6 estados) y toggle is_founder. Actualización directa vía `supabase.from('tiendas').update()` con logging a `nexus_logs`. Typecheck PASS. Build PASS.
+
+**Sprint 4C Completado.** Eliminación completa de `plan_nivel` del código fuente. Tipo `PlanNivel` y campo `plan_nivel` eliminados de `SocioTienda`. Referencias eliminadas de register, onboarding, backups y tests. Bug corregido en suscripciones (`ilimitado` → `pro`). Migración 059 preparada (no ejecutada) para dropear la columna en DB. Typecheck PASS. Build PASS.
 
 Todos los sprints de seguridad, hardening, data integrity, gift unification y commercial foundation ejecutados:
 - **P0-B/C**: Security Hardening (`0f4bba5`)
@@ -76,6 +79,7 @@ Todos los sprints de seguridad, hardening, data integrity, gift unification y co
 - **Sprint 3**: Commercial Infrastructure Foundation (`d305ced` + `3268d49`)
 - **Sprint 4A**: Commercial Normalization (`d461c54`)
 - **Sprint 4B**: Commercial Management Modal (`dd8f603`)
+- **Sprint 4C**: Legacy plan_nivel Removal
 
 ### Estado de vulnerabilidades
 
@@ -111,7 +115,7 @@ Todos los sprints de seguridad, hardening, data integrity, gift unification y co
 
 ### Próxima acción
 
-Estabilización pre-lanzamiento: rotar AUTH_SECRET, quick-buy UX error handling, Vitrina Studio, WhatsApp notifications para gift lifecycle, auto-aprobación de regalos.
+Rotar AUTH_SECRET, quick-buy UX error handling, ejecutar migración 059 en DB.
 
 ### Bloqueadores
 
@@ -1209,17 +1213,25 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 - Typecheck PASS ✅
 - Build PASS ✅
 
-### Pendientes (próximo sprint — Sprint 4C)
+### Sprint completado — Sprint 4C (Legacy plan_nivel Removal)
+**Commits:** (pendiente)
+- Eliminado `PlanNivel` type y `plan_nivel` field de `src/types/database.ts` ✅
+- Eliminado `plan_nivel: 'basico'` de `register/route.ts` ✅
+- Eliminado `plan_nivel: 'basico'` de `onboarding/page.tsx` ✅
+- Eliminado `plan_nivel` del backup restore (`backups/route.ts`) ✅
+- Bug fix: `s.plan === 'ilimitado'` → corregido en `suscripciones/page.tsx` (2 ocurrencias) ✅
+- Eliminado `plan_nivel: 'basico'` de `tests/nexus-hybrid.spec.ts` ✅
+- Migración 059 preparada (no ejecutada): `DROP COLUMN plan_nivel` ✅
+- Typecheck PASS ✅
+- Build PASS ✅
+
+### Pendientes (próximo sprint)
 
 | Tarea | Prioridad | Estado |
 |-------|-----------|--------|
-| **Sprint 4B — Acciones comerciales inline** | P1 | ✅ |
-| Editar plan_tipo (emprendedor ↔ pro) en PCC Tiendas | P1 | ✅ |
-| Editar plan_status (trial → active → grace → suspendido) en PCC Tiendas | P1 | ✅ |
-| Toggle is_founder en PCC Tiendas | P1 | ✅ |
-| **Sprint 4C — Migración 059 (drop plan_nivel)** | P1 | ⬜ |
-| Migración SQL para dropear `plan_nivel` de `tiendas` | P1 | ⬜ |
-| Limpiar referencias a `plan_nivel` en código restante | P1 | ⬜ |
+| **Sprint 4C — Migración 059 (drop plan_nivel)** | P1 | ✅ |
+| Migración SQL para dropear `plan_nivel` de `tiendas` | P1 | ✅ (preparada, no ejecutada) |
+| Limpiar referencias a `plan_nivel` en código restante | P1 | ✅ |
 | Rotar AUTH_SECRET (dev secret débil) | P1 | ⬜ |
 | Quick-buy stock failure UX | P1 | ⬜ |
 | Hooks violation P1 | P2 | ⬜ |
@@ -1236,6 +1248,7 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 | B7 — Gift quantity > 1 | P3 | ⬜ |
 | Gift Cards / Wallet | P4 | ⬜ |
 | Drop `pedidos.is_gift` column (cleanup) | P4 | ⬜ |
+| Migración 059 ejecución en DB | P1 | 🟡 Pendiente de aprobación |
 
 ---
 
@@ -1567,6 +1580,35 @@ async function diag() {
 ---
 
 ## Changelog
+
+### 2026-06-06 — Sprint 4C — Legacy plan_nivel Removal
+
+##### Cambios
+
+- **Database types** — Eliminado `PlanNivel` type y campo `plan_nivel` de `SocioTienda`
+- **Register** — Eliminado `plan_nivel: 'basico'` del INSERT en `register/route.ts`
+- **Onboarding** — Eliminado `plan_nivel: 'basico'` del upsert en `onboarding/page.tsx`
+- **Backups** — Eliminado `plan_nivel` del restore en `backups/route.ts` (backups legacy seguirán funcionando)
+- **Suscripciones** — Bug fix: `s.plan === 'ilimitado'` reemplazado por `emprendedor`/`pro` (2 ocurrencias)
+- **Tests** — Eliminado `plan_nivel: 'basico'` de `nexus-hybrid.spec.ts`
+- **Migración 059** — SQL preparado (no ejecutado): `ALTER TABLE tiendas DROP COLUMN plan_nivel`
+
+##### Verificación
+
+- Typecheck PASS ✅
+- Build PASS ✅
+
+##### Archivos modificados
+
+```
+src/app/api/auth/register/route.ts           | -1 línea
+src/app/onboarding/page.tsx                  | -1 línea
+src/app/api/backups/route.ts                 | -1 línea
+src/types/database.ts                        | -2 líneas (type + field)
+src/app/pcc/suscripciones/page.tsx           | -4 líneas (bug fix)
+tests/nexus-hybrid.spec.ts                   | -1 línea
+supabase/migrations/059_drop_plan_nivel.sql  | +12 líneas (nuevo)
+```
 
 ### 2026-06-06 — Sprint 4B — Commercial Management Modal (`dd8f603`)
 
