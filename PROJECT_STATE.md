@@ -17,7 +17,7 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | Sprint 4C Legacy plan_nivel Removal (Jun 6) |
+| Último commit | `ea1474f` — Sprint 4C Legacy plan_nivel Removal (Jun 6) |
 | Última verificación | 2026-06-06 — Sprint 4C completado + Typecheck PASS + Build PASS |
 
 ### Módulos
@@ -79,7 +79,7 @@ Todos los sprints de seguridad, hardening, data integrity, gift unification y co
 - **Sprint 3**: Commercial Infrastructure Foundation (`d305ced` + `3268d49`)
 - **Sprint 4A**: Commercial Normalization (`d461c54`)
 - **Sprint 4B**: Commercial Management Modal (`dd8f603`)
-- **Sprint 4C**: Legacy plan_nivel Removal
+- **Sprint 4C**: Legacy plan_nivel Removal (`ea1474f`)
 
 ### Estado de vulnerabilidades
 
@@ -1214,7 +1214,7 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 - Build PASS ✅
 
 ### Sprint completado — Sprint 4C (Legacy plan_nivel Removal)
-**Commits:** (pendiente)
+**Commits:** `ea1474f`
 - Eliminado `PlanNivel` type y `plan_nivel` field de `src/types/database.ts` ✅
 - Eliminado `plan_nivel: 'basico'` de `register/route.ts` ✅
 - Eliminado `plan_nivel: 'basico'` de `onboarding/page.tsx` ✅
@@ -1581,7 +1581,7 @@ async function diag() {
 
 ## Changelog
 
-### 2026-06-06 — Sprint 4C — Legacy plan_nivel Removal
+### 2026-06-06 — Sprint 4C — Legacy plan_nivel Removal (`ea1474f`)
 
 ##### Cambios
 
