@@ -16,7 +16,7 @@ export default async function DashboardPage() {
 
   const { data: tienda } = await supabase
     .from('tiendas')
-    .select('id, nombre_tienda, slug, tienda_abierta, tokens_disponibles, fecha_vencimiento, tipo_negocio, onboarding_completo')
+    .select('id, nombre_tienda, slug, tienda_abierta, tokens_disponibles, fecha_vencimiento, tipo_negocio, onboarding_completo, preguntas_recuperacion')
     .eq('id', sessionId)
     .single()
   if (!tienda) redirect('/login')
@@ -28,7 +28,7 @@ export default async function DashboardPage() {
 
   const { data: perfil } = await supabase
     .from('perfil_tienda')
-    .select('nombre_comercial, whatsapp_numero, logo_url')
+    .select('nombre_comercial, whatsapp_numero, logo_url, slogan, sobre_nosotros, horario')
     .eq('id_tienda', tienda.id)
     .maybeSingle()
 
@@ -102,6 +102,15 @@ export default async function DashboardPage() {
     }
   }
 
+  const preguntas = tienda.preguntas_recuperacion as { pregunta: string; respuesta: string }[] | null
+  const preguntasCompletas = preguntas && preguntas.length === 3 && preguntas.every(p => p.respuesta?.trim())
+  const checklist = {
+    recuperacion: !!preguntasCompletas,
+    logo: !!perfil?.logo_url,
+    informacion: !!perfil?.sobre_nosotros && !!perfil?.horario,
+    productos: (productos?.length || 0) > 2,
+  }
+
   const nombreTienda = perfil?.nombre_comercial || tienda.nombre_tienda || 'Mi Tienda'
   const whatsappNumero = perfil?.whatsapp_numero || null
   const catalogoUrl = tienda.slug
@@ -121,6 +130,7 @@ export default async function DashboardPage() {
       fechaVencimiento={tienda.fecha_vencimiento || null}
       tipoNegocio={tipoNegocio}
       tallasStockBajo={tallasStockBajo}
+      checklist={checklist}
       initialStats={{
         ventasHoy: metricasCompletas.ventasHoy,
         pendientes: metricas.pendientes,

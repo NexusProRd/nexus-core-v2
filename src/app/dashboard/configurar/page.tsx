@@ -80,6 +80,29 @@ export default function ConfigurarPage() {
   const [colAgregando, setColAgregando] = useState(false)
   const [colError, setColError] = useState('')
 
+  // Seguridad
+  const [codigoVisible, setCodigoVisible] = useState('')
+  const [codigoRevelado, setCodigoRevelado] = useState(false)
+  const [copiado, setCopiado] = useState(false)
+  const [regenerando, setRegenerando] = useState(false)
+  const [seguridadError, setSeguridadError] = useState('')
+  const [seguridadSuccess, setSeguridadSuccess] = useState('')
+  const [preguntasGuardadas, setPreguntasGuardadas] = useState(false)
+  const [preguntasForm, setPreguntasForm] = useState([
+    { pregunta: '', respuesta: '' },
+    { pregunta: '', respuesta: '' },
+    { pregunta: '', respuesta: '' },
+  ])
+  const [guardandoPreguntas, setGuardandoPreguntas] = useState(false)
+
+  const PREGUNTAS_DISPONIBLES = [
+    '¿Cuál es el nombre de tu primera mascota?',
+    '¿Cuál fue tu primer empleo?',
+    '¿Cuál es el segundo nombre de tu madre?',
+    '¿En qué ciudad naciste?',
+    '¿Cuál fue tu primera escuela?',
+  ]
+
   const router = useRouter()
   const supabase = createClient()
   const { esDueno } = usePermisos()
@@ -87,7 +110,18 @@ export default function ConfigurarPage() {
   useEffect(() => {
     cargarPerfil()
     cargarColaboradores()
+    cargarPreguntas()
   }, [])
+
+  useEffect(() => {
+    if (loading) return
+    const hash = window.location.hash
+    if (!hash) return
+    const el = document.querySelector(hash)
+    if (el) {
+      setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
+    }
+  }, [loading])
 
   const cargarColaboradores = async () => {
     const sessionId = await getTiendaIdFromCookie()
@@ -138,6 +172,91 @@ export default function ConfigurarPage() {
       body: JSON.stringify({ id, activo }),
     })
     cargarColaboradores()
+  }
+
+  const cargarPreguntas = async () => {
+    try {
+      const res = await fetch('/api/auth/seguridad')
+      if (res.ok) {
+        const data = await res.json()
+        if (data.preguntas?.length === 3) {
+          setPreguntasForm(data.preguntas)
+          setPreguntasGuardadas(true)
+        }
+      }
+    } catch {}
+  }
+
+  const handleMostrarCodigo = async () => {
+    setRegenerando(true)
+    setSeguridadError('')
+    try {
+      const res = await fetch('/api/auth/seguridad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'regenerar-codigo' }),
+      })
+      const data = await res.json()
+      if (data.codigo) {
+        setCodigoVisible(data.codigo)
+        setCodigoRevelado(true)
+      } else {
+        setSeguridadError(data.error || 'Error al generar código')
+      }
+    } catch {
+      setSeguridadError('Error de conexión')
+    }
+    setRegenerando(false)
+  }
+
+  const handleRegenerarCodigo = async () => {
+    if (!confirm('Al generar un nuevo código, el anterior quedará invalidado. ¿Continuar?')) return
+    await handleMostrarCodigo()
+  }
+
+  const handleCopiarCodigo = async () => {
+    if (!codigoVisible) return
+    try {
+      await navigator.clipboard.writeText(codigoVisible)
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 2500)
+    } catch {}
+  }
+
+  const handleGuardarPreguntas = async () => {
+    const preguntas = preguntasForm.map(p => ({
+      pregunta: p.pregunta.trim(),
+      respuesta: p.respuesta.trim(),
+    }))
+    const preguntasUnicas = new Set(preguntas.map(p => p.pregunta))
+    if (preguntasUnicas.size !== 3) {
+      setSeguridadError('Las 3 preguntas deben ser diferentes.')
+      return
+    }
+    if (preguntas.some(p => !p.pregunta || !p.respuesta)) {
+      setSeguridadError('Todas las preguntas y respuestas son obligatorias.')
+      return
+    }
+    setGuardandoPreguntas(true)
+    setSeguridadError('')
+    try {
+      const res = await fetch('/api/auth/seguridad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'guardar-preguntas', preguntas }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setPreguntasGuardadas(true)
+        setSeguridadSuccess('Preguntas guardadas correctamente.')
+        setTimeout(() => setSeguridadSuccess(''), 3000)
+      } else {
+        setSeguridadError(data.error || 'Error al guardar')
+      }
+    } catch {
+      setSeguridadError('Error de conexión')
+    }
+    setGuardandoPreguntas(false)
   }
 
   const eliminarColaborador = async (id: string) => {
@@ -334,7 +453,7 @@ export default function ConfigurarPage() {
               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">Perfil de Marca</h3>
             </div>
 
-            <div>
+            <div id="logo">
               <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-2">Logo de la Tienda</label>
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 {logoPreview ? (
@@ -403,7 +522,7 @@ export default function ConfigurarPage() {
               <p className="text-xs text-slate-400 mt-1">Escribe las categorías de tu negocio separadas por comas (,)</p>
             </div>
 
-            <div>
+            <div id="informacion">
               <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-2">Sobre Nosotros</label>
               <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-[var(--primary)]">
                 <div className="flex gap-1 px-3 py-2 bg-white dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
@@ -625,6 +744,110 @@ export default function ConfigurarPage() {
             </form>
           </details>
         </div>}
+
+        {/* ===== SEGURIDAD ===== */}
+        <div id="seguridad" className="flex items-center gap-2 pb-1 pt-6">
+          <div className="w-1.5 h-6 rounded-full bg-amber-500/50" />
+          <h3 className="text-xs font-bold text-slate-500 dark:text-slate-500 uppercase tracking-widest">Seguridad</h3>
+        </div>
+
+        {/* ===== CÓDIGO DE RECUPERACIÓN ===== */}
+        <div className="mt-3 bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 sm:p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-amber-500" />
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">Código de Recuperación</h3>
+          </div>
+          <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+            Este código te permitirá recuperar tu cuenta si pierdes acceso.
+          </p>
+
+          {codigoRevelado && codigoVisible && (
+            <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+              <p className="text-2xl font-bold text-amber-800 dark:text-amber-300 text-center tracking-widest select-all">{codigoVisible}</p>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {!codigoRevelado ? (
+              <button onClick={handleMostrarCodigo} disabled={regenerando}
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors text-sm font-bold disabled:opacity-50">
+                {regenerando ? 'Generando...' : 'Mostrar código'}
+              </button>
+            ) : (
+              <>
+                <button onClick={handleCopiarCodigo}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-colors text-sm font-bold">
+                  {copiado ? '✅ Código copiado' : '📋 Copiar código'}
+                </button>
+                <button onClick={handleRegenerarCodigo} disabled={regenerando}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm font-bold disabled:opacity-50">
+                  {regenerando ? 'Generando...' : '🔄 Regenerar código'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* ===== PREGUNTAS DE RECUPERACIÓN ===== */}
+        <div className="mt-3 bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 sm:p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-amber-500" />
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">Preguntas de Recuperación</h3>
+          </div>
+
+          <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium ${
+            preguntasGuardadas
+              ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+              : 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
+          }`}>
+            <span>{preguntasGuardadas ? '✅' : '⚠️'}</span>
+            <span>{preguntasGuardadas ? 'Preguntas configuradas' : 'Aún no has configurado tus preguntas de recuperación.'}</span>
+          </div>
+
+          <div className="space-y-4">
+            {preguntasForm.map((item, idx) => (
+              <div key={idx} className="space-y-2 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                <label className="text-xs font-bold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                  Pregunta {idx + 1}
+                </label>
+                <select value={item.pregunta}
+                  onChange={e => {
+                    const newForm = [...preguntasForm]
+                    newForm[idx] = { ...newForm[idx], pregunta: e.target.value }
+                    setPreguntasForm(newForm)
+                  }}
+                  className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-amber-500 outline-none">
+                  <option value="">Seleccionar pregunta...</option>
+                  {PREGUNTAS_DISPONIBLES.map(p => (
+                    <option key={p} value={p} disabled={preguntasForm.some((pf, i) => i !== idx && pf.pregunta === p)}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+                <input type="text" value={item.respuesta}
+                  onChange={e => {
+                    const newForm = [...preguntasForm]
+                    newForm[idx] = { ...newForm[idx], respuesta: e.target.value }
+                    setPreguntasForm(newForm)
+                  }}
+                  placeholder="Tu respuesta..."
+                  className="w-full px-3 py-2.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-amber-500 outline-none" />
+              </div>
+            ))}
+          </div>
+
+          <button onClick={handleGuardarPreguntas} disabled={guardandoPreguntas}
+            className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50">
+            {guardandoPreguntas ? 'Guardando...' : 'Guardar Preguntas'}
+          </button>
+        </div>
+
+        {seguridadError && (
+          <div className="bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 px-4 py-3 rounded-xl text-sm">{seguridadError}</div>
+        )}
+        {seguridadSuccess && (
+          <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 px-4 py-3 rounded-xl text-sm">{seguridadSuccess}</div>
+        )}
 
         <div className="mt-8 bg-white dark:bg-slate-900 rounded-2xl border-2 border-rose-200 dark:border-rose-900/50 p-5 sm:p-6 space-y-4">
           <div className="flex items-center gap-2">

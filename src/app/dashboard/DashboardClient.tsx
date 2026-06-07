@@ -13,6 +13,7 @@ import QrButton from './QrButton'
 import { usePermisos } from '@/context/PermisosContext'
 import TicketButton from './TicketButton'
 import { formatearPrecio } from '@/lib/utils'
+import PrimerosPasos from '@/components/dashboard/PrimerosPasos'
 
 interface Pedido {
   id: string
@@ -48,6 +49,7 @@ interface DashboardClientProps {
   tallasStockBajo?: { producto: string; tallas: string[] }[]
   initialStats: InitialStats
   metricasCompletas: DashboardFullMetrics
+  checklist?: Record<string, boolean>
 }
 
 function formatearFecha(fecha: string): string {
@@ -78,7 +80,7 @@ function Indicador({ actual, anterior }: { actual: number; anterior: number }) {
   )
 }
 
-export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero, userEmail, catalogoUrl, tiendaSlug, tiendaAbierta, tokensDisponibles, fechaVencimiento, tipoNegocio = 'estandar', tallasStockBajo = [], initialStats, metricasCompletas: initialMetricasCompletas }: DashboardClientProps) {
+export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero, userEmail, catalogoUrl, tiendaSlug, tiendaAbierta, tokensDisponibles, fechaVencimiento, tipoNegocio = 'estandar', tallasStockBajo = [], initialStats, metricasCompletas: initialMetricasCompletas, checklist }: DashboardClientProps) {
   const { permisos } = usePermisos()
   const [stats, setStats] = useState(initialStats)
   const [metricasFull, setMetricasFull] = useState(initialMetricasCompletas)
@@ -222,6 +224,9 @@ export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero
           </div>
         </div>
       )}
+
+      {/* ===== CHECKLIST PRIMEROS PASOS ===== */}
+      {checklist && <PrimerosPasos tiendaId={tiendaId} checklist={checklist} />}
 
       {/* ===== SECCIÓN 1: VENTAS HISTÓRICAS (CHART) ===== */}
       <section>
