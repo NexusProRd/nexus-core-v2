@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+
 
 const WHATSAPP_FALLBACK = '18299999999'
 
@@ -29,9 +29,9 @@ export default function RegisterPage() {
   const [codigo, setCodigo] = useState('')
   const [slugGenerado, setSlugGenerado] = useState('')
   const [redirectTo, setRedirectTo] = useState('/onboarding')
+  const [copiado, setCopiado] = useState(false)
   const [whatsappAdmin, setWhatsappAdmin] = useState(WHATSAPP_FALLBACK)
   const supabase = createClient()
-  const router = useRouter()
 
   useEffect(() => {
     ;(async () => {
@@ -43,13 +43,6 @@ export default function RegisterPage() {
       if (data?.valor) setWhatsappAdmin(data.valor)
     })()
   }, [])
-
-  useEffect(() => {
-    if (exito && redirectTo) {
-      const timer = setTimeout(() => router.push(redirectTo), 5000)
-      return () => clearTimeout(timer)
-    }
-  }, [exito, redirectTo, router])
 
   function formatearTelefono(tel: string): string {
     const digits = tel.replace(/\D/g, '')
@@ -140,10 +133,32 @@ export default function RegisterPage() {
             </svg>
           </Link>
 
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-left space-y-2">
-            <p className="text-xs text-amber-600 font-bold uppercase tracking-wide">⚠️ IMPORTANTE: GUARDA ESTE CÓDIGO</p>
-            <p className="text-3xl font-bold text-amber-800 text-center tracking-widest py-2">{codigo}</p>
-            <p className="text-sm text-amber-700">Este código es tu llave de recuperación. Sin él no podrás restablecer tu contraseña en el futuro. No lo compartas con nadie.</p>
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-5 mb-6 text-left space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">⚠️</span>
+              <p className="text-xs text-amber-600 font-bold uppercase tracking-wide">GUARDA ESTE CÓDIGO EN UN LUGAR SEGURO</p>
+            </div>
+            <p className="text-3xl font-bold text-amber-800 text-center tracking-widest py-2 select-all">{codigo}</p>
+            <p className="text-sm text-amber-700 leading-relaxed">
+              Este código es tu llave de recuperación. Lo necesitarás para recuperar tu cuenta en caso de perder acceso.
+              <strong className="text-amber-800"> No compartas este código con nadie.</strong>
+            </p>
+            <button
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(codigo)
+                  setCopiado(true)
+                  setTimeout(() => setCopiado(false), 2500)
+                } catch {}
+              }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 bg-amber-100 hover:bg-amber-200 active:bg-amber-300 text-amber-800 font-bold text-sm rounded-xl transition-colors"
+            >
+              {copiado ? (
+                <>✅ Código copiado</>
+              ) : (
+                <>📋 Copiar código</>
+              )}
+            </button>
           </div>
 
           <div className="bg-slate-50 rounded-xl p-4 mb-6 text-left space-y-1.5 border border-slate-200">

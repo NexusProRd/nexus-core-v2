@@ -17,8 +17,8 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `Sprint 5C.2` — Onboarding Express (Jun 7) |
-| Última verificación | 2026-06-07 — Sprint 5C.2 completado + Typecheck PASS + Build PASS |
+| Último commit | `Sprint 5C.2.1` — Recovery Code UX (Jun 7) |
+| Última verificación | 2026-06-07 — Sprint 5C.2.1 completado + Typecheck PASS + Build PASS |
 
 ### Módulos
 
@@ -55,6 +55,7 @@
 **Sprint 5B.1 — Registration Conversion Improvements**
 **Sprint 5C.1 — Register Simplification**
 **Sprint 5C.2 — Onboarding Express**
+**Sprint 5C.2.1 — Recovery Code UX**
 
 ### Estado
 
@@ -79,6 +80,8 @@
 **Sprint 5C.1 Completado.** Register simplificado: eliminados slug input y preguntas de seguridad, registro reducido de 12 a 5 campos. perfil_tienda creado automáticamente en register. 2 productos semilla genéricos creados en register. Enforcement dates (30/37/60) seteados en register. Dashboard y inventario migrados a .maybeSingle(). Typecheck PASS. Build PASS.
 
 **Sprint 5C.2 Completado.** Onboarding Express: reducido a solo país + tipo_negocio. Botón "Omitir por ahora" con defaults seguros (DO, RD$, estandar, onboarding_completo=true). Todos los demás campos movidos a Configuración (5C.3). guardarTienda simplificado a solo upsert de pais_codigo/moneda_simbolo/tipo_negocio/onboarding_completo. Typecheck PASS. Build PASS.
+
+**Sprint 5C.2.1 Completado.** Recovery Code UX: eliminado auto-redirect post-registro que enviaba al usuario a onboarding después de 5s sin dar tiempo a copiar el código. Agregado botón "📋 Copiar código" con `navigator.clipboard.writeText()` y feedback visual "✅ Código copiado". Advertencia visual reforzada (borde más visible, texto "GUARDA ESTE CÓDIGO EN UN LUGAR SEGURO"). Navegación solo mediante botón explícito "Ir a mi tienda". Dependencia de `useRouter` eliminada. Typecheck PASS. Build PASS.
 
 Todos los sprints de seguridad, hardening, data integrity, gift unification y commercial foundation ejecutados:
 - **P0-B/C**: Security Hardening (`0f4bba5`)
@@ -818,8 +821,8 @@ Landing (/) → Register (5 campos: nombre, tienda, whatsapp, password x2) →
   perfil_tienda creado automáticamente (5C.1)
   2 productos semilla creados automáticamente (5C.1)
   Enforcement dates seteados (30/37/60 días) (5C.1)
-  → Success screen (recovery code) → auto-redirect 5s →
-  Onboarding Express (país + tipo_negocio + Omitir) (5C.2) →
+  → Success screen (recovery code + copiar código) → botón explícito →
+  Onboarding Express (país + tipo_negocio) (5C.2) →
   → Dashboard
 ```
 
@@ -1340,6 +1343,16 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 - Typecheck PASS ✅
 - Build PASS ✅
 
+### Sprint completado — Sprint 5C.2.1 (Recovery Code UX)
+- Eliminado auto-redirect useEffect (5s a onboarding) ✅
+- Eliminada dependencia de `useRouter` ✅
+- Agregado botón "📋 Copiar código" con `navigator.clipboard.writeText()` ✅
+- Feedback visual "✅ Código copiado" por 2.5s al copiar ✅
+- Advertencia visual reforzada (borde amber-300, texto más claro) ✅
+- Navegación únicamente mediante botón explícito "Ir a mi tienda" ✅
+- Typecheck PASS ✅
+- Build PASS ✅
+
 ### Sprint completado — Sprint 5C.1 (Register Simplification)
 - Slug input eliminado del register — auto-generado desde nombre_tienda ✅
 - URL preview informativa debajo de nombre_tienda ✅
@@ -1357,7 +1370,7 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 
 | Tarea | Prioridad | Estado |
 |-------|-----------|--------|
-| **Sprint 5C.2 — Onboarding Express** | P1 | ✅ |
+| **Sprint 5C.2.1 — Recovery Code UX** | P1 | ✅ |
 | **Sprint 5C.3 — Settings Enhancements** | P1 | ⬜ |
 | Migración 059 ejecución en DB (drop plan_nivel) | P1 | ✅ (preparada) |
 | Rotar AUTH_SECRET (dev secret débil) | P1 | ⬜ |
@@ -1707,6 +1720,40 @@ async function diag() {
 ---
 
 ## Changelog
+
+### 2026-06-07 — Sprint 5C.2.1 — Recovery Code UX
+
+##### Cambios
+
+- **Auto-redirect eliminado** — Se eliminó el `useEffect` con `setTimeout` de 5s que redirigía automáticamente a onboarding, porque el usuario perdía el código de recuperación sin haberlo copiado.
+- **Botón copiar código** — Nuevo botón "📋 Copiar código" que ejecuta `navigator.clipboard.writeText(codigo)`. Muestra "✅ Código copiado" como feedback temporal (2.5s) sin necesidad de ToastProvider.
+- **Advertencia reforzada** — Borde `border-2 border-amber-300`, padding aumentado, texto "GUARDA ESTE CÓDIGO EN UN LUGAR SEGURO" con ícono de advertencia, `select-all` en el código.
+- **Navegación manual obligatoria** — El único botón para avanzar es el "Ir a mi tienda" explícito. No hay redirección automática.
+- **Dependencias eliminadas** — `useRouter` y `next/navigation` eliminados del archivo.
+
+##### Verificación
+
+- Typecheck PASS ✅
+- Build PASS ✅
+
+##### Archivos modificados
+
+```
+src/app/register/page.tsx | -useRouter, -auto-redirect useEffect, +copiado state, +botón copiar, +advertencia mejorada
+```
+
+##### Archivos adicionales
+
+- `PROJECT_STATE.md` — Actualizado con Sprint 5C.2.1 completado
+
+### 2026-06-07 — Sprint 5C.2 — Onboarding Express (Hotfix)
+
+##### Corrección
+
+- **Bug fix**: Restaurado fallback `createClient()` en `guardarTienda`. El server action ahora usa `const db = (adminError || !adminSupabase ? supabase : adminSupabase)`, mismo patrón del código original. Se eliminó el redirect a `/login` cuando `createAdminClient()` falla (causaba redirect loop: onboarding → login → onboarding).
+- **Logging**: `console.error('[onboarding] Error al guardar tienda:', error)` agregado para visibilidad de errores de upsert.
+- **Eliminado** `omitirOnboarding` y botón "Omitir por ahora" — país y tipo_negocio son campos obligatorios.
+- **Subtítulo actualizado**: "Selecciona tu país y tipo de negocio para continuar."
 
 ### 2026-06-07 — Sprint 5C.2 — Onboarding Express
 

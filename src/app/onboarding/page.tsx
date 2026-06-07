@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { getSessionFromCookieValue } from '@/lib/auth/get-session'
+import SubmitButton from './SubmitButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,53 +13,41 @@ export default async function OnboardingPage() {
   const rawSession = cookieStore.get('nx_session')?.value
   const session = await getSessionFromCookieValue(rawSession)
   if (!session.valid || !session.tiendaId) redirect('/login')
-  const sessionId = session.tiendaId
 
   async function guardarTienda(formData: FormData) {
     'use server'
+    console.log('[onboarding] guardarTienda ejecutada')
+
+    const supabase = await createClient()
     const { supabase: adminSupabase, error: adminError } = createAdminClient()
     const cookieStore = await cookies()
     const rawSession = cookieStore.get('nx_session')?.value
     const session = await getSessionFromCookieValue(rawSession)
     if (!session.valid || !session.tiendaId) redirect('/login')
     const sessionId = session.tiendaId
-    if (adminError || !adminSupabase) redirect('/login')
+    console.log('[onboarding] sessionId:', sessionId)
 
     const pais_codigo = formData.get('pais_codigo') as string || 'DO'
     const tipo_negocio = formData.get('tipo_negocio') as string || 'estandar'
+    console.log('[onboarding] pais:', pais_codigo, 'tipo:', tipo_negocio)
 
-    const { error } = await adminSupabase.from('tiendas').upsert({
-      id: sessionId,
+    const db = (adminError || !adminSupabase ? supabase : adminSupabase)
+    console.log('[onboarding] usando db:', adminError || !adminSupabase ? 'fallback (anon)' : 'admin')
+
+    console.log('[onboarding] update ejecutado')
+    const { error } = await db.from('tiendas').update({
       pais_codigo,
       moneda_simbolo: pais_codigo === 'DO' ? 'RD$' : '$',
       tipo_negocio,
       onboarding_completo: true,
-    })
+    }).eq('id', sessionId)
+    console.log('[onboarding] update resultado:', error)
 
-    if (!error) {
-      revalidatePath('/dashboard')
-      redirect('/dashboard')
+    if (error) {
+      console.error('[onboarding] Error al guardar tienda:', JSON.stringify(error))
     }
-  }
 
-  async function omitirOnboarding() {
-    'use server'
-    const { supabase: adminSupabase, error: adminError } = createAdminClient()
-    const cookieStore = await cookies()
-    const rawSession = cookieStore.get('nx_session')?.value
-    const session = await getSessionFromCookieValue(rawSession)
-    if (!session.valid || !session.tiendaId) redirect('/login')
-    const sessionId = session.tiendaId
-    if (adminError || !adminSupabase) redirect('/login')
-
-    await adminSupabase.from('tiendas').upsert({
-      id: sessionId,
-      pais_codigo: 'DO',
-      moneda_simbolo: 'RD$',
-      tipo_negocio: 'estandar',
-      onboarding_completo: true,
-    })
-
+    console.log('[onboarding] redirect dashboard')
     revalidatePath('/dashboard')
     redirect('/dashboard')
   }
@@ -71,7 +60,7 @@ export default async function OnboardingPage() {
             <span className="text-white font-bold text-lg">N</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-800 dark:text-white">Completa tu tienda</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Puedes personalizar el resto más adelante desde Configuración.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Selecciona tu país y tipo de negocio para continuar.</p>
         </div>
 
         <form action={guardarTienda} className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-slate-200/50 dark:shadow-slate-900/80 p-6 sm:p-8 space-y-5">
@@ -111,17 +100,7 @@ export default async function OnboardingPage() {
             </div>
           </div>
 
-          <button type="submit"
-            className="w-full bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold py-3 px-4 rounded-xl hover:brightness-110 transition-all shadow-lg shadow-teal-500/25 text-base">
-            Guardar y entrar al Dashboard
-          </button>
-        </form>
-
-        <form action={omitirOnboarding} className="mt-3 text-center">
-          <button type="submit"
-            className="text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 underline underline-offset-2 transition-colors">
-            Omitir por ahora
-          </button>
+          <SubmitButton />
         </form>
       </div>
     </div>
