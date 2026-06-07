@@ -73,9 +73,9 @@ export default async function OnboardingPage() {
     }
 
     const ahora = new Date()
-    const fechaVen = new Date(ahora.getTime() + 7 * 24 * 60 * 60 * 1000)
-    const fechaSusp = new Date(ahora.getTime() + 14 * 24 * 60 * 60 * 1000)
-    const fechaElim = new Date(ahora.getTime() + 30 * 24 * 60 * 60 * 1000)
+    const fechaVen = new Date(ahora.getTime() + 30 * 24 * 60 * 60 * 1000)
+    const fechaSusp = new Date(ahora.getTime() + 37 * 24 * 60 * 60 * 1000)
+    const fechaElim = new Date(ahora.getTime() + 60 * 24 * 60 * 60 * 1000)
 
     const { data: nuevaTienda, error } = await (adminError || !adminSupabase ? supabase : adminSupabase).from('tiendas').upsert({
       id: sessionId,

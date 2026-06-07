@@ -30,7 +30,7 @@ export default async function DashboardPage() {
     .from('perfil_tienda')
     .select('nombre_comercial, whatsapp_numero, logo_url')
     .eq('id_tienda', tienda.id)
-    .single()
+    .maybeSingle()
 
   const hoyStr = new Date().toISOString().split('T')[0]
   const inicioHoy = `${hoyStr}T00:00:00.000Z`

@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 const WHATSAPP_FALLBACK = '18299999999'
 
@@ -19,25 +20,18 @@ function generarSlug(texto: string): string {
 export default function RegisterPage() {
   const [nombreSocio, setNombreSocio] = useState('')
   const [nombreTienda, setNombreTienda] = useState('')
-  const [slug, setSlug] = useState('')
-  const [slugManual, setSlugManual] = useState(false)
-  const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
-  const [slugSuggestion, setSlugSuggestion] = useState('')
   const [telefono, setTelefono] = useState('')
   const [password, setPassword] = useState('')
   const [confirmar, setConfirmar] = useState('')
-  const [preguntas, setPreguntas] = useState([
-    { pregunta: '', respuesta: '' },
-    { pregunta: '', respuesta: '' },
-    { pregunta: '', respuesta: '' },
-  ])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [exito, setExito] = useState(false)
   const [codigo, setCodigo] = useState('')
+  const [slugGenerado, setSlugGenerado] = useState('')
+  const [redirectTo, setRedirectTo] = useState('/onboarding')
   const [whatsappAdmin, setWhatsappAdmin] = useState(WHATSAPP_FALLBACK)
   const supabase = createClient()
-  const checkRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const router = useRouter()
 
   useEffect(() => {
     ;(async () => {
@@ -51,77 +45,30 @@ export default function RegisterPage() {
   }, [])
 
   useEffect(() => {
-    if (slugManual) return
-    const nuevo = generarSlug(nombreTienda)
-    setSlug(nuevo)
-    if (nuevo) revisarSlug(nuevo)
-  }, [nombreTienda, slugManual])
+    if (exito && redirectTo) {
+      const timer = setTimeout(() => router.push(redirectTo), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [exito, redirectTo, router])
 
-  const revisarSlug = useCallback(async (s: string) => {
-    if (!s || s.length < 2) { setSlugStatus('idle'); return }
-    setSlugStatus('checking')
-    clearTimeout(checkRef.current)
-    checkRef.current = setTimeout(async () => {
-      const { data } = await supabase
-        .from('tiendas')
-        .select('id')
-        .eq('slug', s)
-        .maybeSingle()
-      if (data) {
-        setSlugStatus('taken')
-        const base = s.replace(/-\d+$/, '')
-        let candidate = base
-        let i = 1
-        while (i < 20) {
-          const { data: dup } = await supabase
-            .from('tiendas')
-            .select('id')
-            .eq('slug', candidate)
-            .maybeSingle()
-          if (!dup) break
-          i++
-          candidate = `${base}-${i}`
-        }
-        setSlugSuggestion(candidate)
-      } else {
-        setSlugStatus('available')
-      }
-    }, 400)
-  }, [supabase])
-
-  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = generarSlug(e.target.value)
-    setSlug(val)
-    setSlugManual(true)
-    revisarSlug(val)
-  }
-
-  const aceptarSugerencia = () => {
-    setSlug(slugSuggestion)
-    setSlugStatus('available')
-    setSlugSuggestion('')
-  }
-
-  const actualizarPregunta = (idx: number, campo: 'pregunta' | 'respuesta', valor: string) => {
-    setPreguntas(prev => prev.map((p, i) => i === idx ? { ...p, [campo]: valor } : p))
+  function formatearTelefono(tel: string): string {
+    const digits = tel.replace(/\D/g, '')
+    if (digits.length === 10) {
+      return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
+    }
+    if (digits.length === 11) {
+      return `${digits[0]}-${digits.slice(1, 4)}-${digits.slice(4, 7)}-${digits.slice(7)}`
+    }
+    if (digits.length > 11) {
+      return `+${digits.slice(0, digits.length - 10)} ${digits.slice(-10, -7)}-${digits.slice(-7, -4)}-${digits.slice(-4)}`
+    }
+    return tel
   }
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
-
-    if (!slug.trim()) {
-      setError('El slug de la tienda es obligatorio.')
-      setLoading(false)
-      return
-    }
-
-    if (slugStatus === 'taken') {
-      setError('Ese slug ya está ocupado. Elige otro.')
-      setLoading(false)
-      return
-    }
 
     if (password !== confirmar) {
       setError('Las contraseñas no coinciden.')
@@ -135,24 +82,14 @@ export default function RegisterPage() {
       return
     }
 
-    for (let i = 0; i < preguntas.length; i++) {
-      if (!preguntas[i].pregunta.trim() || !preguntas[i].respuesta.trim()) {
-        setError(`La pregunta ${i + 1} y su respuesta son obligatorias.`)
-        setLoading(false)
-        return
-      }
-    }
-
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         nombre_socio: nombreSocio.trim(),
         nombre_tienda: nombreTienda.trim(),
-        slug: slug.trim(),
         whatsapp: telefono.trim(),
         password,
-        preguntas: preguntas.map(p => ({ pregunta: p.pregunta.trim(), respuesta: p.respuesta.trim() })),
       }),
     })
     const data = await res.json()
@@ -164,6 +101,8 @@ export default function RegisterPage() {
     }
 
     setCodigo(data.codigo_verificacion)
+    setSlugGenerado(data.slug || '')
+    setRedirectTo(data.redirectTo || '/onboarding')
     setExito(true)
     setLoading(false)
   }
@@ -171,7 +110,7 @@ export default function RegisterPage() {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'https://nexusrd.do')
 
   if (exito) {
-    const catalogoUrl = `${baseUrl}/c/${slug}`
+    const catalogoUrl = `${baseUrl}/c/${slugGenerado}`
 
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-blue-50 px-4 py-8">
@@ -187,15 +126,15 @@ export default function RegisterPage() {
           </h1>
 
           <p className="text-slate-500 leading-relaxed mb-6">
-            Ya puedes iniciar sesión y comenzar a configurar tu negocio.
-            Tienes <strong className="text-slate-700">7 días de prueba gratuita</strong> para probar todas las funciones.
+            Tu tienda ya está lista. Continúa para configurar tu negocio.
+            Tienes <strong className="text-slate-700">30 días de prueba gratuita</strong> para probar todas las funciones.
           </p>
 
           <Link
-            href="/login"
+            href={redirectTo}
             className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold text-base rounded-2xl transition-all shadow-lg shadow-teal-500/25 hover:brightness-110 mb-6"
           >
-            Iniciar Sesión
+            Ir a mi tienda
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
@@ -268,42 +207,10 @@ export default function RegisterPage() {
               placeholder="Ej: Mi Farmacia"
               required
             />
-          </div>
-
-          <div>
-            <label className="block text-slate-800 text-sm font-bold mb-1.5">
-              Enlace de tu tienda
-              <span className="font-normal text-slate-400 ml-1">(tudominio.com/c/ tu-enlace)</span>
-            </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-sm text-slate-400 pointer-events-none">
-                /c/
-              </span>
-              <input
-                type="text"
-                value={slug}
-                onChange={handleSlugChange}
-                onFocus={() => setSlugManual(true)}
-                className="w-full pl-10 pr-10 py-3 text-[16px] text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
-                placeholder="mi-tienda"
-                required
-              />
-              <span className="absolute inset-y-0 right-0 flex items-center pr-4">
-                {slugStatus === 'checking' && <span className="text-xs text-slate-400 animate-pulse">...</span>}
-                {slugStatus === 'available' && <span className="text-xs text-emerald-500">✓</span>}
-                {slugStatus === 'taken' && <span className="text-xs text-rose-500">✕</span>}
-              </span>
-            </div>
-            {slugStatus === 'taken' && slugSuggestion && (
-              <p className="text-xs text-rose-500 mt-1">
-                Slug no disponible. Sugerencia:{' '}
-                <button type="button" onClick={aceptarSugerencia} className="font-bold underline hover:text-rose-700 py-1">
-                  /c/{slugSuggestion}
-                </button>
+            {nombreTienda.trim() && (
+              <p className="text-xs text-slate-400 mt-1">
+                URL sugerida: <span className="text-slate-600 font-mono">/c/{generarSlug(nombreTienda)}</span>
               </p>
-            )}
-            {slugStatus === 'available' && (
-              <p className="text-xs text-emerald-500 mt-1">✓ Disponible</p>
             )}
           </div>
 
@@ -319,34 +226,13 @@ export default function RegisterPage() {
               autoComplete="tel"
               inputMode="tel"
             />
-          </div>
-
-          <div className="border-t border-slate-200 pt-5">
-            <p className="text-sm font-bold text-slate-800 mb-3">🔐 Preguntas de Seguridad</p>
-            <p className="text-xs text-slate-500 mb-4">Estas preguntas permitirán verificar tu identidad si necesitas ayuda de soporte.</p>
-
-            {[0, 1, 2].map(idx => (
-              <div key={idx} className="mb-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">Pregunta {idx + 1}</label>
-                <input
-                  type="text"
-                  value={preguntas[idx].pregunta}
-                  onChange={e => actualizarPregunta(idx, 'pregunta', e.target.value)}
-                  className="w-full px-4 py-3 text-[16px] text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3 transition-shadow"
-                  placeholder="Ej: ¿Cuál fue mi primera mascota?"
-                  required
-                />
-                <label className="block text-xs font-bold text-slate-600 mb-1.5">Respuesta</label>
-                <input
-                  type="text"
-                  value={preguntas[idx].respuesta}
-                  onChange={e => actualizarPregunta(idx, 'respuesta', e.target.value)}
-                  className="w-full px-4 py-3 text-[16px] text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
-                  placeholder="Tu respuesta"
-                  required
-                />
-              </div>
-            ))}
+            {telefono.trim() && (
+              <p className="text-xs text-slate-500 mt-1">
+                📱 Este será tu número de acceso y el número que verán tus clientes.
+                <br />
+                <span className="text-slate-700 font-semibold">{formatearTelefono(telefono)}</span>
+              </p>
+            )}
           </div>
 
           <div>

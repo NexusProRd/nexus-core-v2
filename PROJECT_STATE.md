@@ -17,8 +17,8 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `Sprint 5A.1` — Commercial UX Polish (Jun 6) |
-| Última verificación | 2026-06-06 — Sprint 5A.1 completado + Typecheck PASS + Build PASS |
+| Último commit | `Sprint 5C.1` — Register Simplification (Jun 7) |
+| Última verificación | 2026-06-07 — Sprint 5C.1 completado + Typecheck PASS + Build PASS |
 
 ### Módulos
 
@@ -52,6 +52,8 @@
 **Sprint 4C — Legacy plan_nivel Removal**
 **Sprint 5A — Commercial Enforcement Fixes**
 **Sprint 5A.1 — Commercial UX Polish**
+**Sprint 5B.1 — Registration Conversion Improvements**
+**Sprint 5C.1 — Register Simplification**
 
 ### Estado
 
@@ -108,12 +110,14 @@ Todos los sprints de seguridad, hardening, data integrity, gift unification y co
 
 ### Pendientes críticos (próximo sprint)
 
-1. **Notificaciones WhatsApp al comprador** — sender_phone + deep link WA para aprobado/canjeado/expirado
-2. **Auto-aprobación para tiendas de confianza** — columna `auto_approve_gifts` en tiendas
-3. **Configuración de expiración por tienda** — 24h/48h/72h/7d configurable
-4. **B7 — Gift quantity > 1** — agregar `cantidad` a `items_list`
-5. **Rotar AUTH_SECRET** — Dev secret (`nexus-super-secret-2026-ultra-secure`) debe reemplazarse antes de producción real
-6. **Quick-buy stock failure UX** — Mostrar error al usuario cuando `gestionarStock()` falla (actualmente solo console.error)
+1. **Sprint 5C.2 — Onboarding Express** — reducir onboarding a país + tipo_negocio + omitir
+2. **Sprint 5C.3 — Settings Enhancements** — editor de slug, país, tipo_negocio, preguntas de seguridad
+3. **Notificaciones WhatsApp al comprador** — sender_phone + deep link WA para aprobado/canjeado/expirado
+4. **Auto-aprobación para tiendas de confianza** — columna `auto_approve_gifts` en tiendas
+5. **Configuración de expiración por tienda** — 24h/48h/72h/7d configurable
+6. **B7 — Gift quantity > 1** — agregar `cantidad` a `items_list`
+7. **Rotar AUTH_SECRET** — Dev secret (`nexus-super-secret-2026-ultra-secure`) debe reemplazarse antes de producción real
+8. **Quick-buy stock failure UX** — Mostrar error al usuario cuando `gestionarStock()` falla (actualmente solo console.error)
 
 ### Issues de auditoría comercial resueltos
 
@@ -126,11 +130,16 @@ De la auditoría Sprint 4D, estos hallazgos fueron corregidos en Sprint 5A / 5A.
 | P0-3 | is_founder decorativo | ✅ Sprint 5A — is_founder bypass en crearProducto y CSV |
 | P0-4 | plan_status trial sin enforce | Pendiente (fuera de alcance) |
 | P0-5 | token_productos_limite inicial incorrecto | ✅ Sprint 5A — register + onboarding usan getDefaultLimit |
-| P1-1 | Discrepancia trial 7 vs 30 días | Pendiente (fuera de alcance) |
+| P1-1 | Discrepancia trial 7 vs 30 días | ✅ Sprint 5B.1 — unificado a 30 días en register, onboarding, success screen |
 | P1-2 | Sin mensaje de upgrade en error | ✅ Sprint 5A.1 — mensaje mejorado + CTA WhatsApp |
 | P1-3 | Sin banner de trial en dashboard | Pendiente (fuera de alcance) |
 | P1-4 | Sin contador de productos en inventario | ✅ Sprint 5A — contador visible |
 | P2-2 | Onboarding semilla sin verificar límite | ✅ Sprint 5A — límite correcto desde registro (15), menos que 2 semillas |
+| — | Slug editable en register (fricción innecesaria) | ✅ Sprint 5C.1 — slug auto-generado, no mostrado en register |
+| — | 6 preguntas de seguridad en register (fricción alta) | ✅ Sprint 5C.1 — eliminadas de register |
+| — | perfil_tienda ausente sin onboarding (crash riesgo) | ✅ Sprint 5C.1 — creado en register (non-blocking) |
+| — | Dashboard .single() crash si perfil_tienda falta | ✅ Sprint 5C.1 — migrado a .maybeSingle() en dashboard + inventario |
+| — | Seed products dependientes de onboarding | ✅ Sprint 5C.1 — creados en register (non-blocking) |
 
 ---
 
@@ -146,7 +155,7 @@ Auditoría end-to-end del enforcement comercial completada. Hallazgos clasificad
 | P0-2 | Límite de productos solo se enforcea en 1 de ~6 caminos (crearProducto en actions.ts) — importación CSV, backup restore, gift purchase, onboarding semilla, API productos, actualizarProducto no verifican | Bypass completo del límite comercial |
 | P0-3 | `is_founder` no tiene lógica de negocio — no cambia límite, descuento, trial ni bypass | Founder es decorativo |
 | P0-4 | `plan_status: 'trial'` se asigna pero nunca se enforcea — no hay expiración automática, transición trial→grace ni reacción a `trial_ends_at` | Trial es decorativo |
-| P0-5 | `token_productos_limite` inicial inconsistente — register no lo setea (NULL), onboarding lo setea a 50 (no 15), getDefaultLimit(15) nunca se llama | Límite real de emprendedor nunca se aplica automáticamente |
+| P0-5 | `token_productos_limite` inicial inconsistente — register no lo setea (NULL), onboarding lo setea a 50 (no 15), getDefaultLimit(15) nunca se llama | ✅ Sprint 5A — register + onboarding usan getDefaultLimit |
 
 ### P1 — Problemas de UX comercial importantes
 
@@ -797,14 +806,15 @@ Se implementó `ProductoForm.tsx` que maneja ambos modos (`create` / `edit`) con
 
 #### Registro
 ```
-Landing (/) → Completar formulario register →
-  POST /api/auth/register → Crear tienda en Supabase →
-  Redirect a /onboarding →
-    Subir logo
-    Configurar slug/nickname
-    Elegir tipo_negocio (estandar/ropa/boutique)
-    Configurar WhatsApp
-  → Redirect a /dashboard (primer login automático)
+Landing (/) → Register (5 campos: nombre, tienda, whatsapp, password x2) →
+  Slug auto-generado desde nombre_tienda
+  Auto-login via cookie nx_session (5B.1)
+  perfil_tienda creado automáticamente (5C.1)
+  2 productos semilla creados automáticamente (5C.1)
+  Enforcement dates seteados (30/37/60 días) (5C.1)
+  → Success screen (recovery code) → auto-redirect 5s →
+  Onboarding (país + tipo_negocio) →
+  → Dashboard
 ```
 
 #### Login
@@ -1305,13 +1315,35 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 - Typecheck PASS ✅
 - Build PASS ✅
 
+### Sprint completado — Sprint 5B.1 (Registration Conversion Improvements)
+- Auto-login post-registro: `createSessionToken()` + cookie `nx_session` en register/route.ts ✅
+- Success screen redirige a /onboarding (no a /login) ✅
+- Auto-redirect 5s a onboarding con cleanup ✅
+- Trial unificado a 30 días: register, onboarding y success screen consistentes ✅
+- Onboarding enforcement dates movidos a 30/37/60 días ✅
+- Typecheck PASS ✅
+- Build PASS ✅
+
+### Sprint completado — Sprint 5C.1 (Register Simplification)
+- Slug input eliminado del register — auto-generado desde nombre_tienda ✅
+- URL preview informativa debajo de nombre_tienda ✅
+- Preguntas de seguridad (6 inputs) eliminadas del register ✅
+- WhatsApp preview formateado debajo del campo ✅
+- Registro reducido de 12 a 5 campos ✅
+- perfil_tienda creado automáticamente en register (non-blocking) ✅
+- 2 productos semilla creados en register (non-blocking) ✅
+- Enforcement dates (fecha_vencimiento, fecha_bloqueo_panel, fecha_suspension_catalogo, fecha_eliminacion_total) seteados en register ✅
+- Dashboard safeguards: .single() → .maybeSingle() en dashboard/page.tsx e inventario/page.tsx ✅
+- Typecheck PASS ✅
+- Build PASS ✅
+
 ### Pendientes (próximo sprint)
 
 | Tarea | Prioridad | Estado |
 |-------|-----------|--------|
-| **Sprint 4C — Migración 059 (drop plan_nivel)** | P1 | ✅ |
-| Migración SQL para dropear `plan_nivel` de `tiendas` | P1 | ✅ (preparada, no ejecutada) |
-| Limpiar referencias a `plan_nivel` en código restante | P1 | ✅ |
+| **Sprint 5C.2 — Onboarding Express** | P1 | ⬜ |
+| **Sprint 5C.3 — Settings Enhancements** | P1 | ⬜ |
+| Migración 059 ejecución en DB (drop plan_nivel) | P1 | ✅ (preparada) |
 | Rotar AUTH_SECRET (dev secret débil) | P1 | ⬜ |
 | Quick-buy stock failure UX | P1 | ⬜ |
 | Hooks violation P1 | P2 | ⬜ |
@@ -1328,7 +1360,6 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 | B7 — Gift quantity > 1 | P3 | ⬜ |
 | Gift Cards / Wallet | P4 | ⬜ |
 | Drop `pedidos.is_gift` column (cleanup) | P4 | ⬜ |
-| Migración 059 ejecución en DB | P1 | ✅ |
 
 ---
 
@@ -1660,6 +1691,52 @@ async function diag() {
 ---
 
 ## Changelog
+
+### 2026-06-07 — Sprint 5C.1 — Register Simplification
+
+##### Cambios
+
+- **Register page** — Eliminados slug input y 6 preguntas de seguridad del formulario. Añadida URL preview informativa debajo de nombre_tienda. Añadido WhatsApp preview formateado debajo del teléfono. Registro reducido de 12 a 5 campos.
+- **Register API** — Eliminada validación de preguntas y campo `preguntas_recuperacion` del insert. Slug siempre auto-generado desde nombre_tienda. Añadidos enforcement dates (fecha_vencimiento 30d, fecha_bloqueo_panel 30d, fecha_suspension_catalogo 37d, fecha_eliminacion_total 60d).
+- **perfil_tienda** — Creado automáticamente en register (non-blocking, best-effort).
+- **Seed products** — 2 productos genéricos (Jabón Artesanal, Envío Exprés) creados en register (non-blocking).
+- **Dashboard safeguards** — `.single()` → `.maybeSingle()` en `dashboard/page.tsx` e `inventario/page.tsx` para evitar crash si perfil_tienda no existe.
+
+##### Verificación
+
+- Typecheck PASS ✅
+- Build PASS ✅
+
+##### Archivos modificados
+
+```
+src/app/api/auth/register/route.ts          | +36 / -22 líneas
+src/app/register/page.tsx                   | -125 líneas (neto)
+src/app/dashboard/page.tsx                  | +1 / -1 (maybeSingle)
+src/app/dashboard/inventario/page.tsx       | +1 / -1 (maybeSingle)
+```
+
+### 2026-06-07 — Sprint 5B.1 — Registration Conversion Improvements
+
+##### Cambios
+
+- **Auto-login** — `register/route.ts` ahora crea session token con `createSessionToken()` y setea cookie `nx_session` post-registro (mismo mecanismo que login).
+- **Success screen** — Redirige a /onboarding en vez de /login. Auto-redirect 5s con cleanup.
+- **Trial unificado** — Todas las referencias cambiadas de 7 a 30 días: register success screen, onboarding enforcement dates (30/37/60).
+- **No requiere login manual** después del registro.
+
+##### Verificación
+
+- Typecheck PASS ✅
+- Build PASS ✅
+
+##### Archivos modificados
+
+```
+src/app/api/auth/register/route.ts          | +38 / -5 líneas (createSessionToken, cookie)
+src/app/register/page.tsx                   | +15 / -3 líneas (redirectTo, auto-redirect useEffect, texto 30 días)
+src/app/onboarding/page.tsx                | +1 / -1 (fechas 30/37/60)
+```
 
 ### 2026-06-06 — Sprint 4C — Legacy plan_nivel Removal (`ea1474f`)
 

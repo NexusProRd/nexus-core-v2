@@ -36,7 +36,7 @@ export default async function InventarioPage() {
   const { data: productos } = await supabase.from('productos').select('*').eq('id_tienda', tienda.id).order('nombre', { ascending: true })
 
   // Get categories from perfil_tienda
-  const { data: perfil } = await supabase.from('perfil_tienda').select('categorias').eq('id_tienda', tienda.id).single()
+  const { data: perfil } = await supabase.from('perfil_tienda').select('categorias').eq('id_tienda', tienda.id).maybeSingle()
   const categorias = parsearCategorias(perfil?.categorias)
 
   return <InventarioClient tiendaId={tienda.id} tipoNegocio={tienda.tipo_negocio || 'estandar'} productos={(productos || []) as Producto[]} categorias={categorias} tokenProductosLimite={tienda.token_productos_limite} isFounder={tienda.is_founder} />

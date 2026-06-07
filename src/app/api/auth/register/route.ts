@@ -3,11 +3,7 @@ import { NextResponse } from 'next/server'
 import { randomBytes, scryptSync } from 'crypto'
 import bcrypt from 'bcryptjs'
 import { getDefaultLimit } from '@/lib/commercial'
-
-interface PreguntaRecuperacion {
-  pregunta: string
-  respuesta: string
-}
+import { createSessionToken } from '@/lib/auth/session'
 
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString('hex')
@@ -44,20 +40,10 @@ async function slugDisponible(supabase: any, slug: string, tiendaId?: string): P
 
 export async function POST(req: Request) {
   try {
-    const { nombre_socio, nombre_tienda, slug: slugInput, whatsapp, password, preguntas } = await req.json()
+    const { nombre_socio, nombre_tienda, whatsapp, password } = await req.json()
 
     if (!nombre_socio?.trim() || !nombre_tienda?.trim() || !whatsapp?.trim() || !password?.trim()) {
       return NextResponse.json({ error: 'Todos los campos son obligatorios.' }, { status: 400 })
-    }
-
-    if (!preguntas || !Array.isArray(preguntas) || preguntas.length !== 3) {
-      return NextResponse.json({ error: 'Las 3 preguntas de seguridad son obligatorias.' }, { status: 400 })
-    }
-
-    for (const p of preguntas) {
-      if (!p.pregunta?.trim() || !p.respuesta?.trim()) {
-        return NextResponse.json({ error: 'Cada pregunta debe tener su respuesta.' }, { status: 400 })
-      }
     }
 
     const digits = (whatsapp as string).replace(/\D/g, '')
@@ -83,8 +69,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Este WhatsApp ya está registrado.' }, { status: 409 })
     }
 
-    const slugBase = slugInput?.trim() ? generarSlug(slugInput) : generarSlug(nombre_tienda)
-    const slug = await slugDisponible(supabase, slugBase)
+    const slug = await slugDisponible(supabase, generarSlug(nombre_tienda))
 
     const password_hash = hashPassword(password)
     const codigoVerificacion = `${randomBytes(3).toString('hex').toUpperCase()}`
@@ -96,7 +81,10 @@ export async function POST(req: Request) {
     const ahora = new Date()
     const trialEnd = new Date(ahora.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-    const { error: insertError } = await supabase!.from('tiendas').insert({
+    const fechaSusp = new Date(ahora.getTime() + 37 * 24 * 60 * 60 * 1000)
+    const fechaElim = new Date(ahora.getTime() + 60 * 24 * 60 * 60 * 1000)
+
+    const { data: nuevaTienda, error: insertError } = await supabase!.from('tiendas').insert({
       nombre_socio: nombre_socio.trim(),
       nombre_tienda: nombre_tienda.trim(),
       slug,
@@ -109,18 +97,70 @@ export async function POST(req: Request) {
       is_founder: false,
       trial_started_at: ahora.toISOString(),
       trial_ends_at: trialEnd.toISOString(),
+      fecha_vencimiento: trialEnd.toISOString(),
+      fecha_bloqueo_panel: trialEnd.toISOString(),
+      fecha_suspension_catalogo: fechaSusp.toISOString(),
+      fecha_eliminacion_total: fechaElim.toISOString(),
       tokens_disponibles: 0,
       password_hash,
-      preguntas_recuperacion: preguntas,
       codigo_verificacion_hash: codigoHash,
       ultima_ip: ipReal,
-    })
+    }).select('id').single()
 
     if (insertError) {
       return NextResponse.json({ error: `Error al guardar: ${insertError.message}` }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, slug, codigo_verificacion: codigoVerificacion })
+    if (!nuevaTienda) {
+      return NextResponse.json({ error: 'Error al crear la tienda' }, { status: 500 })
+    }
+
+    // Non-blocking: create perfil_tienda entry
+    try {
+      await supabase!.from('perfil_tienda').upsert({
+        id_tienda: nuevaTienda.id,
+        nombre_comercial: nombre_tienda.trim(),
+        whatsapp_numero: whatsapp.trim(),
+      })
+    } catch {}
+
+    // Non-blocking: create seed products
+    try {
+      const semillas = [
+        { nombre: 'Jabón Artesanal', precio: 250, stock: 15 },
+        { nombre: 'Envío Exprés', precio: 350, stock: 0 },
+      ]
+      const productosSemilla = semillas.map(s => ({
+        id_tienda: nuevaTienda.id,
+        nombre: s.nombre,
+        precio: s.precio,
+        stock: s.stock,
+        costo_compra: Math.round(s.precio * 0.6),
+        precio_oferta: null,
+        in_stock: true,
+        imagen_url: null,
+        descripcion: null,
+        categoria: null,
+      }))
+      await supabase!.from('productos').insert(productosSemilla)
+    } catch {}
+
+    const token = await createSessionToken(nuevaTienda.id)
+    const isLocalhost = req.headers.get('host')?.includes('localhost') || req.headers.get('host')?.includes('127.0.0.1')
+    const res = NextResponse.json({
+      success: true,
+      slug,
+      codigo_verificacion: codigoVerificacion,
+      redirectTo: '/onboarding',
+    })
+    res.cookies.set('nx_session', token, {
+      httpOnly: true,
+      secure: !isLocalhost,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30,
+    })
+    return res
   } catch (err: any) {
     return NextResponse.json({ error: `Error interno: ${err.message}` }, { status: 500 })
   }
