@@ -60,17 +60,13 @@ export default function PedidosLista({
   }, [initialPedidos])
 
   useEffect(() => {
-    if (!tiendaId) { console.log('[WHATSAPP_TEMPLATES] tiendaId vacío, abortando'); return }
-    console.log('[WHATSAPP_TEMPLATES] tiendaId:', tiendaId)
+    if (!tiendaId) return
     const supabase = createClient()
     supabase.from('whatsapp_templates')
       .select('confirmado, preparando, en_camino, entregado')
       .eq('store_id', tiendaId)
       .maybeSingle()
       .then(({ data, error }) => {
-        console.log('[WHATSAPP_TEMPLATES] data:', data)
-        console.log('[WHATSAPP_TEMPLATES] error:', error)
-        console.log('[WHATSAPP_TEMPLATES] registros encontrados:', data ? 1 : 0)
         if (error) {
           console.error('[WHATSAPP_TEMPLATES]', error)
           return
@@ -83,9 +79,6 @@ export default function PedidosLista({
             entregado: data.entregado || '',
           }
           setPlantillas(cargadas)
-          console.log('[WHATSAPP_TEMPLATES] plantillas cargadas:', cargadas)
-        } else {
-          console.log('[WHATSAPP_TEMPLATES] consulta sin filas — plantillas queda como {}')
         }
       })
     supabase.from('tiendas').select('nombre_tienda').eq('id', tiendaId).single()

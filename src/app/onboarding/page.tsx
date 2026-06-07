@@ -16,7 +16,6 @@ export default async function OnboardingPage() {
 
   async function guardarTienda(formData: FormData) {
     'use server'
-    console.log('[onboarding] guardarTienda ejecutada')
 
     const supabase = await createClient()
     const { supabase: adminSupabase, error: adminError } = createAdminClient()
@@ -25,29 +24,22 @@ export default async function OnboardingPage() {
     const session = await getSessionFromCookieValue(rawSession)
     if (!session.valid || !session.tiendaId) redirect('/login')
     const sessionId = session.tiendaId
-    console.log('[onboarding] sessionId:', sessionId)
 
     const pais_codigo = formData.get('pais_codigo') as string || 'DO'
     const tipo_negocio = formData.get('tipo_negocio') as string || 'estandar'
-    console.log('[onboarding] pais:', pais_codigo, 'tipo:', tipo_negocio)
 
     const db = (adminError || !adminSupabase ? supabase : adminSupabase)
-    console.log('[onboarding] usando db:', adminError || !adminSupabase ? 'fallback (anon)' : 'admin')
 
-    console.log('[onboarding] update ejecutado')
     const { error } = await db.from('tiendas').update({
       pais_codigo,
       moneda_simbolo: pais_codigo === 'DO' ? 'RD$' : '$',
       tipo_negocio,
       onboarding_completo: true,
     }).eq('id', sessionId)
-    console.log('[onboarding] update resultado:', error)
 
     if (error) {
-      console.error('[onboarding] Error al guardar tienda:', JSON.stringify(error))
+      console.error('[onboarding] Error al guardar tienda')
     }
-
-    console.log('[onboarding] redirect dashboard')
     revalidatePath('/dashboard')
     redirect('/dashboard')
   }

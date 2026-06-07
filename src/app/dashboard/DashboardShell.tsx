@@ -473,15 +473,12 @@ export default function DashboardLayout({
       return
     }
 
-    console.log('[Realtime pedidos] Suscribiendo a pedidos INSERT para tienda:', tiendaId)
-
     const canal = getSupabase()
       .channel(`global-pedidos-${tiendaId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'pedidos', filter: `id_tienda=eq.${tiendaId}` },
         (payload) => {
-          console.log('[Realtime pedidos] Evento INSERT recibido:', payload)
           const pedido = payload.new as Pedido
 
           // Dar un pequeño margen para asegurar que las filas relacionales ya existan en Postgres
@@ -517,15 +514,12 @@ export default function DashboardLayout({
         }
       )
       .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('[Realtime pedidos] Subscripción exitosa')
-        } else if (status === 'CHANNEL_ERROR') {
+        if (status === 'CHANNEL_ERROR') {
           console.error('[Realtime pedidos] Error en canal:', err)
         }
       })
 
     return () => {
-      console.log('[Realtime pedidos] Limpiando suscripción')
       getSupabase().removeChannel(canal)
     }
   }, [tiendaId, showAlert])

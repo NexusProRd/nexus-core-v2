@@ -42,7 +42,6 @@ export default function RedeemButton({ giftId, items, storeId, giftCode }: Redee
     }
 
     const itemsList = res.items || items
-    console.log('[Redeem] itemsList:', itemsList)
     const giftCartItems = itemsList.map((item: any) => ({
       id: item.product_id || item.id,
       nombre: item.nombre,
@@ -54,14 +53,12 @@ export default function RedeemButton({ giftId, items, storeId, giftCode }: Redee
 
     addMultipleToCart(giftCartItems)
     const raw = localStorage.getItem('nexus-cart')
-    console.log('[Redeem] raw localStorage:', raw)
     let existing = []
     if (raw) {
       try { existing = JSON.parse(raw) } catch {}
     }
     const nonGift = existing.filter((i: any) => !i.isGift)
     const toSave = [...nonGift, ...giftCartItems]
-    console.log('[Redeem] saving to localStorage:', toSave)
     localStorage.setItem('nexus-cart', JSON.stringify(toSave))
 
     await new Promise(resolve => setTimeout(resolve, 300))

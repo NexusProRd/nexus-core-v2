@@ -28,7 +28,6 @@ export default function PushSubscribeButton({ idTienda }: { idTienda?: string })
   }, [])
 
   const handleToggle = useCallback(async () => {
-    console.log('[Push] handleToggle', { idTienda, loading })
     if (!idTienda || loading) return
     setLoading(true)
 
@@ -46,15 +45,12 @@ export default function PushSubscribeButton({ idTienda }: { idTienda?: string })
         }
         setSubscribed(false)
       } else {
-        console.log('[Push] requesting permission')
         const permission = await Notification.requestPermission()
-        console.log('[Push] permission result:', permission)
         if (permission !== 'granted') {
           setLoading(false)
           return
         }
 
-        console.log('[Push] fetching VAPID key')
         let publicKey = ''
         const res = await fetch('/api/push/vapid-key')
         if (res.ok) {
@@ -66,18 +62,13 @@ export default function PushSubscribeButton({ idTienda }: { idTienda?: string })
           return
         }
 
-        console.log('[Push] waiting for service worker')
         const reg = await navigator.serviceWorker.ready
-        console.log('[Push] service worker ready')
 
-        console.log('[Push] subscribing')
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(publicKey) as any,
         })
-        console.log('[Push] subscription created', sub)
 
-        console.log('[Push] posting subscription')
         const subRes = await fetch('/api/push/subscribe', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -87,12 +78,10 @@ export default function PushSubscribeButton({ idTienda }: { idTienda?: string })
             user_agent: navigator.userAgent,
           }),
         })
-        console.log('[Push] subscribe API status', subRes.status)
         if (!subRes.ok) {
           const body = await subRes.json().catch(() => ({}))
           throw new Error(body.error || `HTTP ${subRes.status}`)
         }
-        console.log('[Push] subscribe success')
         setSubscribed(true)
       }
     } catch (error) {

@@ -94,11 +94,7 @@ export default function TabPedidos({ id_tienda }: Props) {
         { event: 'UPDATE', schema: 'public', table: 'pedidos', filter: `id=eq.${orderId}` },
         (payload) => { setPedido(payload.new as OrderData) }
       )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('Suscrito con éxito al tiempo real del pedido:', orderId)
-        }
-      })
+      .subscribe()
 
     canalRef.current = canal
   }

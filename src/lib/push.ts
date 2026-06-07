@@ -49,14 +49,12 @@ export async function sendPushToTienda(idTienda: string, payload: PushPayload) {
   let sent = 0
   let failed = 0
 
-  console.log('[Push Server] sending to', subs.length, 'subscriptions')
   for (const sub of subs) {
     try {
       await wp.sendNotification(
         { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
         JSON.stringify(payload)
       )
-      console.log('[Push Server] sent to', sub.endpoint.slice(0, 50) + '...')
       sent++
     } catch (err: any) {
       console.error('[Push Server] error', err.statusCode, err.message)
@@ -66,7 +64,5 @@ export async function sendPushToTienda(idTienda: string, payload: PushPayload) {
       failed++
     }
   }
-
-  console.log('[Push Server] done — sent:', sent, 'failed:', failed)
   return { sent, failed }
 }

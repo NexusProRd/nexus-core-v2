@@ -36,7 +36,6 @@ function CanjeContent() {
     const urlGiftParam = searchParams.get('gift')
 
     if (!code) {
-      console.warn('[canje] No gift param in URL. Params:', Object.fromEntries(searchParams.entries()))
       setDebugMsg(`Parámetros recibidos: gift="${urlGiftParam || 'vacío'}", id="${storeId}"`)
       setError(true)
       setLoading(false)
@@ -44,7 +43,6 @@ function CanjeContent() {
     }
 
     fetched.current = true
-    console.log('[canje] Querying gift:', { code, storeId })
     const supabase = createClient()
     const query = supabase
       .from('gift_experiences')
@@ -60,7 +58,6 @@ function CanjeContent() {
         return
       }
       if (!data) {
-        console.warn('[canje] No gift found for code:', code)
         setDebugMsg(`Código "${code}" no encontrado en la base de datos.`)
         setError(true)
         setLoading(false)

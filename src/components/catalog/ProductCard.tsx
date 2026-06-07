@@ -195,13 +195,11 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
 
     localStorage.setItem(`nexus-last-order-${idTienda}`, pedido.id)
 
-    console.log('[ProductCard] sending push')
     fetch('/api/push/quickbuy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id_tienda: idTienda, cliente_nombre: quickBuyName.trim(), total, id_pedido: pedido.id }),
-    }).then((r) => console.log('[ProductCard] push status', r.status))
-      .catch((e) => console.error('[ProductCard] push error', e))
+    }).catch((e) => console.error('[ProductCard] push error', e))
 
     const numeroLimpio = whatsappNumber?.replace(/\D/g, '') || ''
     let msg = `🛍️ *¡Nuevo Pedido desde ${nombreTienda || 'el Catálogo'}!*\n\n`

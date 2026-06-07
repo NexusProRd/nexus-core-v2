@@ -13,13 +13,11 @@ export async function POST(req: NextRequest) {
 
   const id_tienda = session.tiendaId
 
-  console.log('[Push Send API] sending push for tienda', id_tienda, 'pedido', id_pedido)
   sendPushToTienda(id_tienda, {
     title: '¡Nuevo pedido!',
     body: `Cliente: ${cliente_nombre || '—'} — $${Number(total || 0).toLocaleString('es-DO')}`,
     data: { url: '/dashboard/pedidos', id_pedido, id_tienda },
-  }).then((r) => console.log('[Push Send API] result', r))
-    .catch((e) => console.error('[Push Send API] error', e))
+  }).catch((e) => console.error('[Push Send API] error', e))
 
   return NextResponse.json({ success: true })
 }

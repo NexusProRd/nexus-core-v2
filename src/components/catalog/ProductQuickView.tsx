@@ -155,13 +155,11 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
 
     localStorage.setItem(`nexus-last-order-${idTienda}`, pedido.id)
 
-    console.log('[ProductQuickView] sending push')
     fetch('/api/push/quickbuy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id_tienda: idTienda, cliente_nombre: buyName.trim(), total, id_pedido: pedido.id }),
-    }).then((r) => console.log('[ProductQuickView] push status', r.status))
-      .catch((e) => console.error('[ProductQuickView] push error', e))
+    }).catch((e) => console.error('[ProductQuickView] push error', e))
 
     const msg = `🛍️ *¡Nuevo Pedido desde ${nombreTienda || 'el Catálogo'}!*\n\n`
       + `*Orden:* ${orderId}\n`

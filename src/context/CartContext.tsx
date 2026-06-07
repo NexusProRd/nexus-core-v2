@@ -71,11 +71,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const key = storeId ? `nexus-cart-${storeId}` : 'nexus-cart'
     const saved = localStorage.getItem(key)
-    console.log(`[CartProvider] hydration key=${key} saved=${saved ? saved.slice(0, 80) : 'null'} refLen=${itemsRef.current.length}`)
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as CartItem[]
-        console.log('[CartProvider] parsed items:', parsed)
         setItems(parsed.map(item => ({
           ...item,
           cantidad: item.cantidad ?? 1,

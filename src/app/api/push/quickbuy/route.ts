@@ -27,13 +27,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 })
   }
 
-  console.log('[Push QuickBuy] sending push for tienda', id_tienda, 'pedido', id_pedido)
   sendPushToTienda(id_tienda, {
     title: '¡Nuevo pedido!',
     body: `Cliente: ${cliente_nombre || '—'} — $${Number(total || 0).toLocaleString('es-DO')}`,
     data: { url: '/dashboard/pedidos', id_pedido, id_tienda },
-  }).then((r) => console.log('[Push QuickBuy] result', r))
-    .catch((e) => console.error('[Push QuickBuy] error', e))
+  }).catch((e) => console.error('[Push QuickBuy] error', e))
 
   return NextResponse.json({ success: true })
 }

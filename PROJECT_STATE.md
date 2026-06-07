@@ -1799,6 +1799,44 @@ src/components/dashboard/PrimerosPasos.tsx    | +121 (nuevo componente checklist
 
 `e3d05d1` — pushed to `origin/main`
 
+### 2026-06-07 — Post-Deploy Audit — Logging Cleanup
+
+##### Cambios
+
+Auditoría completa de `console.log/error/warn` en `src/`. Eliminados ~60 logs temporales de debugging. Conservados ~50 errores operativos.
+
+**Logs eliminados (temporales / debugging):**
+
+- `onboarding/page.tsx` — 7 logs `[onboarding]` (debug Sprint 5C.2 hotfix), 1 error con `JSON.stringify(error)` sanitizado
+- `inventario/actions.ts` — 3 logs `[DIAG]` (debug Sprint UX V2)
+- `api/checkout/route.ts` — 2 logs `console.log` push diagnostic
+- `DashboardShell.tsx` — 4 logs `[Realtime pedidos]` (suscribiendo/evento/éxito/cleanup)
+- `PedidosLista.tsx` — 6 logs `[WHATSAPP_TEMPLATES]` debugging
+- `ProductCard.tsx` — 1 log `console.log` push status
+- `ProductQuickView.tsx` — 1 log `console.log` push status
+- `ProductDetailClient.tsx` — 1 log `console.log` push status
+- `api/push/quickbuy/route.ts` — 1 log push diagnostic
+- `api/push/send/route.ts` — 1 log push diagnostic
+- `PushSubscribeButton.tsx` — 11 logs `[Push]` (permission, VAPID, SW, subscribe, status)
+- `CartContext.tsx` — 2 logs `[CartProvider]` hydration debug
+- `lib/push.ts` — 3 logs `[Push Server]` sending/sent/done count
+- `RedeemButton.tsx` — 3 logs `[Redeem]` itemsList/localStorage (exponía datos de items)
+- `canje/page.tsx` — 2 logs `[canje]` debug (warn code missing, log query)
+- `TabPedidos.tsx` — 1 log suscripción real-time
+
+**Riesgo encontrado:** `onboarding/page.tsx:47` — `JSON.stringify(error)` exponía detalles internos de error de Supabase. Sanitizado a mensaje genérico.
+
+**Logs conservados (operativos):**
+Stock errors, push errors (catch handlers), gift errors, API errors, WhatsApp errors, catálogo errors, config errors, dashboard errors — todos como `console.error` con contexto.
+
+##### Verificación
+
+- Typecheck PASS ✅
+
+##### Commit
+
+`c3ed5c0` — parte del changelog (commit de PROJECT_STATE.md)
+
 ### 2026-06-07 — Sprint 5C.2 — Onboarding Express (Hotfix)
 
 ##### Corrección
