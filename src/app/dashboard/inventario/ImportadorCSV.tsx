@@ -4,7 +4,7 @@ import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { generarSlug } from '@/lib/slug'
-import { esIlimitado } from '@/lib/commercial'
+import { esIlimitado, checkTiendaActiva } from '@/lib/commercial'
 
 interface FilaImportacion {
   id: number
@@ -82,6 +82,14 @@ export default function ImportadorCSV({ tiendaId, categorias = [], onClose, what
       if (!groups.has(key)) groups.set(key, [])
       groups.get(key)!.push(f)
     }
+    // Check store is active
+    const activa = await checkTiendaActiva(supabase, tiendaId)
+    if (!activa.ok) {
+      setPublicando(false)
+      setError(activa.error || 'Cuenta suspendida')
+      return
+    }
+
     // Check commercial limit before inserting
     const { data: tienda } = await supabase
       .from('tiendas')
@@ -89,15 +97,16 @@ export default function ImportadorCSV({ tiendaId, categorias = [], onClose, what
       .eq('id', tiendaId)
       .single()
 
-    if (tienda && !tienda.is_founder && !esIlimitado(tienda.token_productos_limite) && tienda.token_productos_limite !== null && tienda.token_productos_limite > 0) {
+    const limite = tienda?.token_productos_limite ?? 15
+    if (tienda && !tienda.is_founder && !esIlimitado(limite) && limite > 0) {
       const { count: totalProductos } = await supabase
         .from('productos')
         .select('*', { count: 'exact', head: true })
         .eq('id_tienda', tiendaId)
 
-      if (totalProductos !== null && (totalProductos + groups.size) > tienda.token_productos_limite) {
+      if (totalProductos !== null && (totalProductos + groups.size) > limite) {
         setPublicando(false)
-        setError(`Límite de plan alcanzado: ${totalProductos} / ${tienda.token_productos_limite} productos`)
+        setError(`Límite de plan alcanzado: ${totalProductos} / ${limite} productos`)
         return
       }
     }

@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { cookies } from 'next/headers'
 import { calcularMetricasDashboard, calcularTodasLasMetricas } from './dashboard-metrics'
+import { checkTiendaActiva } from '@/lib/commercial'
 
 export async function recalcularDashboard(tiendaId: string) {
   const cookieStore = await cookies()
@@ -13,6 +14,9 @@ export async function recalcularDashboard(tiendaId: string) {
 
   const { supabase } = createAdminClient()
   if (!supabase) return { error: 'Error de conexión' }
+
+  const activa = await checkTiendaActiva(supabase, tiendaId)
+  if (!activa.ok) return { error: activa.error }
 
   const hoyStr = new Date().toISOString().split('T')[0]
   const inicioHoy = `${hoyStr}T00:00:00.000Z`

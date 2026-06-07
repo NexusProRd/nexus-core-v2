@@ -5,6 +5,7 @@ import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getSessionFromCookieValue } from '@/lib/auth/get-session'
 import { gestionarStock } from '@/lib/stock'
+import { checkTiendaActiva } from '@/lib/commercial'
 
 function generateTicketCode(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -36,6 +37,9 @@ export async function actualizarEstado(formData: FormData) {
   const session = await getSessionFromCookieValue(rawSession)
   if (!session.valid || !session.tiendaId) return
   const sessionId = session.tiendaId
+
+  const activa = await checkTiendaActiva(supabase, sessionId)
+  if (!activa.ok) return
 
   const pedidoId = formData.get('pedidoId') as string
   const nuevoEstado = formData.get('estado') as string
@@ -141,6 +145,9 @@ export async function eliminarTodosLosPedidos() {
   const session = await getSessionFromCookieValue(rawSession)
   if (!session.valid || !session.tiendaId) return
   const sessionId = session.tiendaId
+
+  const activa = await checkTiendaActiva(supabase, sessionId)
+  if (!activa.ok) return
 
   const { data: pedidos } = await supabase.from('pedidos').select('id').eq('id_tienda', sessionId)
   if (!pedidos || pedidos.length === 0) { redirect('/dashboard/pedidos'); return }

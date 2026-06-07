@@ -1,13 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
-
-function slugify(text: string): string {
-  return text.toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 60)
-}
+import { slugify } from '@/lib/slug'
 
 async function sugerirSlug(base: string, excluirId: string, supabase: any): Promise<string[]> {
   const slugs: string[] = []

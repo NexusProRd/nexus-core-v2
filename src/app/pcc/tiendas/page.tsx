@@ -196,6 +196,20 @@ export default function PccTiendasPage() {
     return d.toISOString()
   }
 
+  function calcularPenaltyDates(fechaVen: string | null): Record<string, string | null> {
+    if (!fechaVen) return {
+      fecha_bloqueo_panel: null,
+      fecha_suspension_catalogo: null,
+      fecha_eliminacion_total: null,
+    }
+    const base = new Date(fechaVen).getTime()
+    return {
+      fecha_bloqueo_panel: new Date(base + 15 * 86400000).toISOString(),
+      fecha_suspension_catalogo: new Date(base + 30 * 86400000).toISOString(),
+      fecha_eliminacion_total: new Date(base + 45 * 86400000).toISOString(),
+    }
+  }
+
   const handleRecargarTokens = async () => {
     if (tokenInput <= 0) return
     setEnviandoTokens(true)
@@ -203,12 +217,14 @@ export default function PccTiendasPage() {
     if (!tienda) { setEnviandoTokens(false); return }
     const nuevos = (tienda.tokens_disponibles || 0) + tokenInput
     const meses = tokenInput
-    const updates: Record<string, string | number | null> = {
+    const nuevaVen = sumarMeses(tienda.fecha_vencimiento, meses)
+    const penalty = calcularPenaltyDates(nuevaVen)
+    const updates: Record<string, string | number | boolean | null> = {
       tokens_disponibles: nuevos,
-      fecha_vencimiento: sumarMeses(tienda.fecha_vencimiento, meses),
-      fecha_bloqueo_panel: sumarMeses(tienda.fecha_bloqueo_panel, meses),
-      fecha_suspension_catalogo: sumarMeses(tienda.fecha_suspension_catalogo, meses),
-      fecha_eliminacion_total: sumarMeses(tienda.fecha_eliminacion_total, meses),
+      fecha_vencimiento: nuevaVen,
+      ...penalty,
+      plan_status: 'active',
+      esta_activa: true,
     }
     const { error } = await supabase.from('tiendas').update(updates).eq('id', tokenModal.tiendaId)
     if (error) {
@@ -217,10 +233,10 @@ export default function PccTiendasPage() {
     }
     setTiendas(prev => prev.map(t => t.id === tokenModal.tiendaId ? {
       ...t, tokens_disponibles: nuevos,
-      fecha_vencimiento: sumarMeses(t.fecha_vencimiento, meses),
-      fecha_bloqueo_panel: sumarMeses(t.fecha_bloqueo_panel, meses),
-      fecha_suspension_catalogo: sumarMeses(t.fecha_suspension_catalogo, meses),
-      fecha_eliminacion_total: sumarMeses(t.fecha_eliminacion_total, meses),
+      fecha_vencimiento: nuevaVen,
+      ...calcularPenaltyDates(nuevaVen),
+      plan_status: 'active' as any,
+      esta_activa: true,
     } : t))
     setEnviandoTokens(false)
     setTokenModal({ abierto: false, tiendaId: '', nombreTienda: '' })
@@ -369,7 +385,11 @@ export default function PccTiendasPage() {
     for (const id of ids) {
       switch (accion) {
         case 'activar': {
-          await supabase.from('tiendas').update({ esta_activa: true, fecha_bloqueo_panel: null }).eq('id', id)
+          await supabase.from('tiendas').update({
+            esta_activa: true,
+            plan_status: 'active',
+            fecha_bloqueo_panel: null,
+          }).eq('id', id)
           break
         }
         case 'suspender': {
@@ -388,9 +408,13 @@ export default function PccTiendasPage() {
           const nuevosTokens = (t?.tokens_disponibles || 0) + batchTokens
           const nuevaFecha = t?.fecha_vencimiento ? new Date(t.fecha_vencimiento) : new Date()
           nuevaFecha.setMonth(nuevaFecha.getMonth() + 1)
+          const penalty = calcularPenaltyDates(nuevaFecha.toISOString())
           await supabase.from('tiendas').update({
             tokens_disponibles: nuevosTokens,
             fecha_vencimiento: nuevaFecha.toISOString(),
+            ...penalty,
+            plan_status: 'active',
+            esta_activa: true,
           }).eq('id', id)
           break
         }
@@ -407,9 +431,12 @@ export default function PccTiendasPage() {
   }
 
   const handleAprobar = async (t: SocioTienda) => {
-    const { error } = await supabase.from('tiendas').update({ esta_activa: true }).eq('id', t.id)
+    const { error } = await supabase.from('tiendas').update({
+      esta_activa: true,
+      plan_status: 'active',
+    }).eq('id', t.id)
     if (error) { await logError('Logistica', 'Aprobación fallida', error.message, { tiendaId: t.id }); return }
-    setTiendas(prev => prev.map(s => s.id === t.id ? { ...s, esta_activa: true } : s))
+    setTiendas(prev => prev.map(s => s.id === t.id ? { ...s, esta_activa: true, plan_status: 'active' as any } : s))
     const msg = encodeURIComponent(
       `¡Hola ${t.nombre_tienda}! Nos complace indicarte que fue aprobado tu registro y puedes comenzar a configurar tu tienda y publicar tus productos. 🎉\n\n💡 Recuerda que tienes 7 días para probar el servicio gratis. Si estás interesado en adquirir más tokens para extender tu plan, estaremos para servirte.\n\nAquí tienes los enlaces de tu negocio:\n🔐 Panel de Configuración (Dashboard): http://localhost:3000/login\n🏪 Tu Catálogo Público: http://localhost:3000/catalogo/${t.id}\n\n¡Mucho éxito con tus ventas! Estamos aquí para lo que necesites. 🚀`
     )
@@ -470,9 +497,12 @@ export default function PccTiendasPage() {
     } else {
       const { error } = await supabase.from('tiendas').update({
         esta_activa: true,
+        plan_status: 'active',
         fecha_bloqueo_panel: null,
       }).eq('id', t.id)
-      if (!error) setTiendas(prev => prev.map(s => s.id === t.id ? { ...s, esta_activa: true, fecha_bloqueo_panel: null } : s))
+      if (!error) setTiendas(prev => prev.map(s => s.id === t.id ? {
+        ...s, esta_activa: true, plan_status: 'active' as any, fecha_bloqueo_panel: null,
+      } : s))
     }
   }
 

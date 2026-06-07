@@ -4,38 +4,12 @@ import { randomBytes, scryptSync } from 'crypto'
 import bcrypt from 'bcryptjs'
 import { getDefaultLimit } from '@/lib/commercial'
 import { createSessionToken } from '@/lib/auth/session'
+import { slugify, slugDisponible } from '@/lib/slug'
 
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString('hex')
   const derivedKey = scryptSync(password, salt, 64).toString('hex')
   return `${salt}:${derivedKey}`
-}
-
-function generarSlug(texto: string): string {
-  return texto
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    || 'tienda'
-}
-
-async function slugDisponible(supabase: any, slug: string, tiendaId?: string): Promise<string> {
-  let candidate = slug
-  let intento = 0
-  while (intento < 50) {
-    const { data: existing } = await supabase
-      .from('tiendas')
-      .select('id')
-      .eq('slug', candidate)
-      .is('soft_deleted_at', null)
-      .maybeSingle()
-    if (!existing || (tiendaId && existing.id === tiendaId)) return candidate
-    intento++
-    candidate = `${slug}-${intento}`
-  }
-  return `${slug}-${Date.now()}`
 }
 
 export async function POST(req: Request) {
@@ -69,7 +43,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Este WhatsApp ya está registrado.' }, { status: 409 })
     }
 
-    const slug = await slugDisponible(supabase, generarSlug(nombre_tienda))
+    const slug = await slugDisponible(supabase, slugify(nombre_tienda) || 'tienda')
 
     const password_hash = hashPassword(password)
     const codigoVerificacion = `${randomBytes(3).toString('hex').toUpperCase()}`
@@ -81,8 +55,8 @@ export async function POST(req: Request) {
     const ahora = new Date()
     const trialEnd = new Date(ahora.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-    const fechaSusp = new Date(ahora.getTime() + 37 * 24 * 60 * 60 * 1000)
-    const fechaElim = new Date(ahora.getTime() + 60 * 24 * 60 * 60 * 1000)
+    const fechaSusp = new Date(ahora.getTime() + 45 * 24 * 60 * 60 * 1000)
+    const fechaElim = new Date(ahora.getTime() + 61 * 24 * 60 * 60 * 1000)
 
     const { data: nuevaTienda, error: insertError } = await supabase!.from('tiendas').insert({
       nombre_socio: nombre_socio.trim(),
@@ -108,6 +82,9 @@ export async function POST(req: Request) {
     }).select('id').single()
 
     if (insertError) {
+      if (insertError.code === '23505' || insertError.message?.includes('duplicate key')) {
+        return NextResponse.json({ error: 'Este slug ya está en uso. Intenta de nuevo.' }, { status: 409 })
+      }
       return NextResponse.json({ error: `Error al guardar: ${insertError.message}` }, { status: 500 })
     }
 

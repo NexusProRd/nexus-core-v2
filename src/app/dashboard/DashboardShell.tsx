@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, createContext, useContext, useRef, me
 import { createClient } from '@/lib/supabase'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { checkTiendaActiva } from '@/lib/commercial'
 import { formatearPrecio, generarMensaje } from '@/lib/utils'
 import { gestionarStock } from '@/lib/stock'
 import type { VarsWhatsApp } from '@/lib/utils'
@@ -406,7 +407,7 @@ export default function DashboardLayout({
 
         const { data: tienda } = await getSupabase()
             .from('tiendas')
-            .select('id, nombre_tienda, esta_activa, fecha_bloqueo_panel')
+            .select('id, nombre_tienda')
             .eq('id', sessionId)
             .maybeSingle()
 
@@ -417,10 +418,9 @@ export default function DashboardLayout({
 
           setTiendaId(tienda.id)
           setNombreTienda(tienda.nombre_tienda || '')
-          const ahora = new Date()
-          const bloqueadoPorEstado = !tienda.esta_activa
-          const bloqueadoPorFecha = tienda.fecha_bloqueo_panel && new Date(tienda.fecha_bloqueo_panel) <= ahora
-          if (bloqueadoPorEstado || bloqueadoPorFecha) {
+
+          const check = await checkTiendaActiva(getSupabase(), tienda.id)
+          if (!check.ok) {
             setBloqueado(true)
           }
 

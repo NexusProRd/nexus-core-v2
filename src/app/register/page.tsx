@@ -3,19 +3,9 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
-
+import { slugify } from '@/lib/slug'
 
 const WHATSAPP_FALLBACK = '18299999999'
-
-function generarSlug(texto: string): string {
-  return texto
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    || ''
-}
 
 export default function RegisterPage() {
   const [nombreSocio, setNombreSocio] = useState('')
@@ -224,7 +214,7 @@ export default function RegisterPage() {
             />
             {nombreTienda.trim() && (
               <p className="text-xs text-slate-400 mt-1">
-                URL sugerida: <span className="text-slate-600 font-mono">/c/{generarSlug(nombreTienda)}</span>
+                URL sugerida: <span className="text-slate-600 font-mono">/c/{slugify(nombreTienda)}</span>
               </p>
             )}
           </div>

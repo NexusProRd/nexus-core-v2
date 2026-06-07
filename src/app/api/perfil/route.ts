@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/get-session'
+import { checkTiendaActiva } from '@/lib/commercial'
 
 // CONFIG ACCESS FIX: resolve signed token to UUID
 async function getTiendaId(req: NextRequest): Promise<string | null> {
@@ -31,6 +32,9 @@ export async function POST(req: NextRequest) {
 
   const { supabase, error } = createAdminClient()
   if (error) return NextResponse.json({ error }, { status: 500 })
+
+  const activa = await checkTiendaActiva(supabase!, sessionId)
+  if (!activa.ok) return NextResponse.json({ error: activa.error }, { status: 403 })
 
   const body = await req.json()
 

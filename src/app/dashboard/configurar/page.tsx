@@ -8,6 +8,7 @@ import { getPalette, applyPalette } from '@/lib/palettes'
 import { getTiendaIdFromCookie } from '@/lib/cookie-utils'
 import { usePermisos } from '@/context/PermisosContext'
 import { optimizarImagen } from '@/lib/image'
+import { esSlugReservado, SLUG_MAX_LENGTH } from '@/lib/slug'
 
 // DYNAMIC DASHBOARD FIX: Prevent static prerender — requires runtime Supabase session
 export const dynamic = 'force-dynamic'
@@ -67,6 +68,7 @@ export default function ConfigurarPage() {
   const [slugDisponible, setSlugDisponible] = useState<boolean | null>(null)
   const [slugSugerencias, setSlugSugerencias] = useState<string[]>([])
   const [slugVerificando, setSlugVerificando] = useState(false)
+  const [slugError, setSlugError] = useState('')
   const [paletteName, setPaletteName] = useState('elegante')
   const logoFileRef = useRef<File | null>(null)
   const slugTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -324,12 +326,29 @@ export default function ConfigurarPage() {
 
   const verificarSlug = (valor: string) => {
     if (slugTimeoutRef.current) clearTimeout(slugTimeoutRef.current)
-    if (!valor.trim()) { setSlugDisponible(null); setSlugSugerencias([]); return }
+
+    const normalizado = valor.toLowerCase().replace(/[^a-z0-9-]/g, '')
+
+    if (esSlugReservado(normalizado)) {
+      setSlugError('Este slug está reservado y no puede usarse')
+      setSlugDisponible(null)
+      setSlugSugerencias([])
+      return
+    }
+    if (normalizado.length > SLUG_MAX_LENGTH) {
+      setSlugError(`Máximo ${SLUG_MAX_LENGTH} caracteres`)
+      setSlugDisponible(null)
+      setSlugSugerencias([])
+      return
+    }
+    setSlugError('')
+
+    if (!normalizado.trim()) { setSlugDisponible(null); setSlugSugerencias([]); return }
     slugTimeoutRef.current = setTimeout(async () => {
       setSlugVerificando(true)
       try {
         const sessionId = await getTiendaIdFromCookie()
-        const res = await fetch(`/api/slug?q=${encodeURIComponent(valor)}&excluir=${sessionId || ''}`)
+        const res = await fetch(`/api/slug?q=${encodeURIComponent(normalizado)}&excluir=${sessionId || ''}`)
         const data = await res.json()
         setSlugDisponible(data.disponible)
         setSlugSugerencias(data.sugerencias || [])
@@ -493,7 +512,10 @@ export default function ConfigurarPage() {
                 {!slugVerificando && slug && slugDisponible === true && <svg className="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>}
                 {!slugVerificando && slug && slugDisponible === false && <svg className="w-4 h-4 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>}
               </div>
-              {slug && slugDisponible === false && slugSugerencias.length > 0 && (
+              {slugError && (
+                <p className="text-xs text-rose-600 mt-1">{slugError}</p>
+              )}
+              {!slugError && slug && slugDisponible === false && slugSugerencias.length > 0 && (
                 <div className="mt-2">
                   <p className="text-xs text-rose-600 mb-1">No disponible. Sugerencias:</p>
                   <div className="flex flex-wrap gap-1.5">

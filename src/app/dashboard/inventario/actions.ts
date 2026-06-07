@@ -6,7 +6,7 @@ import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { getSessionFromCookieValue } from '@/lib/auth/get-session'
 import { generarSlug } from '@/lib/slug'
-import { esIlimitado } from '@/lib/commercial'
+import { esIlimitado, checkTiendaActiva } from '@/lib/commercial'
 
 async function getTiendaIdFromServerCookies(): Promise<string | null> {
   const cookieStore = await cookies()
@@ -22,12 +22,16 @@ export async function crearProducto(formData: FormData) {
 
   const { data: tienda } = await supabase
     .from('tiendas')
-    .select('id, is_founder, token_productos_limite')
+    .select('id, is_founder, token_productos_limite, esta_activa, fecha_bloqueo_panel')
     .eq('id', sessionId)
     .single()
   if (!tienda) return { error: 'Tienda no encontrada' }
 
-  if (!tienda.is_founder && !esIlimitado(tienda.token_productos_limite) && tienda.token_productos_limite !== null && tienda.token_productos_limite > 0) {
+  const activa = await checkTiendaActiva(supabase, sessionId)
+  if (!activa.ok) return { error: activa.error }
+
+  const limite = tienda.token_productos_limite ?? 15
+  if (!tienda.is_founder && !esIlimitado(limite) && limite > 0) {
     const { count: totalProductos } = await supabase
       .from('productos')
       .select('*', { count: 'exact', head: true })
@@ -83,6 +87,10 @@ export async function toggleStock(productoId: string, inStock: boolean) {
   if (!admin.supabase) return
   const tiendaId = await getTiendaIdFromServerCookies()
   if (!tiendaId) return
+
+  const activa = await checkTiendaActiva(admin.supabase, tiendaId)
+  if (!activa.ok) return
+
   await admin.supabase.from('productos').update({ in_stock: inStock }).eq('id', productoId).eq('id_tienda', tiendaId)
   revalidatePath('/dashboard/inventario')
 }
@@ -92,6 +100,10 @@ export async function eliminarProducto(productoId: string) {
   if (!admin.supabase) return
   const tiendaId = await getTiendaIdFromServerCookies()
   if (!tiendaId) return
+
+  const activa = await checkTiendaActiva(admin.supabase, tiendaId)
+  if (!activa.ok) return
+
   await admin.supabase.from('productos').delete().eq('id', productoId).eq('id_tienda', tiendaId)
   revalidatePath('/dashboard/inventario')
 }
@@ -101,6 +113,10 @@ export async function actualizarProducto(formData: FormData): Promise<{ success?
   if (!admin.supabase) return { error: 'Error de configuración' }
   const tiendaId = await getTiendaIdFromServerCookies()
   if (!tiendaId) return { error: 'No autenticado' }
+
+  const activa = await checkTiendaActiva(admin.supabase, tiendaId)
+  if (!activa.ok) return { error: activa.error }
+
   const id = formData.get('id') as string
   const enOferta = formData.get('en_oferta_checkbox') === 'true'
   const precioOfertaRaw = formData.get('precio_oferta') as string

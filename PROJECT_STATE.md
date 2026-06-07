@@ -17,8 +17,8 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `e3d05d1` — Sprint 5C.3A + 5C.4 + 5C.4.1 — Seguridad, Checklist, UX Polish (Jun 7) |
-| Última verificación | 2026-06-07 — Sprints 5C.3A + 5C.4 + 5C.4.1 completados + Typecheck PASS + Build PASS |
+| Último commit | `PENDING` — Sprint Hardening Comercial F1 + 2D + 2D.1 + 5C.5 — Enforcement, Cron v2, PCC, Slug (Jun 7) |
+| Última verificación | 2026-06-07 — Sprint Hardening Comercial F1 + 2D + 2D.1 completados + Typecheck PASS + Build PASS |
 
 ### Módulos
 
@@ -59,6 +59,10 @@
 **Sprint 5C.3A — Seguridad de Cuenta**
 **Sprint 5C.4 — Primera Experiencia (Checklist Dashboard)**
 **Sprint 5C.4.1 — UX Polish Checklist & Deep Links**
+**Sprint 5C.5 — Slug Hardening (Server + Frontend Validation)**
+**Sprint Hardening Comercial Fase 1 — 10 Server-Side Enforcement Entry Points**
+**Sprint Comercial 2D — Diseño Técnico Final del Modelo Comercial**
+**Sprint Comercial 2D.1 — PCC Hardening (Penalty Dates Recalculation)**
 
 ### Estado
 
@@ -108,6 +112,42 @@
 - CTAs mejorados: "Configurar ahora", "Subir logo", "Completar perfil"
 - Typecheck PASS. Build PASS.
 
+**Sprint 5C.5 Completado.** Slug hardening completo:
+- Slugify unificado en `src/lib/slug.ts` con normalización de acentos, límite 60 chars y fallback
+- 28 slugs reservados en `src/lib/reserved-slugs.ts` + validación `SLUG_PATTERN`
+- Validación server-side en PATCH `/api/tiendas`: slugify → validarSlug → slugDisponible → UPDATE
+- Reuso de `slugDisponible()` en register y PATCH para unicidad
+- Manejo de error UNIQUE constraint (código 23505) en ambos endpoints
+- Frontend validation en configurar/page.tsx: checks de slug reservado y longitud antes de llamada API
+- Register route refactorizada para usar slugify() compartido
+- Typecheck PASS. Build PASS.
+
+**Sprint Hardening Comercial Fase 1 Completado.** Cierre de 10 bypass entry points:
+- Helper `checkTiendaActiva()` en `src/lib/commercial.ts` — enforcement server-side contra `esta_activa` + `fecha_bloqueo_panel`
+- `esIlimitado(null)` corregido: null ahora se trata como limitado (default 15)
+- Server Actions protegidos: crearProducto, actualizarProducto, eliminarProducto, toggleStock, ImportadorCSV, actualizarEstado, eliminarTodosLosPedidos, recalcularDashboard
+- API routes protegidas: PATCH/DELETE `/api/tiendas`, POST `/api/perfil`
+- Migración 060: `cron.unschedule('automatizar-suscripciones')` — deshabilita cron legacy peligroso que usaría `tokens_disponibles=0` para desactivar todas las tiendas
+- Typecheck PASS. Build PASS.
+
+**Sprint Comercial 2D Completado.** Diseño técnico final del modelo comercial aprobado:
+- Modelo: Trial Emprendedor 30d → dashboard_suspended (15d) → catalog_suspended (16d) → deleted
+- Paid: active → grace (15d) → dashboard_suspended (15d) → catalog_suspended (15d) → deleted
+- Separación estricta: `plan_tipo` (contractual) vs `plan_status` (operacional)
+- `plan_tipo` y `token_productos_limite` nunca los modifica el cron ni el login fallback
+- Migración 061: cron v2 (`automatizar_suscripciones_v2()`) — reemplaza cron legacy, maneja todas las transiciones de `plan_status`
+- `checkTiendaActiva()` reescrita con staircase lógico descendente — corrige `plan_status` al vuelo según fechas
+- DashboardShell migrada de inline check a `checkTiendaActiva()`
+- Fechas corregidas en register: `fecha_suspension_catalogo` 37→45d, `fecha_eliminacion_total` 60→61d
+- Typecheck PASS. Build PASS.
+
+**Sprint Comercial 2D.1 Completado.** PCC Hardening — cierre del único riesgo pendiente:
+- Helper `calcularPenaltyDates()` creado en PCC Tiendas: recalcula `fecha_bloqueo_panel=vencimiento+15d`, `fecha_suspension_catalogo=vencimiento+30d`, `fecha_eliminacion_total=vencimiento+45d`
+- 5 ubicaciones corregidas: handleRecargarTokens (individual), batch activar, batch recargar, handleToggleSuspender (desuspender), handleAprobar
+- Ahora siempre setea `plan_status='active'` y `esta_activa=true` en cualquier activación/renovación
+- Penalty dates ya no se extienden proporcionalmente — se recalculan desde el nuevo `fecha_vencimiento`
+- Typecheck PASS. Build PASS.
+
 Todos los sprints de seguridad, hardening, data integrity, gift unification y commercial foundation ejecutados:
 - **P0-B/C**: Security Hardening (`0f4bba5`)
 - **P1-A/A.1**: Push + Data Access Hardening (`6890792` / `4037c39`)
@@ -146,8 +186,10 @@ Todos los sprints de seguridad, hardening, data integrity, gift unification y co
 ### Pendientes críticos (próximo sprint)
 
 1. **Notificaciones WhatsApp al comprador** — sender_phone + deep link WA para aprobado/canjeado/expirado
-4. **Auto-aprobación para tiendas de confianza** — columna `auto_approve_gifts` en tiendas
-5. **Configuración de expiración por tienda** — 24h/48h/72h/7d configurable
+2. **Landing + Pricing copy fixes** — alinear con modelo comercial definitivo (audit Sprint 3)
+3. **Trial PRO implementation** — register como Pro con 30d ilimitado, auto-transition a Emprendedor
+4. **Over-limit UI banners** — stores con >15 productos post-trial deben mostrar aviso
+5. **Configuración de expiración por tienda** — 24h/48h/72h/7d configurable para gifts
 6. **B7 — Gift quantity > 1** — agregar `cantidad` a `items_list`
 7. **Rotar AUTH_SECRET** — Dev secret (`nexus-super-secret-2026-ultra-secure`) debe reemplazarse antes de producción real
 8. **Quick-buy stock failure UX** — Mostrar error al usuario cuando `gestionarStock()` falla (actualmente solo console.error)
@@ -161,11 +203,11 @@ De la auditoría Sprint 4D, estos hallazgos fueron corregidos en Sprint 5A / 5A.
 | P0-1 | Sin upgrade prompts | ✅ Sprint 5A.1 — CTA WhatsApp en error de límite y contador |
 | P0-2 | Límite solo en 1/6 caminos | ✅ Sprint 5A — CSV check, onboarding semilla hereda límite |
 | P0-3 | is_founder decorativo | ✅ Sprint 5A — is_founder bypass en crearProducto y CSV |
-| P0-4 | plan_status trial sin enforce | Pendiente (fuera de alcance) |
+| P0-4 | plan_status trial sin enforce | ✅ Sprint 2D — cron v2 + login fallback + staircase checkTiendaActiva |
 | P0-5 | token_productos_limite inicial incorrecto | ✅ Sprint 5A — register + onboarding usan getDefaultLimit |
 | P1-1 | Discrepancia trial 7 vs 30 días | ✅ Sprint 5B.1 — unificado a 30 días en register, onboarding, success screen |
 | P1-2 | Sin mensaje de upgrade en error | ✅ Sprint 5A.1 — mensaje mejorado + CTA WhatsApp |
-| P1-3 | Sin banner de trial en dashboard | Pendiente (fuera de alcance) |
+| P1-3 | Sin banner de trial en dashboard | Pendiente (fuera de alcance UX — sprint futuro) |
 | P1-4 | Sin contador de productos en inventario | ✅ Sprint 5A — contador visible |
 | P2-2 | Onboarding semilla sin verificar límite | ✅ Sprint 5A — límite correcto desde registro (15), menos que 2 semillas |
 | — | Slug editable en register (fricción innecesaria) | ✅ Sprint 5C.1 — slug auto-generado, no mostrado en register |

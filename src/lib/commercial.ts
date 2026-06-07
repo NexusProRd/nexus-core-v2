@@ -49,11 +49,73 @@ export function getDefaultLimit(planTipo: PlanTipo): number {
   return planTipo === 'pro' ? -1 : 15
 }
 
-export function esIlimitado(limit: number): boolean {
+export function esIlimitado(limit: number | null | undefined): boolean {
   return limit === -1
 }
 
 export function formatLimit(limit: number): string {
   if (limit === -1) return 'Ilimitado'
   return `${limit} productos`
+}
+
+export async function checkTiendaActiva(
+  supabase: { from: (table: string) => any },
+  tiendaId: string,
+): Promise<{ ok: boolean; error?: string; status?: PlanStatus }> {
+  const { data: tienda } = await supabase
+    .from('tiendas')
+    .select('id, plan_status, plan_tipo, is_founder, esta_activa, soft_deleted_at, fecha_vencimiento, fecha_bloqueo_panel, fecha_suspension_catalogo, fecha_eliminacion_total')
+    .eq('id', tiendaId)
+    .maybeSingle()
+
+  if (!tienda) return { ok: false, error: 'Tienda no encontrada' }
+  if (tienda.is_founder) return { ok: true, status: tienda.plan_status }
+
+  const ahora = new Date()
+  const updates: Record<string, any> = {}
+  let newStatus: PlanStatus | null = null
+
+  // Staircase: most restrictive first
+  // (1) Should be deleted?
+  if (tienda.fecha_eliminacion_total && new Date(tienda.fecha_eliminacion_total) <= ahora) {
+    if (tienda.plan_status !== 'deleted') {
+      updates.plan_status = 'deleted'
+      updates.soft_deleted_at = ahora.toISOString()
+      updates.esta_activa = false
+    }
+    newStatus = 'deleted'
+  }
+  // (2) Should be catalog_suspended?
+  else if (tienda.fecha_suspension_catalogo && new Date(tienda.fecha_suspension_catalogo) <= ahora) {
+    if (!['catalog_suspended', 'deleted'].includes(tienda.plan_status)) {
+      updates.plan_status = 'catalog_suspended'
+      updates.esta_activa = false
+    }
+    newStatus = 'catalog_suspended'
+  }
+  // (3) Should be dashboard_suspended?
+  else if (tienda.fecha_bloqueo_panel && new Date(tienda.fecha_bloqueo_panel) <= ahora) {
+    if (!['dashboard_suspended', 'catalog_suspended', 'deleted'].includes(tienda.plan_status)) {
+      updates.plan_status = 'dashboard_suspended'
+      updates.esta_activa = false
+    }
+    newStatus = 'dashboard_suspended'
+  }
+  // (4) Should be in grace? (only for paid subscriptions)
+  else if (tienda.plan_status === 'active' && tienda.fecha_vencimiento && new Date(tienda.fecha_vencimiento) <= ahora) {
+    updates.plan_status = 'grace'
+    newStatus = 'grace'
+  }
+
+  const finalStatus = newStatus || tienda.plan_status
+  if (Object.keys(updates).length > 0) {
+    await supabase.from('tiendas').update(updates).eq('id', tiendaId)
+  }
+
+  const blocked: PlanStatus[] = ['dashboard_suspended', 'catalog_suspended', 'deleted']
+  return {
+    ok: !blocked.includes(finalStatus),
+    error: blocked.includes(finalStatus) ? 'Cuenta suspendida' : undefined,
+    status: finalStatus,
+  }
 }

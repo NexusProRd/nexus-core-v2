@@ -1,6 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/get-session'
+import { slugify, validarSlug, slugDisponible } from '@/lib/slug'
+import { checkTiendaActiva } from '@/lib/commercial'
 
 // CONFIG ACCESS FIX: resolve signed token to UUID
 async function getTiendaId(req: NextRequest): Promise<string | null> {
@@ -32,13 +34,30 @@ export async function PATCH(req: NextRequest) {
   const { supabase, error } = createAdminClient()
   if (error) return NextResponse.json({ error }, { status: 500 })
 
+  const activa = await checkTiendaActiva(supabase!, sessionId)
+  if (!activa.ok) return NextResponse.json({ error: activa.error }, { status: 403 })
+
   const body = await req.json()
   const { direccion, rnc, slug } = body
 
   const updates: Record<string, any> = {}
   if (direccion !== undefined) updates.direccion = direccion
   if (rnc !== undefined) updates.rnc = rnc
-  if (slug !== undefined) updates.slug = slug
+
+  if (slug !== undefined) {
+    const normalizado = slugify(slug)
+    const validacion = validarSlug(normalizado)
+    if (!validacion.valido) {
+      return NextResponse.json({ error: validacion.error }, { status: 400 })
+    }
+
+    const disponible = await slugDisponible(supabase!, normalizado, sessionId)
+    if (disponible !== normalizado) {
+      return NextResponse.json({ error: 'Este slug ya está en uso por otra tienda' }, { status: 409 })
+    }
+
+    updates.slug = normalizado
+  }
 
   const { error: updateError } = await supabase!
     .from('tiendas')
@@ -46,6 +65,9 @@ export async function PATCH(req: NextRequest) {
     .eq('id', sessionId)
 
   if (updateError) {
+    if (updateError.code === '23505' || updateError.message?.includes('duplicate key')) {
+      return NextResponse.json({ error: 'Este slug ya está en uso por otra tienda' }, { status: 409 })
+    }
     return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
 
@@ -58,6 +80,9 @@ export async function DELETE(req: NextRequest) {
 
   const { supabase, error } = createAdminClient()
   if (error) return NextResponse.json({ error }, { status: 500 })
+
+  const activa = await checkTiendaActiva(supabase!, sessionId)
+  if (!activa.ok) return NextResponse.json({ error: activa.error }, { status: 403 })
 
   const { error: deleteError } = await supabase!
     .from('tiendas')
