@@ -17,8 +17,8 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `Sprint 5C.1` — Register Simplification (Jun 7) |
-| Última verificación | 2026-06-07 — Sprint 5C.1 completado + Typecheck PASS + Build PASS |
+| Último commit | `Sprint 5C.2` — Onboarding Express (Jun 7) |
+| Última verificación | 2026-06-07 — Sprint 5C.2 completado + Typecheck PASS + Build PASS |
 
 ### Módulos
 
@@ -54,6 +54,7 @@
 **Sprint 5A.1 — Commercial UX Polish**
 **Sprint 5B.1 — Registration Conversion Improvements**
 **Sprint 5C.1 — Register Simplification**
+**Sprint 5C.2 — Onboarding Express**
 
 ### Estado
 
@@ -72,6 +73,12 @@
 **Sprint 5A Completado.** Corrección del enforcement comercial para alinear con reglas de negocio: `is_founder=true` → ilimitado, `token_productos_limite=-1` → ilimitado, `token_productos_limite>0` → límite efectivo. Bug corregido: `>= -1` bloqueaba usuarios Pro. `esIlimitado()` ahora usado correctamente. Importador CSV ya no bypassa límites — verifica antes de insertar. Valores iniciales corregidos: register ya no deja `token_productos_limite` en NULL, onboarding reemplaza hardcode 50 por `getDefaultLimit('emprendedor')` (15). UX mínima: contador `productos / límite` visible en inventario. Typecheck PASS. Build PASS.
 
 **Sprint 5A.1 Completado.** Cierre de UX del límite de productos: botón "Nuevo Producto" deshabilitado al alcanzar límite (evita formularios que serán rechazados); mensajes de error mejorados con contador `"Has alcanzado el límite de tu plan (15 / 15 productos)"`; CTA de upsell por WhatsApp añadido en formulario, CSV y contador del inventario, usando número de soporte configurado en `nexus_config` (sin hardcode). Typecheck PASS. Build PASS.
+
+**Sprint 5B.1 Completado.** Auto-login post-registro: `createSessionToken()` + cookie `nx_session` en register, success screen redirige a /onboarding con auto-redirect 5s. Trial unificado a 30 días en register, onboarding y success screen. Typecheck PASS. Build PASS.
+
+**Sprint 5C.1 Completado.** Register simplificado: eliminados slug input y preguntas de seguridad, registro reducido de 12 a 5 campos. perfil_tienda creado automáticamente en register. 2 productos semilla genéricos creados en register. Enforcement dates (30/37/60) seteados en register. Dashboard y inventario migrados a .maybeSingle(). Typecheck PASS. Build PASS.
+
+**Sprint 5C.2 Completado.** Onboarding Express: reducido a solo país + tipo_negocio. Botón "Omitir por ahora" con defaults seguros (DO, RD$, estandar, onboarding_completo=true). Todos los demás campos movidos a Configuración (5C.3). guardarTienda simplificado a solo upsert de pais_codigo/moneda_simbolo/tipo_negocio/onboarding_completo. Typecheck PASS. Build PASS.
 
 Todos los sprints de seguridad, hardening, data integrity, gift unification y commercial foundation ejecutados:
 - **P0-B/C**: Security Hardening (`0f4bba5`)
@@ -110,8 +117,7 @@ Todos los sprints de seguridad, hardening, data integrity, gift unification y co
 
 ### Pendientes críticos (próximo sprint)
 
-1. **Sprint 5C.2 — Onboarding Express** — reducir onboarding a país + tipo_negocio + omitir
-2. **Sprint 5C.3 — Settings Enhancements** — editor de slug, país, tipo_negocio, preguntas de seguridad
+1. **Sprint 5C.3 — Settings Enhancements** — editor de slug, país, tipo_negocio, preguntas de seguridad
 3. **Notificaciones WhatsApp al comprador** — sender_phone + deep link WA para aprobado/canjeado/expirado
 4. **Auto-aprobación para tiendas de confianza** — columna `auto_approve_gifts` en tiendas
 5. **Configuración de expiración por tienda** — 24h/48h/72h/7d configurable
@@ -813,7 +819,7 @@ Landing (/) → Register (5 campos: nombre, tienda, whatsapp, password x2) →
   2 productos semilla creados automáticamente (5C.1)
   Enforcement dates seteados (30/37/60 días) (5C.1)
   → Success screen (recovery code) → auto-redirect 5s →
-  Onboarding (país + tipo_negocio) →
+  Onboarding Express (país + tipo_negocio + Omitir) (5C.2) →
   → Dashboard
 ```
 
@@ -1324,6 +1330,16 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 - Typecheck PASS ✅
 - Build PASS ✅
 
+### Sprint completado — Sprint 5C.2 (Onboarding Express)
+- Onboarding reducido a 2 campos: país + tipo_negocio ✅
+- Server action `guardarTienda` simplificado a solo pais_codigo/moneda_simbolo/tipo_negocio/onboarding_completo ✅
+- Server action `omitirOnboarding` con defaults seguros + redirect ✅
+- Botón "Omitir por ahora" visible en UI ✅
+- Todos los campos removidos (logo, slogan, categorías, horario, etc.) → Configuración (5C.3) ✅
+- Imports huérfanos eliminados ✅
+- Typecheck PASS ✅
+- Build PASS ✅
+
 ### Sprint completado — Sprint 5C.1 (Register Simplification)
 - Slug input eliminado del register — auto-generado desde nombre_tienda ✅
 - URL preview informativa debajo de nombre_tienda ✅
@@ -1341,7 +1357,7 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 
 | Tarea | Prioridad | Estado |
 |-------|-----------|--------|
-| **Sprint 5C.2 — Onboarding Express** | P1 | ⬜ |
+| **Sprint 5C.2 — Onboarding Express** | P1 | ✅ |
 | **Sprint 5C.3 — Settings Enhancements** | P1 | ⬜ |
 | Migración 059 ejecución en DB (drop plan_nivel) | P1 | ✅ (preparada) |
 | Rotar AUTH_SECRET (dev secret débil) | P1 | ⬜ |
@@ -1691,6 +1707,28 @@ async function diag() {
 ---
 
 ## Changelog
+
+### 2026-06-07 — Sprint 5C.2 — Onboarding Express
+
+##### Cambios
+
+- **Onboarding simplificado** — Reducido de ~12 campos a solo 2: país + tipo_negocio.
+- **Server action `guardarTienda`** — Simplificado: solo upsert de `pais_codigo`, `moneda_simbolo`, `tipo_negocio`, `onboarding_completo`. Ya no setea nombre_tienda, whatsapp, logo, direccion, rnc, slogan, categorias, horario, sobre_nosotros, palette, seed products, enforcement dates, ni perfil_tienda — todo eso ya lo maneja register (5C.1).
+- **Nueva server action `omitirOnboarding`** — Setea defaults seguros (`pais_codigo='DO'`, `moneda_simbolo='RD$'`, `tipo_negocio='estandar'`, `onboarding_completo=true`) y redirige a `/dashboard`.
+- **UI actualizada** — Título "Completa tu tienda", subtítulo "Puedes personalizar el resto más adelante desde Configuración.", botón "Omitir por ahora" como link secundario.
+- **Imports eliminados**: PALETTES, LogoUpload, generatePwaIcons, getDefaultLimit.
+- **Código eliminado**: ~195 líneas de UI, lógica de logo/PWA, seed products, enforcement dates, perfil_tienda upsert, palette selector.
+
+##### Verificación
+
+- Typecheck PASS ✅
+- Build PASS ✅
+
+##### Archivos modificados
+
+```
+src/app/onboarding/page.tsx | 70 líneas (+), 248 líneas (-) neto
+```
 
 ### 2026-06-07 — Sprint 5C.1 — Register Simplification
 
