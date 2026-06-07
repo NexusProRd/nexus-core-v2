@@ -6,6 +6,7 @@ import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { getSessionFromCookieValue } from '@/lib/auth/get-session'
 import { generarSlug } from '@/lib/slug'
+import { esIlimitado } from '@/lib/commercial'
 
 async function getTiendaIdFromServerCookies(): Promise<string | null> {
   const cookieStore = await cookies()
@@ -21,18 +22,20 @@ export async function crearProducto(formData: FormData) {
 
   const { data: tienda } = await supabase
     .from('tiendas')
-    .select('id, token_productos_limite')
+    .select('id, is_founder, token_productos_limite')
     .eq('id', sessionId)
     .single()
   if (!tienda) return { error: 'Tienda no encontrada' }
 
-  const { count: totalProductos } = await supabase
-    .from('productos')
-    .select('*', { count: 'exact', head: true })
-    .eq('id_tienda', tienda.id)
+  if (!tienda.is_founder && !esIlimitado(tienda.token_productos_limite) && tienda.token_productos_limite !== null && tienda.token_productos_limite > 0) {
+    const { count: totalProductos } = await supabase
+      .from('productos')
+      .select('*', { count: 'exact', head: true })
+      .eq('id_tienda', tienda.id)
 
-  if (totalProductos !== null && totalProductos >= tienda.token_productos_limite) {
-    return { error: 'Límite de plan alcanzado' }
+    if (totalProductos !== null && totalProductos >= tienda.token_productos_limite) {
+      return { error: `Has alcanzado el límite de tu plan (${totalProductos} / ${tienda.token_productos_limite} productos)` }
+    }
   }
 
   const nombre = formData.get('nombre') as string

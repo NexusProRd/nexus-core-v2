@@ -8,6 +8,7 @@ import ProductoRowActions from './ProductoRowActions'
 import ProductoForm from '@/components/inventario/ProductoForm'
 import ProductoModal from '@/components/inventario/ProductoModal'
 import { formatearPrecio } from '@/lib/utils'
+import { esIlimitado } from '@/lib/commercial'
 import { toggleStock } from './actions'
 import ImportadorCSV from './ImportadorCSV'
 import { getTiendaIdFromCookie } from '@/lib/cookie-utils'
@@ -32,7 +33,7 @@ interface Producto {
   tipo_articulo: string | null
 }
 
-export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', productos: initial, categorias = [] }: { tiendaId: string; tipoNegocio?: string; productos: Producto[]; categorias?: string[] }) {
+export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', productos: initial, categorias = [], tokenProductosLimite, isFounder }: { tiendaId: string; tipoNegocio?: string; productos: Producto[]; categorias?: string[]; tokenProductosLimite: number | null; isFounder: boolean }) {
   const { permisos } = usePermisos()
   const { toast } = useToast()
   const [busqueda, setBusqueda] = useState('')
@@ -43,8 +44,15 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
   const [importOpen, setImportOpen] = useState(false)
   const [showAddModal, setShowAddModal] = useState(false)
   const [reservados, setReservados] = useState<Set<string>>(new Set())
+  const [whatsappSoporte, setWhatsappSoporte] = useState('')
   const router = useRouter()
   const supabase = createClient()
+
+  useEffect(() => {
+    fetch('/api/config/whatsapp-soporte').then(r => r.json()).then(d => { if (d.numero) setWhatsappSoporte(d.numero) }).catch(() => {})
+  }, [])
+
+  const limiteAlcanzado = !isFounder && tokenProductosLimite !== null && tokenProductosLimite > 0 && productos.length >= tokenProductosLimite
 
   useEffect(() => {
     const cargarReservados = async () => {
@@ -231,7 +239,16 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
           <div className="flex items-center justify-between mb-3">
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">Inventario</h1>
-              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{productos.length} producto{productos.length !== 1 ? 's' : ''} registrado{productos.length !== 1 ? 's' : ''}</p>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                {productos.length} / {isFounder ? 'Ilimitado (Founder)' : esIlimitado(tokenProductosLimite ?? 0) ? 'Ilimitado' : tokenProductosLimite ?? '—'}
+                {limiteAlcanzado && whatsappSoporte && (
+                  <a href={`https://wa.me/${whatsappSoporte}?text=${encodeURIComponent('Hola, he alcanzado el límite de productos de mi tienda y me gustaría conocer las opciones para ampliar mi capacidad o actualizar mi plan.')}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 ml-2 px-2.5 py-1 bg-emerald-600 text-white rounded-lg text-[11px] font-semibold hover:bg-emerald-700 transition-colors">
+                    💬 ¿Necesitas más?
+                  </a>
+                )}
+              </p>
             </div>
           </div>
           {/* KPI Cards */}
@@ -278,8 +295,14 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
           {/* Acciones Rápidas + Buscador + filtros */}
           <div className="flex flex-wrap items-center gap-2">
             {(permisos === null || permisos.productos) && (
-              <button onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-[var(--primary)] text-white rounded-xl text-sm font-semibold hover:brightness-110 transition-all shrink-0 shadow-sm press-scale-sm">
+              <button onClick={() => {
+                if (limiteAlcanzado) {
+                  toast(`Límite alcanzado (${productos.length} / ${tokenProductosLimite})`, 'warning')
+                  return
+                }
+                setShowAddModal(true)
+              }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shrink-0 shadow-sm press-scale-sm ${limiteAlcanzado ? 'bg-slate-300 text-slate-500 cursor-not-allowed' : 'bg-[var(--primary)] text-white hover:brightness-110'}`}>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                 Nuevo Producto
               </button>
@@ -514,10 +537,11 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
             categorias={categorias}
             onSuccess={() => setShowAddModal(false)}
             onCancel={() => setShowAddModal(false)}
+            whatsappSoporte={whatsappSoporte}
           />
         </ProductoModal>
       )}
-      {(permisos === null || permisos.productos) && importOpen && <ImportadorCSV tiendaId={tiendaId} categorias={categorias} onClose={() => setImportOpen(false)} />}
+      {(permisos === null || permisos.productos) && importOpen && <ImportadorCSV tiendaId={tiendaId} categorias={categorias} onClose={() => setImportOpen(false)} whatsappSoporte={whatsappSoporte} />}
     </div>
   )
 }

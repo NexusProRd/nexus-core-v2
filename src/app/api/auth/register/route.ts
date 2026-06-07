@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import { randomBytes, scryptSync } from 'crypto'
 import bcrypt from 'bcryptjs'
+import { getDefaultLimit } from '@/lib/commercial'
 
 interface PreguntaRecuperacion {
   pregunta: string
@@ -104,6 +105,7 @@ export async function POST(req: Request) {
       esta_activa: true,
       plan_tipo: 'emprendedor',
       plan_status: 'trial',
+      token_productos_limite: getDefaultLimit('emprendedor'),
       is_founder: false,
       trial_started_at: ahora.toISOString(),
       trial_ends_at: trialEnd.toISOString(),

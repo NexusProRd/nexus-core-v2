@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { generarSlug } from '@/lib/slug'
+import { esIlimitado } from '@/lib/commercial'
 
 interface FilaImportacion {
   id: number
@@ -19,9 +20,10 @@ interface FilaImportacion {
   imagenPreview: string | null
 }
 
-export default function ImportadorCSV({ tiendaId, categorias = [], onClose }: { tiendaId: string; categorias?: string[]; onClose: () => void }) {
+export default function ImportadorCSV({ tiendaId, categorias = [], onClose, whatsappSoporte }: { tiendaId: string; categorias?: string[]; onClose: () => void; whatsappSoporte?: string }) {
   const [filas, setFilas] = useState<FilaImportacion[]>([])
   const [publicando, setPublicando] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   const handleCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,6 +73,7 @@ export default function ImportadorCSV({ tiendaId, categorias = [], onClose }: { 
 
   const publicarTodo = async () => {
     setPublicando(true)
+    setError(null)
     const supabase = createClient()
     // Group rows by codigo_barra for variant consolidation
     const groups = new Map<string, FilaImportacion[]>()
@@ -79,6 +82,26 @@ export default function ImportadorCSV({ tiendaId, categorias = [], onClose }: { 
       if (!groups.has(key)) groups.set(key, [])
       groups.get(key)!.push(f)
     }
+    // Check commercial limit before inserting
+    const { data: tienda } = await supabase
+      .from('tiendas')
+      .select('is_founder, token_productos_limite')
+      .eq('id', tiendaId)
+      .single()
+
+    if (tienda && !tienda.is_founder && !esIlimitado(tienda.token_productos_limite) && tienda.token_productos_limite !== null && tienda.token_productos_limite > 0) {
+      const { count: totalProductos } = await supabase
+        .from('productos')
+        .select('*', { count: 'exact', head: true })
+        .eq('id_tienda', tiendaId)
+
+      if (totalProductos !== null && (totalProductos + groups.size) > tienda.token_productos_limite) {
+        setPublicando(false)
+        setError(`Límite de plan alcanzado: ${totalProductos} / ${tienda.token_productos_limite} productos`)
+        return
+      }
+    }
+
     for (const [, rows] of groups) {
       const f = rows[0]
       let imagenUrl: string | null = null
@@ -163,6 +186,21 @@ export default function ImportadorCSV({ tiendaId, categorias = [], onClose }: { 
             </div>
           ) : (
             <div className="space-y-4">
+              {error && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-700 text-sm font-medium rounded-xl px-4 py-3 space-y-3">
+                  <p>{error}</p>
+                  {whatsappSoporte && (
+                    <div className="border-t border-rose-200 pt-3">
+                      <p className="text-sm font-medium mb-2">¿Necesitas más capacidad?</p>
+                      <a href={`https://wa.me/${whatsappSoporte}?text=${encodeURIComponent('Hola, he alcanzado el límite de productos de mi tienda y me gustaría conocer las opciones para ampliar mi capacidad o actualizar mi plan.')}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors">
+                        💬 Contactar a Nexus
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
               <p className="text-sm text-slate-500">{filas.length} producto(s) cargados. Puedes asignar una imagen a cada fila antes de publicar.</p>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">

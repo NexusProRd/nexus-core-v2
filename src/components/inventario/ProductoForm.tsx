@@ -15,6 +15,7 @@ interface ProductoFormProps {
   categorias?: string[]
   onSuccess?: () => void
   onCancel?: () => void
+  whatsappSoporte?: string
 }
 
 function generarCodigoAleatorio(): string {
@@ -34,7 +35,7 @@ function generarSkuVariante(codigoBarra: string, talla: string): string {
 const PRENDA_SIZES = ['S', 'M', 'L', 'XL', '2XL', '3XL', '28', '30', '32', '34', '36', '38', '40']
 const CALZADO_SIZES = ['6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10', '10.5', '11', '11.5', '12', '12.5', '13', '13.5', '14', '15', '16']
 
-export default function ProductoForm({ mode, initialData, tiendaId, tipoNegocio, categorias = [], onSuccess, onCancel }: ProductoFormProps) {
+export default function ProductoForm({ mode, initialData, tiendaId, tipoNegocio, categorias = [], onSuccess, onCancel, whatsappSoporte }: ProductoFormProps) {
   const { toast } = useToast()
 
   // Basic fields
@@ -228,11 +229,23 @@ export default function ProductoForm({ mode, initialData, tiendaId, tipoNegocio,
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2">
-          <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          {error}
+        <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 text-red-700 dark:text-red-400 px-4 py-3 rounded-xl text-sm font-medium space-y-3">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{error}</span>
+          </div>
+          {whatsappSoporte && mode === 'create' && (
+            <div className="border-t border-red-200 dark:border-red-800/30 pt-3">
+              <p className="text-sm font-medium mb-2">¿Necesitas más capacidad?</p>
+              <a href={`https://wa.me/${whatsappSoporte}?text=${encodeURIComponent('Hola, he alcanzado el límite de productos de mi tienda y me gustaría conocer las opciones para ampliar mi capacidad o actualizar mi plan.')}`}
+                target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors">
+                💬 Contactar a Nexus
+              </a>
+            </div>
+          )}
         </div>
       )}
 

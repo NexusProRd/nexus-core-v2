@@ -17,8 +17,8 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `ea1474f` — Sprint 4C Legacy plan_nivel Removal (Jun 6) |
-| Última verificación | 2026-06-06 — Sprint 4C completado + Typecheck PASS + Build PASS |
+| Último commit | `Sprint 5A.1` — Commercial UX Polish (Jun 6) |
+| Última verificación | 2026-06-06 — Sprint 5A.1 completado + Typecheck PASS + Build PASS |
 
 ### Módulos
 
@@ -50,6 +50,8 @@
 **Sprint 4A — Commercial Normalization**
 **Sprint 4B — Commercial Management Modal**
 **Sprint 4C — Legacy plan_nivel Removal**
+**Sprint 5A — Commercial Enforcement Fixes**
+**Sprint 5A.1 — Commercial UX Polish**
 
 ### Estado
 
@@ -64,6 +66,10 @@
 **Sprint 4B Completado.** Modal de configuración comercial en PCC Tiendas para editar `plan_tipo`, `plan_status` e `is_founder` de cada tienda. Acceso desde menú de acciones (desktop y mobile) con "Config. Comercial". Modal con dropdowns para plan_tipo (Emprendedor/Pro), plan_status (6 estados) y toggle is_founder. Actualización directa vía `supabase.from('tiendas').update()` con logging a `nexus_logs`. Typecheck PASS. Build PASS.
 
 **Sprint 4C Completado.** Eliminación completa de `plan_nivel` del código fuente. Tipo `PlanNivel` y campo `plan_nivel` eliminados de `SocioTienda`. Referencias eliminadas de register, onboarding, backups y tests. Bug corregido en suscripciones (`ilimitado` → `pro`). Migración 059 preparada (no ejecutada) para dropear la columna en DB. Typecheck PASS. Build PASS.
+
+**Sprint 5A Completado.** Corrección del enforcement comercial para alinear con reglas de negocio: `is_founder=true` → ilimitado, `token_productos_limite=-1` → ilimitado, `token_productos_limite>0` → límite efectivo. Bug corregido: `>= -1` bloqueaba usuarios Pro. `esIlimitado()` ahora usado correctamente. Importador CSV ya no bypassa límites — verifica antes de insertar. Valores iniciales corregidos: register ya no deja `token_productos_limite` en NULL, onboarding reemplaza hardcode 50 por `getDefaultLimit('emprendedor')` (15). UX mínima: contador `productos / límite` visible en inventario. Typecheck PASS. Build PASS.
+
+**Sprint 5A.1 Completado.** Cierre de UX del límite de productos: botón "Nuevo Producto" deshabilitado al alcanzar límite (evita formularios que serán rechazados); mensajes de error mejorados con contador `"Has alcanzado el límite de tu plan (15 / 15 productos)"`; CTA de upsell por WhatsApp añadido en formulario, CSV y contador del inventario, usando número de soporte configurado en `nexus_config` (sin hardcode). Typecheck PASS. Build PASS.
 
 Todos los sprints de seguridad, hardening, data integrity, gift unification y commercial foundation ejecutados:
 - **P0-B/C**: Security Hardening (`0f4bba5`)
@@ -80,6 +86,8 @@ Todos los sprints de seguridad, hardening, data integrity, gift unification y co
 - **Sprint 4A**: Commercial Normalization (`d461c54`)
 - **Sprint 4B**: Commercial Management Modal (`dd8f603`)
 - **Sprint 4C**: Legacy plan_nivel Removal (`ea1474f`)
+- **Sprint 5A**: Commercial Enforcement Fixes
+- **Sprint 5A.1**: Commercial UX Polish
 
 ### Estado de vulnerabilidades
 
@@ -107,6 +115,78 @@ Todos los sprints de seguridad, hardening, data integrity, gift unification y co
 5. **Rotar AUTH_SECRET** — Dev secret (`nexus-super-secret-2026-ultra-secure`) debe reemplazarse antes de producción real
 6. **Quick-buy stock failure UX** — Mostrar error al usuario cuando `gestionarStock()` falla (actualmente solo console.error)
 
+### Issues de auditoría comercial resueltos
+
+De la auditoría Sprint 4D, estos hallazgos fueron corregidos en Sprint 5A / 5A.1:
+
+| ID | Hallazgo | Sprint |
+|----|----------|--------|
+| P0-1 | Sin upgrade prompts | ✅ Sprint 5A.1 — CTA WhatsApp en error de límite y contador |
+| P0-2 | Límite solo en 1/6 caminos | ✅ Sprint 5A — CSV check, onboarding semilla hereda límite |
+| P0-3 | is_founder decorativo | ✅ Sprint 5A — is_founder bypass en crearProducto y CSV |
+| P0-4 | plan_status trial sin enforce | Pendiente (fuera de alcance) |
+| P0-5 | token_productos_limite inicial incorrecto | ✅ Sprint 5A — register + onboarding usan getDefaultLimit |
+| P1-1 | Discrepancia trial 7 vs 30 días | Pendiente (fuera de alcance) |
+| P1-2 | Sin mensaje de upgrade en error | ✅ Sprint 5A.1 — mensaje mejorado + CTA WhatsApp |
+| P1-3 | Sin banner de trial en dashboard | Pendiente (fuera de alcance) |
+| P1-4 | Sin contador de productos en inventario | ✅ Sprint 5A — contador visible |
+| P2-2 | Onboarding semilla sin verificar límite | ✅ Sprint 5A — límite correcto desde registro (15), menos que 2 semillas |
+
+---
+
+## Sprint 4D — Commercial Enforcement Audit (Pendiente de implementación)
+
+Auditoría end-to-end del enforcement comercial completada. Hallazgos clasificados por prioridad.
+
+### P0 — Afectan monetización o enforcement directamente
+
+| ID | Hallazgo | Impacto |
+|----|----------|---------|
+| P0-1 | Sin upgrade prompts en toda la app — cero referencias a upgrade/mejorar/cambiar plan | Usuario que choca límite se va sin camino de conversión |
+| P0-2 | Límite de productos solo se enforcea en 1 de ~6 caminos (crearProducto en actions.ts) — importación CSV, backup restore, gift purchase, onboarding semilla, API productos, actualizarProducto no verifican | Bypass completo del límite comercial |
+| P0-3 | `is_founder` no tiene lógica de negocio — no cambia límite, descuento, trial ni bypass | Founder es decorativo |
+| P0-4 | `plan_status: 'trial'` se asigna pero nunca se enforcea — no hay expiración automática, transición trial→grace ni reacción a `trial_ends_at` | Trial es decorativo |
+| P0-5 | `token_productos_limite` inicial inconsistente — register no lo setea (NULL), onboarding lo setea a 50 (no 15), getDefaultLimit(15) nunca se llama | Límite real de emprendedor nunca se aplica automáticamente |
+
+### P1 — Problemas de UX comercial importantes
+
+| ID | Hallazgo | Impacto |
+|----|----------|---------|
+| P1-1 | Discrepancia trial: backend asigna 30 días, onboarding lo sobrescribe a 7, pantalla de éxito dice 7, landing dice 30 | Confianza del usuario |
+| P1-2 | Sin mensaje de upgrade en error de límite — solo `'Límite de plan alcanzado'` sin info del plan actual, límite ni cómo obtener más | Usuario no sabe que existe Pro |
+| P1-3 | Sin banner de trial en dashboard — no muestra días restantes, ni "estás en trial, actualiza a Pro", ni fecha de expiración | Usuario no sabe cuándo expira |
+| P1-4 | Sin contador de productos usados en inventario — no muestra "12 de 15 productos" ni barra de progreso | Usuario descubre límite al chocar |
+| P1-5 | Sistema híbrido token/plan — `tokens_disponibles` legacy convive con `plan_tipo` sin integración; PCC recarga tokens pero no cambia plan | Upgrade path tokens→plan ausente |
+
+### P2 — Mejoras recomendadas
+
+| ID | Hallazgo |
+|----|----------|
+| P2-1 | `precio_servicio` (RD$49) relic en finanzas/route.ts — código muerto |
+| P2-2 | Onboarding inserta 2 productos semilla sin verificar `token_productos_limite` |
+| P2-3 | Sin expiración automática de `plan_status: 'trial'` — no hay cron, trigger ni server action |
+
+### Resumen
+
+| Prioridad | Hallazgos | Impacto |
+|-----------|-----------|---------|
+| **P0** | 5 | Límites bypassables, sin upgrade path, founder decorativo, trial sin enforce, límite inicial incorrecto |
+| **P1** | 5 | Inconsistencia trial, sin upgrade UX, sin estado de plan visible, contador de productos ausente, sistema híbrido token/plan |
+| **P2** | 3 | `precio_servicio` relic, onboarding sin límite, sin expiración automática |
+
+### Conclusión
+
+Infraestructura comercial bien diseñada en datos (`plan_tipo`, `plan_status`, fechas de enforcement) pero débilmente implementada en runtime:
+- Límite de productos solo se enforcea en 1 de ~6 caminos de creación
+- Upgrade path no existe — usuario emprendedor en límite no puede subir a Pro desde la app
+- Trial es puramente informativo sin lógica de expiración
+- Founder es cosmetic-only
+- `token_productos_limite` inicial incorrecto (50 vs 15)
+
+La monetización real depende de que PCC administre manualmente cada tienda, no de la app operando autónomamente.
+
+---
+
 ### Vulnerabilidades corregidas recientemente
 
 | ID | Vulnerabilidad | Sprint |
@@ -115,7 +195,7 @@ Todos los sprints de seguridad, hardening, data integrity, gift unification y co
 
 ### Próxima acción
 
-Rotar AUTH_SECRET, quick-buy UX error handling, ejecutar migración 059 en DB.
+Rotar AUTH_SECRET, quick-buy UX error handling, ejecutar migración 059 en DB, implementar hallazgos de auditoría comercial.
 
 ### Bloqueadores
 

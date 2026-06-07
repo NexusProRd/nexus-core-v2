@@ -30,7 +30,7 @@ export default async function InventarioPage() {
   if (!session.valid || !session.tiendaId) redirect('/login')
   const sessionId = session.tiendaId
 
-  const { data: tienda } = await supabase.from('tiendas').select('id, nombre_tienda, tipo_negocio').eq('id', sessionId).single()
+  const { data: tienda } = await supabase.from('tiendas').select('id, nombre_tienda, tipo_negocio, token_productos_limite, is_founder').eq('id', sessionId).single()
   if (!tienda) redirect('/onboarding')
 
   const { data: productos } = await supabase.from('productos').select('*').eq('id_tienda', tienda.id).order('nombre', { ascending: true })
@@ -39,5 +39,5 @@ export default async function InventarioPage() {
   const { data: perfil } = await supabase.from('perfil_tienda').select('categorias').eq('id_tienda', tienda.id).single()
   const categorias = parsearCategorias(perfil?.categorias)
 
-  return <InventarioClient tiendaId={tienda.id} tipoNegocio={tienda.tipo_negocio || 'estandar'} productos={(productos || []) as Producto[]} categorias={categorias} />
+  return <InventarioClient tiendaId={tienda.id} tipoNegocio={tienda.tipo_negocio || 'estandar'} productos={(productos || []) as Producto[]} categorias={categorias} tokenProductosLimite={tienda.token_productos_limite} isFounder={tienda.is_founder} />
 }

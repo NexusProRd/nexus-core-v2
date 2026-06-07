@@ -7,6 +7,7 @@ import { getSessionFromCookieValue } from '@/lib/auth/get-session'
 import { PALETTES } from '@/lib/palettes'
 import LogoUpload from './LogoUpload'
 import { generatePwaIcons } from '@/lib/pwa-icons'
+import { getDefaultLimit } from '@/lib/commercial'
 
 export const dynamic = 'force-dynamic'
 
@@ -82,7 +83,7 @@ export default async function OnboardingPage() {
       whatsapp_num,
       pais_codigo: pais_codigo || 'DO',
       moneda_simbolo: pais_codigo === 'DO' ? 'RD$' : '$',
-      token_productos_limite: 50,
+      token_productos_limite: getDefaultLimit('emprendedor'),
       tipo_negocio: tipo_negocio as string,
       esta_activa: true,
       tokens_disponibles: 0,
