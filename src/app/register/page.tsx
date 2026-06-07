@@ -110,7 +110,7 @@ export default function RegisterPage() {
 
           <p className="text-slate-500 leading-relaxed mb-6">
             Tu tienda ya está lista. Continúa para configurar tu negocio.
-            Tienes <strong className="text-slate-700">30 días de prueba gratuita</strong> para probar todas las funciones.
+            Tienes <strong className="text-slate-700">30 días de prueba gratuita</strong> con el plan Emprendedor.
           </p>
 
           <Link
@@ -179,7 +179,7 @@ export default function RegisterPage() {
             <span className="text-white font-bold text-lg">N</span>
           </div>
           <h1 className="text-2xl font-bold text-slate-800">Crear tu Tienda</h1>
-          <p className="text-sm text-slate-500 mt-1">Regístrate para comenzar tu prueba gratis</p>
+          <p className="text-sm text-slate-500 mt-1">30 días gratis · 15 productos · Sin tarjeta</p>
         </div>
 
         {error && (

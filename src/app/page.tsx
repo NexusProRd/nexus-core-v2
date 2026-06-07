@@ -162,6 +162,9 @@ export default function HomePage() {
               Nexus crea tu catálogo online en minutos. Tus clientes compran desde tu link 
               y cada pedido te llega completo y ordenado directamente a tu WhatsApp.
             </p>
+            <p className="mt-3 text-sm text-slate-500 max-w-xl mx-auto">
+              Para tiendas de ropa, accesorios, cosméticos, tecnología y más.
+            </p>
             <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link href="/register"
                 className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-bold text-base rounded-2xl hover:brightness-110 hover:scale-[1.02] transition-all shadow-lg shadow-teal-500/20">
@@ -231,7 +234,7 @@ export default function HomePage() {
               { numero: '100%', label: 'Dominicano' },
               { numero: '5 min', label: 'En línea' },
               { numero: '0%', label: 'Comisiones' },
-              { numero: '24/7', label: 'Soporte local' },
+              { numero: 'Soporte', label: 'por WhatsApp' },
             ].map((s, i) => (
               <Reveal key={i}>
                 <div className="text-center">
@@ -465,7 +468,7 @@ export default function HomePage() {
                   <p className="text-sm text-slate-500 mt-2">{proLimit === -1 ? 'Productos ilimitados' : `Hasta ${proLimit} productos`}</p>
                 </div>
                 <div className="space-y-3 mb-8 flex-1">
-                  {['Todo lo de Emprendedor +', 'Productos ilimitados', 'Dashboard avanzado con analíticas', 'Soporte prioritario', 'Todas las funciones disponibles'].map((f, i) => (
+                  {['Todo lo de Emprendedor +', 'Productos ilimitados'].map((f, i) => (
                     <div key={i} className="flex items-center gap-3 text-sm text-slate-600">
                       <svg className="w-5 h-5 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
@@ -474,16 +477,16 @@ export default function HomePage() {
                     </div>
                   ))}
                 </div>
-                <Link href="/register"
+                <a href={`https://wa.me/${whatsappSoporte || '18299999999'}?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20el%20plan%20Pro`} target="_blank" rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold text-sm rounded-xl hover:brightness-110 hover:scale-[1.01] transition-all shadow-md shadow-indigo-500/20">
-                  Probar 30 Días Gratis
+                  Consultar Plan Pro
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-                </Link>
+                </a>
               </div>
             </Reveal>
           </div>
           <Reveal className="mt-6 text-center">
-            <p className="text-xs text-slate-400">Todos los planes incluyen 30 días de prueba gratis. Sin tarjeta de crédito. Sin contratos. Cancela cuando quieras.</p>
+            <p className="text-xs text-slate-400">Prueba Nexus 30 días gratis con el plan Emprendedor. Sin tarjeta. Sin contratos.</p>
           </Reveal>
         </div>
       </section>
@@ -503,7 +506,7 @@ export default function HomePage() {
               { p: '¿Mis clientes necesitan instalar algo?', r: 'No. Solo abren tu link desde cualquier teléfono. Para hacer un pedido, se abre su WhatsApp automáticamente.' },
               { p: '¿Puedo cambiar de plan después?', r: 'Sí. Puedes solicitar un cambio de plan en cualquier momento. Nuestro equipo realizará la actualización y conservarás toda tu información.' },
               { p: '¿Cómo sé qué productos se venden más?', r: 'El dashboard te muestra ventas del día, productos populares e ingresos del mes en tiempo real.' },
-              { p: '¿Qué incluye el período de prueba?', r: 'Los 30 días son con todas las funciones del plan Pro. Sin limitaciones. Pruebas todo antes de decidir.' },
+              { p: '¿Qué incluye el período de prueba?', r: 'Los 30 días son con todas las funciones del plan Emprendedor: catálogo online, pedidos por WhatsApp, dashboard en vivo, control de inventario y más. Sin limitaciones durante el trial.' },
             ].map((faq, i) => (
               <Reveal key={i}>
                 <div className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden transition-all duration-300">

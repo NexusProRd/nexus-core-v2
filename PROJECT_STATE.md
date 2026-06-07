@@ -17,8 +17,8 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `28b1e82` — Sprint Hardening Comercial F1 + 2D + 2D.1 + 5C.5 — Enforcement, Cron v2, PCC, Slug (Jun 7) |
-| Última verificación | 2026-06-07 — Sprint Hardening Comercial F1 + 2D + 2D.1 completados + Typecheck PASS + Build PASS |
+| Último commit | `8102c75` — Sprint 3A + 4A + 4B.1: Landing alignment, audit, catalog presence card (Jun 7) |
+| Última verificación | 2026-06-07 — Sprint 3A + 4A + 4B.1 completados + Typecheck PASS + Build PASS |
 
 ### Módulos
 
@@ -63,6 +63,9 @@
 **Sprint Hardening Comercial Fase 1 — 10 Server-Side Enforcement Entry Points**
 **Sprint Comercial 2D — Diseño Técnico Final del Modelo Comercial**
 **Sprint Comercial 2D.1 — PCC Hardening (Penalty Dates Recalculation)**
+**Sprint Comercial 3A — Landing Alignment (Q1-Q6 + Pro CTA + Hero)**
+**Sprint Conversión 4A — Audit de Conversión (First-Use Journey Analysis)**
+**Sprint Conversión 4B.1 — Catalog Presence Card on Dashboard (W1 + W5)**
 
 ### Estado
 
@@ -146,6 +149,34 @@
 - 5 ubicaciones corregidas: handleRecargarTokens (individual), batch activar, batch recargar, handleToggleSuspender (desuspender), handleAprobar
 - Ahora siempre setea `plan_status='active'` y `esta_activa=true` en cualquier activación/renovación
 - Penalty dates ya no se extienden proporcionalmente — se recalculan desde el nuevo `fecha_vencimiento`
+- Typecheck PASS. Build PASS.
+
+**Sprint Comercial 3A Completado.** Landing alineada con modelo comercial definitivo:
+- Q1: Eliminadas características Pro falsas de landing (analytics, priority support, "todas las funciones")
+- Q2: FAQ #7 corregida: trial es Emprendedor, no Pro
+- Q3: Pricing disclaimer: "Prueba Nexus 30 días gratis con el plan Emprendedor"
+- Q4: Register subtitle: "30 días gratis · 15 productos · Sin tarjeta"
+- Q5: Register success: "con el plan Emprendedor" en vez de "todas las funciones"
+- Q6: Trust bar: "Soporte por WhatsApp" en vez de "24/7 Soporte local"
+- Pro CTA cambiado de "Probar 30 Días Gratis" a "Consultar Plan Pro" (WhatsApp)
+- Hero hero: línea de tipos de negocio ("ropa, accesorios, cosméticos, tecnología y más")
+- Typecheck PASS. Build PASS.
+
+**Sprint Conversión 4A Completado.** Auditoría del journey first-use:
+- Landing → register → onboarding → dashboard → primer producto → catálogo → primer pedido
+- 11 hallazgos (F1-F11): stats en 0, paso redundante en checklist, catálogo no visible hasta muy tarde, sin "¡Rayos!" moment
+- 7 quick wins propuestos (W1-W7): "Ver mi tienda" button, catalog card, seed products by negocio, etc.
+- Conclusión: usuario siente "Tal vez más adelante", no "Necesito esto ahora"
+- Sin cambios de código — solo auditoría documentada en conversación
+- Commits incluidos en `28b1e82` / `8102c75`
+
+**Sprint Conversión 4B.1 Completado.** Catalog Presence Card en dashboard (quick wins W1 + W5):
+- Nueva tarjeta prominente "Tu tienda ya está online" con gradiente teal/emerald, posicionada tras checklist
+- Context-aware: "Comparte..." si hay productos activos, "Agrega productos..." si no hay
+- Botón "Ver mi tienda" abre catálogo en nueva pestaña
+- Componente `CopiarEnlace` reusado para "Copiar enlace" con feedback toast
+- URL del catálogo mostrada en formato `<code>` monospace
+- Sección antigua "Tu enlace de ventas" eliminada del footer del dashboard
 - Typecheck PASS. Build PASS.
 
 Todos los sprints de seguridad, hardening, data integrity, gift unification y commercial foundation ejecutados:

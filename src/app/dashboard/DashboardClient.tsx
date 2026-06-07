@@ -228,6 +228,36 @@ export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero
       {/* ===== CHECKLIST PRIMEROS PASOS ===== */}
       {checklist && <PrimerosPasos tiendaId={tiendaId} checklist={checklist} />}
 
+      {/* ===== TU CATÁLOGO ESTÁ ONLINE ===== */}
+      <div className="bg-gradient-to-br from-teal-500 to-emerald-600 rounded-2xl p-5 sm:p-6 shadow-lg shadow-teal-500/20">
+        <div className="flex items-start gap-4">
+          <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-white font-bold text-lg">Tu tienda ya está online</h3>
+            <p className="text-teal-100 text-sm mt-1">
+              {stats.productosActivos > 0
+                ? 'Comparte este enlace para que tus clientes vean tu catálogo y te pidan por WhatsApp.'
+                : 'Agrega productos para que tus clientes puedan ver tu tienda y hacer pedidos.'}
+            </p>
+            <code className="block text-white/90 text-xs font-mono mt-3 bg-white/10 px-3 py-2 rounded-lg break-all">
+              {publicUrl}
+            </code>
+            <div className="flex gap-2 mt-3">
+              <a href={publicUrl} target="_blank" rel="noopener noreferrer"
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 bg-white text-teal-700 font-bold text-sm px-5 py-2.5 rounded-xl hover:bg-teal-50 transition-all">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                Ver mi tienda
+              </a>
+              <CopiarEnlace url={publicUrl} />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* ===== SECCIÓN 1: VENTAS HISTÓRICAS (CHART) ===== */}
       <section>
         <div className="flex items-center justify-between mb-4">
@@ -572,24 +602,6 @@ export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero
           </Link>
         )}
       </section>
-
-      {/* ===== ENLACE DE VENTAS ===== */}
-      <div className="bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 px-5 py-4 shadow-sm">
-        <div className="flex flex-col sm:flex-row items-start justify-between gap-3">
-          <div className="min-w-0 flex-1 w-full">
-            <h3 className="font-semibold text-slate-900 dark:text-white text-sm mb-1">Tu enlace de ventas</h3>
-            <code className="block text-xs text-slate-500 dark:text-slate-400 break-all font-mono bg-slate-50 dark:bg-slate-800/60 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700">{publicUrl}</code>
-          </div>
-          <div className="flex gap-2 shrink-0 w-full sm:w-auto">
-            <a href={publicUrl} target="_blank" rel="noopener noreferrer"
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 bg-[var(--primary)] text-white text-sm font-medium px-5 py-2.5 rounded-xl hover:brightness-110 transition-all shadow-sm">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-              Ver catálogo
-            </a>
-            <CopiarEnlace url={publicUrl} />
-          </div>
-        </div>
-      </div>
 
       {/* ===== SECCIÓN 7: ACTIVIDAD RECIENTE ===== */}
       <section>
