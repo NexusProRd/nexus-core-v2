@@ -17,8 +17,8 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `Sprint 5C.2.1` — Recovery Code UX (Jun 7) |
-| Última verificación | 2026-06-07 — Sprint 5C.2.1 completado + Typecheck PASS + Build PASS |
+| Último commit | `e3d05d1` — Sprint 5C.3A + 5C.4 + 5C.4.1 — Seguridad, Checklist, UX Polish (Jun 7) |
+| Última verificación | 2026-06-07 — Sprints 5C.3A + 5C.4 + 5C.4.1 completados + Typecheck PASS + Build PASS |
 
 ### Módulos
 
@@ -56,6 +56,9 @@
 **Sprint 5C.1 — Register Simplification**
 **Sprint 5C.2 — Onboarding Express**
 **Sprint 5C.2.1 — Recovery Code UX**
+**Sprint 5C.3A — Seguridad de Cuenta**
+**Sprint 5C.4 — Primera Experiencia (Checklist Dashboard)**
+**Sprint 5C.4.1 — UX Polish Checklist & Deep Links**
 
 ### Estado
 
@@ -82,6 +85,28 @@
 **Sprint 5C.2 Completado.** Onboarding Express: reducido a solo país + tipo_negocio. Botón "Omitir por ahora" con defaults seguros (DO, RD$, estandar, onboarding_completo=true). Todos los demás campos movidos a Configuración (5C.3). guardarTienda simplificado a solo upsert de pais_codigo/moneda_simbolo/tipo_negocio/onboarding_completo. Typecheck PASS. Build PASS.
 
 **Sprint 5C.2.1 Completado.** Recovery Code UX: eliminado auto-redirect post-registro que enviaba al usuario a onboarding después de 5s sin dar tiempo a copiar el código. Agregado botón "📋 Copiar código" con `navigator.clipboard.writeText()` y feedback visual "✅ Código copiado". Advertencia visual reforzada (borde más visible, texto "GUARDA ESTE CÓDIGO EN UN LUGAR SEGURO"). Navegación solo mediante botón explícito "Ir a mi tienda". Dependencia de `useRouter` eliminada. Typecheck PASS. Build PASS.
+
+**Sprint 5C.3A Completado.** Nueva sección Seguridad en `/dashboard/configurar` con dos bloques funcionales:
+- Código de recuperación: mostrar/copiar/regenerar con feedback visual
+- Preguntas de recuperación: 3 preguntas configurables con select + validación de unicidad
+- Nueva API route `/api/auth/seguridad` con GET (leer estado) y POST (regenerar-codigo / guardar-preguntas)
+- Typecheck PASS. Build PASS.
+
+**Sprint 5C.4 Completado.** Nuevo componente `PrimerosPasos` en dashboard con checklist de activación:
+- 4 tareas: recuperación, logo, información, productos
+- Barra de progreso visual (0/4 → 4/4)
+- Checklist computado en server page (`preguntas_recuperacion`, `perfil_tienda`, `productos`)
+- Pasado como prop a `DashboardClient` y renderizado condicional
+- Typecheck PASS. Build PASS.
+
+**Sprint 5C.4.1 Completado.** UX Polish del checklist con deep links y navegación directa:
+- CTAs navegan a `/dashboard/configurar#seguridad`, `#logo`, `#informacion`
+- Anclas `id="seguridad"`, `id="logo"`, `id="informacion"` en configurar page
+- Auto-scroll suave via `scrollIntoView({ behavior: 'smooth' })` tras carga de datos
+- Eliminada tarea "Personalizar catálogo" (no crítica para activación inicial)
+- Barra de progreso actualizada de 0/5 → 0/4 y contador basado en ITEMS.keys
+- CTAs mejorados: "Configurar ahora", "Subir logo", "Completar perfil"
+- Typecheck PASS. Build PASS.
 
 Todos los sprints de seguridad, hardening, data integrity, gift unification y commercial foundation ejecutados:
 - **P0-B/C**: Security Hardening (`0f4bba5`)
@@ -120,8 +145,7 @@ Todos los sprints de seguridad, hardening, data integrity, gift unification y co
 
 ### Pendientes críticos (próximo sprint)
 
-1. **Sprint 5C.3 — Settings Enhancements** — editor de slug, país, tipo_negocio, preguntas de seguridad
-3. **Notificaciones WhatsApp al comprador** — sender_phone + deep link WA para aprobado/canjeado/expirado
+1. **Notificaciones WhatsApp al comprador** — sender_phone + deep link WA para aprobado/canjeado/expirado
 4. **Auto-aprobación para tiendas de confianza** — columna `auto_approve_gifts` en tiendas
 5. **Configuración de expiración por tienda** — 24h/48h/72h/7d configurable
 6. **B7 — Gift quantity > 1** — agregar `cantidad` a `items_list`
@@ -1371,7 +1395,9 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 | Tarea | Prioridad | Estado |
 |-------|-----------|--------|
 | **Sprint 5C.2.1 — Recovery Code UX** | P1 | ✅ |
-| **Sprint 5C.3 — Settings Enhancements** | P1 | ⬜ |
+| **Sprint 5C.3A — Seguridad de Cuenta** | P1 | ✅ |
+| **Sprint 5C.4 — Checklist Primera Experiencia** | P1 | ✅ |
+| **Sprint 5C.4.1 — UX Polish Checklist & Deep Links** | P1 | ✅ |
 | Migración 059 ejecución en DB (drop plan_nivel) | P1 | ✅ (preparada) |
 | Rotar AUTH_SECRET (dev secret débil) | P1 | ⬜ |
 | Quick-buy stock failure UX | P1 | ⬜ |
@@ -1745,6 +1771,33 @@ src/app/register/page.tsx | -useRouter, -auto-redirect useEffect, +copiado state
 ##### Archivos adicionales
 
 - `PROJECT_STATE.md` — Actualizado con Sprint 5C.2.1 completado
+
+### 2026-06-07 — Sprint 5C.3A + 5C.4 + 5C.4.1 — Seguridad, Checklist, UX Polish
+
+##### Cambios
+
+- **Sprint 5C.3A — Seguridad de Cuenta**: Nueva sección Seguridad en `/dashboard/configurar` con código de recuperación (mostrar/copiar/regenerar) y preguntas de recuperación (3 preguntas configurables con select + validación). Nueva API route `/api/auth/seguridad`.
+- **Sprint 5C.4 — Checklist Primera Experiencia**: Nuevo componente `PrimerosPasos.tsx` con barra de progreso y 4 tareas (recuperación, logo, información, productos). Checklist computado en server page desde `preguntas_recuperacion`, `perfil_tienda.sobre_nosotros/horario/logo_url` y `productos.length > 2`. Renderizado condicional en DashboardClient.
+- **Sprint 5C.4.1 — UX Polish**: Deep links con hash anchors (`#seguridad`, `#logo`, `#informacion`). Auto-scroll suave tras carga de datos. Eliminada tarea "Personalizar catálogo" (no crítica). Barra de progreso 0/4. CTAs mejorados.
+
+##### Archivos modificados
+
+```
+src/app/dashboard/page.tsx                    | +14 / -1 (preguntas_recuperacion, perfil fields, checklist)
+src/app/dashboard/DashboardClient.tsx         |  +7 / -1 (checklist prop + PrimerosPasos render)
+src/app/dashboard/configurar/page.tsx         | +227 / -2 (seguridad state/handlers/UI, anclas, auto-scroll)
+src/app/api/auth/seguridad/route.ts           | +65 (nueva API route)
+src/components/dashboard/PrimerosPasos.tsx    | +121 (nuevo componente checklist)
+```
+
+##### Verificación
+
+- Typecheck PASS ✅
+- Build PASS ✅
+
+##### Commit
+
+`e3d05d1` — pushed to `origin/main`
 
 ### 2026-06-07 — Sprint 5C.2 — Onboarding Express (Hotfix)
 
