@@ -1248,7 +1248,7 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 | B7 — Gift quantity > 1 | P3 | ⬜ |
 | Gift Cards / Wallet | P4 | ⬜ |
 | Drop `pedidos.is_gift` column (cleanup) | P4 | ⬜ |
-| Migración 059 ejecución en DB | P1 | 🟡 Pendiente de aprobación |
+| Migración 059 ejecución en DB | P1 | ✅ |
 
 ---
 
