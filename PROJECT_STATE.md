@@ -17,7 +17,7 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `PENDING` — Sprint Hardening Comercial F1 + 2D + 2D.1 + 5C.5 — Enforcement, Cron v2, PCC, Slug (Jun 7) |
+| Último commit | `28b1e82` — Sprint Hardening Comercial F1 + 2D + 2D.1 + 5C.5 — Enforcement, Cron v2, PCC, Slug (Jun 7) |
 | Última verificación | 2026-06-07 — Sprint Hardening Comercial F1 + 2D + 2D.1 completados + Typecheck PASS + Build PASS |
 
 ### Módulos
