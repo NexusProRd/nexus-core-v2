@@ -11,14 +11,14 @@
 | Atributo | Valor |
 |----------|-------|
 | Stack | Next.js 16.2.6, React 19.2.4, Supabase, Tailwind v4 |
-| Base de datos | Supabase PostgreSQL (54 migraciones) |
+| Base de datos | Supabase PostgreSQL (62 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `8102c75` — Sprint 3A + 4A + 4B.1: Landing alignment, audit, catalog presence card (Jun 7) |
-| Última verificación | 2026-06-07 — Sprint 3A + 4A + 4B.1 completados + Typecheck PASS + Build PASS |
+| Último commit | `c44dedf` — Sprint 4B.1 + 4B.2: Catalog card, onboarding alignment (Jun 7) |
+| Última verificación | 2026-06-07 — Sprint 4B.1 + 4B.2 completados + Typecheck PASS + Build PASS |
 
 ### Módulos
 
@@ -66,6 +66,7 @@
 **Sprint Comercial 3A — Landing Alignment (Q1-Q6 + Pro CTA + Hero)**
 **Sprint Conversión 4A — Audit de Conversión (First-Use Journey Analysis)**
 **Sprint Conversión 4B.1 — Catalog Presence Card on Dashboard (W1 + W5)**
+**Sprint Conversión 4B.2 — Onboarding Alineado al Cliente Ideal**
 
 ### Estado
 
@@ -177,6 +178,15 @@
 - Componente `CopiarEnlace` reusado para "Copiar enlace" con feedback toast
 - URL del catálogo mostrada en formato `<code>` monospace
 - Sección antigua "Tu enlace de ventas" eliminada del footer del dashboard
+- Typecheck PASS. Build PASS.
+
+**Sprint Conversión 4B.2 Completado.** Onboarding alineado al cliente ideal:
+- Bug corregido en `ProductoForm.tsx:77`: `tipoNegocio !== 'estandar'` → `tipoNegocio === 'ropa'` — evita que tipos no-ropa activen el sistema de variantes/tallas
+- Nuevos tipos en onboarding: `cosmetica` (Cosméticos y Belleza), `tecnologia` (Gadgets y Tecnología), más el renombrado `ropa` (Ropa y Accesorios) y `estandar` (Otro / General)
+- Migración `062_add_onboarding_types.sql`: añade `cosmetica`, `tecnologia` al CHECK constraint de `tipo_negocio`
+- Landing Industrias actualizada: 4 disponibles (Ropa, Cosméticos, Tecnología, General) + 3 próximamente (Colmados, Servicios, Tours)
+- Sin lógica especializada para cosmética/tecnología — todo no-ropa se comporta como estándar
+- Sin migración de datos — tiendas existentes mantienen su tipo actual
 - Typecheck PASS. Build PASS.
 
 Todos los sprints de seguridad, hardening, data integrity, gift unification y commercial foundation ejecutados:

@@ -256,8 +256,10 @@ export default function HomePage() {
           </Reveal>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 max-w-3xl mx-auto mb-8">
             {[
-              { icon: '👕', titulo: 'Ropa y Boutique', desc: 'Carga fotos con tallas y colores. Tus clientes ven disponibilidad al instante y te piden por WhatsApp.', disponible: true },
-              { icon: '📦', titulo: 'Estándar', desc: 'Floristerías, gadgets tecnológicos, perfumería, y todo tipo de negocio. Subes tus productos y vendes en minutos.', disponible: true },
+              { icon: '👕', titulo: 'Ropa y Accesorios', desc: 'Carga fotos con tallas y colores. Tus clientes ven disponibilidad al instante y te piden por WhatsApp.' },
+              { icon: '💄', titulo: 'Cosméticos y Belleza', desc: 'Perfumería, maquillaje, cuidado personal y todo tipo de artículos de belleza.' },
+              { icon: '📱', titulo: 'Gadgets y Tecnología', desc: 'Electrónicos, accesorios tech, videojuegos y dispositivos.' },
+              { icon: '🏪', titulo: 'Otro / General', desc: 'Floristerías, hogar, juguetes y todo tipo de negocio. Subes tus productos y vendes en minutos.' },
             ].map((ind, i) => (
               <Reveal key={i}>
                 <div className="relative bg-slate-50 rounded-2xl border-2 border-teal-200 p-6 sm:p-7 h-full shadow-sm">
@@ -276,8 +278,8 @@ export default function HomePage() {
           </Reveal>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 max-w-4xl mx-auto">
             {[
+              { icon: '🛒', titulo: 'Colmados y Tiendas Locales', desc: 'Inventario con precios por unidad, pedidos para delivery y control de stock diario.' },
               { icon: '💇', titulo: 'Servicios', desc: 'Barberías, salones de belleza, fotógrafos y profesionales con portafolio y agenda.' },
-              { icon: '🛒', titulo: 'Colmado y Tienda Local', desc: 'Inventario con precios por unidad, pedidos para delivery y control de stock diario.' },
               { icon: '🏝️', titulo: 'Tours y Excursiones', desc: 'Paquetes, fechas disponibles, reservas con depósito y gestión de cupos.' },
             ].map((ind, i) => (
               <Reveal key={i}>

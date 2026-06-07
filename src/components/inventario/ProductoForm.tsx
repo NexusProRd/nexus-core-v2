@@ -74,7 +74,7 @@ export default function ProductoForm({ mode, initialData, tiendaId, tipoNegocio,
   const precioNum = parseFloat(precio) || 0
   const costoNum = parseFloat(costo) || 0
   const margen = precioNum > 0 ? ((precioNum - costoNum) / precioNum * 100) : 0
-  const esRopa = tipoNegocio !== 'estandar'
+  const esRopa = tipoNegocio === 'ropa'
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

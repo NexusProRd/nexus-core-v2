@@ -72,13 +72,15 @@ export default async function OnboardingPage() {
             <label className="block text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">Tipo de Negocio</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {[
-                { value: 'estandar', emoji: '🏪', label: 'Estándar', desc: 'Tecnología, Floristería, Servicios Generales' },
-                { value: 'ropa', emoji: '👗', label: 'Boutique / Ropa', desc: 'Tallas y variantes de prendas' },
+                { value: 'ropa', emoji: '👕', label: 'Ropa y Accesorios', desc: 'Con tallas, colores y variantes de prendas' },
+                { value: 'cosmetica', emoji: '💄', label: 'Cosméticos y Belleza', desc: 'Perfumería, maquillaje, cuidado personal' },
+                { value: 'tecnologia', emoji: '📱', label: 'Gadgets y Tecnología', desc: 'Electrónicos, accesorios tech, videojuegos' },
+                { value: 'estandar', emoji: '🏪', label: 'Otro / General', desc: 'Floristería, hogar, juguetes y más' },
               ].map(n => (
                 <label key={n.value}
                   className="flex flex-col gap-2 p-4 rounded-xl border-2 border-slate-200 cursor-pointer transition-all hover:border-violet-300 hover:bg-violet-50/30 has-[:checked]:border-violet-600 has-[:checked]:bg-violet-50 has-[:checked]:ring-2 has-[:checked]:ring-violet-600/20">
                   <input type="radio" name="tipo_negocio" value={n.value}
-                    defaultChecked={n.value === 'estandar'}
+                    defaultChecked={n.value === 'ropa'}
                     className="w-4 h-4 text-violet-600 focus:ring-violet-500 shrink-0" />
                   <div className="flex items-center gap-3">
                     <span className="text-lg shrink-0">{n.emoji}</span>
