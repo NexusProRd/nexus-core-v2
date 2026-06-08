@@ -18,11 +18,9 @@ export default function ProductoModal({ open, title, onClose, children }: Produc
   return createPortal(
     <div
       className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-      onClick={onClose}
     >
       <div
         className="bg-white dark:bg-slate-800/95 rounded-2xl shadow-xl max-w-lg w-full max-h-[85vh] sm:max-h-[90vh] overflow-y-auto overscroll-contain p-5 sm:p-6"
-        onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h3>
