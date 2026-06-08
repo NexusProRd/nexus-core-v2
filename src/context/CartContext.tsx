@@ -152,7 +152,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    localStorage.setItem('nexus-cart', JSON.stringify(updated))
+    const key = storeId ? `nexus-cart-${storeId}` : 'nexus-cart'
+    localStorage.setItem(key, JSON.stringify(updated))
     setItems(updated)
     itemsRef.current = updated
   }

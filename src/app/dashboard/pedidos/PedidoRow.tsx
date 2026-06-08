@@ -144,7 +144,6 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
       approved_at: new Date().toISOString(),
       sender_phone: pedido.cliente_telefono || null,
       items_list: [],
-      legacy_code: code,
     })
 
     if (insertError) { toast('Error al generar gift', 'error'); setSendingLink(false); return }

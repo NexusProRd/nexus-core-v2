@@ -279,7 +279,7 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
         </button>
 
         <nav className="flex flex-col gap-1">
-          {([['🏠', 'Inicio', ''], ['📦', 'Productos', '?tab=menu'], ['📋', 'Rastrear', '?tab=pedidos'], ['🎟️', 'Tickets', '?tab=tickets']] as const).map(([icon, label, qs]) => (
+          {([['🏠', 'Inicio', ''], ['📦', 'Productos', '?tab=menu'], ['📋', 'Rastrear', '?tab=pedidos']] as const).map(([icon, label, qs]) => (
             <Link key={label} href={`/catalogo/${tiendaSlug}${qs}`}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all"
               style={{ color: vars.textSecondary }}

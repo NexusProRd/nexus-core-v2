@@ -1,9 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getSession } from '@/lib/auth/get-session'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(req: NextRequest) {
-  const sessionId = req.cookies.get('nx_session')?.value
-  if (!sessionId) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+  const session = await getSession(req)
+  if (!session.valid || !session.tiendaId) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+  const sessionId = session.tiendaId
 
   const { supabase, error } = createAdminClient()
   if (error) return NextResponse.json({ error }, { status: 500 })
@@ -18,8 +20,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const sessionId = req.cookies.get('nx_session')?.value
-  if (!sessionId) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+  const session = await getSession(req)
+  if (!session.valid || !session.tiendaId) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+  const sessionId = session.tiendaId
 
   const { supabase, error } = createAdminClient()
   if (error) return NextResponse.json({ error }, { status: 500 })
@@ -52,8 +55,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const sessionId = req.cookies.get('nx_session')?.value
-  if (!sessionId) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+  const session = await getSession(req)
+  if (!session.valid || !session.tiendaId) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+  const sessionId = session.tiendaId
 
   const { supabase, error } = createAdminClient()
   if (error) return NextResponse.json({ error }, { status: 500 })

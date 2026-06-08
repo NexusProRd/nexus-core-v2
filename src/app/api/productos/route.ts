@@ -1,9 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getSession } from '@/lib/auth/get-session'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function DELETE(req: NextRequest) {
-  const sessionId = req.cookies.get('nx_session')?.value
-  if (!sessionId) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+  const session = await getSession(req)
+  if (!session.valid || !session.tiendaId) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+  const sessionId = session.tiendaId
 
   const { ids } = await req.json()
   if (!Array.isArray(ids) || ids.length === 0) {

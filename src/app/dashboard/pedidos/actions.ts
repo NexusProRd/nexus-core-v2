@@ -127,7 +127,6 @@ export async function actualizarEstado(formData: FormData) {
           approved_at: new Date().toISOString(),
           sender_phone: pedido.cliente_telefono,
           items_list: itemsList,
-          legacy_code: code,
         })
 
         if (giftError) {

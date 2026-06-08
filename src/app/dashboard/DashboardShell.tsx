@@ -699,7 +699,6 @@ export default function DashboardLayout({
       approved_at: new Date().toISOString(),
       sender_phone: pedido.cliente_telefono || null,
       items_list: [],
-      legacy_code: code,
     })
 
     if (error) { alert('Error al generar gift: ' + error.message); setSendingMagicLink(false); return }
@@ -899,7 +898,7 @@ export default function DashboardLayout({
           </div>
         )}
 
-        {showGiftModal && giftPendientes.length > 0 && (
+        {false && showGiftModal && giftPendientes.length > 0 && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-backdrop-in" onClick={() => setShowGiftModal(false)}>
             <div className="bg-white/90 dark:bg-[#121216]/90 backdrop-blur-2xl rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-white/30 dark:border-white/[0.06] animate-scale-in" onClick={e => e.stopPropagation()}>
               {/* Ticket header */}

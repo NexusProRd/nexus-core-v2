@@ -2,7 +2,7 @@
 
 import { useCart } from '@/context/CartContext'
 
-export type TabId = 'inicio' | 'menu' | 'pedidos' | 'tickets'
+export type TabId = 'inicio' | 'menu' | 'pedidos'
 
 interface Props {
   activeTab: TabId
@@ -71,14 +71,6 @@ export default function BottomNav({ activeTab, onTabChange }: Props) {
           <span className="text-[10px] font-semibold">Rastrear</span>
         </button>
 
-        {/* Tickets */}
-        <button onClick={() => onTabChange('tickets')} className={`${baseClass('tickets')} relative touch-target native-press`}>
-          {activeTab === 'tickets' && <span className="absolute -top-1 left-[30%] right-[30%] h-[3px] rounded-full bg-[var(--primary)]" />}
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-          </svg>
-          <span className="text-[10px] font-semibold">Tickets</span>
-        </button>
       </div>
     </nav>
   )

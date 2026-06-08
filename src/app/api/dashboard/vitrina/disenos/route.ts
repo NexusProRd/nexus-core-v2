@@ -1,17 +1,11 @@
+import { getSession } from '@/lib/auth/get-session'
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-function getTiendaIdFromCookie(req: Request): string | null {
-  const cookie = req.headers.get('cookie') || ''
-  const match = cookie.match(/(?:^|;\s*)nx_session=([^;]+)/)
-  return match ? match[1] : null
-}
-
 export async function GET(req: Request) {
-  const tiendaId = getTiendaIdFromCookie(req)
-  if (!tiendaId) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const session = await getSession(req)
+  if (!session.valid || !session.tiendaId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const tiendaId = session.tiendaId
 
   const { supabase, error } = createAdminClient()
   if (error || !supabase) {
@@ -32,10 +26,9 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const tiendaId = getTiendaIdFromCookie(req)
-  if (!tiendaId) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const session = await getSession(req)
+  if (!session.valid || !session.tiendaId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const tiendaId = session.tiendaId
 
   try {
     const body = await req.json()
@@ -73,10 +66,9 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
-  const tiendaId = getTiendaIdFromCookie(req)
-  if (!tiendaId) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const session = await getSession(req)
+  if (!session.valid || !session.tiendaId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const tiendaId = session.tiendaId
 
   try {
     const body = await req.json()
@@ -116,10 +108,9 @@ export async function PUT(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const tiendaId = getTiendaIdFromCookie(req)
-  if (!tiendaId) {
-    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  }
+  const session = await getSession(req)
+  if (!session.valid || !session.tiendaId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  const tiendaId = session.tiendaId
 
   try {
     const { searchParams } = new URL(req.url)

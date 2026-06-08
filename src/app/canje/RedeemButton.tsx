@@ -52,14 +52,15 @@ export default function RedeemButton({ giftId, items, storeId, giftCode }: Redee
     }))
 
     addMultipleToCart(giftCartItems)
-    const raw = localStorage.getItem('nexus-cart')
+    const key = storeId ? `nexus-cart-${storeId}` : 'nexus-cart'
+    const raw = localStorage.getItem(key)
     let existing = []
     if (raw) {
       try { existing = JSON.parse(raw) } catch {}
     }
     const nonGift = existing.filter((i: any) => !i.isGift)
     const toSave = [...nonGift, ...giftCartItems]
-    localStorage.setItem('nexus-cart', JSON.stringify(toSave))
+    localStorage.setItem(key, JSON.stringify(toSave))
 
     await new Promise(resolve => setTimeout(resolve, 300))
     confetti({ particleCount: 150, spread: 80, origin: { y: 0.55 } })

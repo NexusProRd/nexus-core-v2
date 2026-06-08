@@ -11,7 +11,6 @@ import SocialToast from '@/components/catalog/SocialToast'
 import TabInicio from '@/components/catalog/TabInicio'
 import TabMenu from '@/components/catalog/TabMenu'
 import TabPedidos from '@/components/catalog/TabPedidos'
-import TabTickets from '@/components/catalog/TabTickets'
 import ProductQuickView from '@/components/catalog/ProductQuickView'
 import type { Producto } from '@/components/catalog/ProductCard'
 import CatalogoModal from '@/components/catalog/CatalogoModal'
@@ -27,7 +26,6 @@ const navItems: { id: TabId; label: string; icon: string }[] = [
   { id: 'inicio', label: 'Inicio', icon: '🏠' },
   { id: 'menu', label: 'Productos', icon: '📦' },
   { id: 'pedidos', label: 'Rastrear', icon: '📋' },
-  { id: 'tickets', label: 'Tickets', icon: '🎟️' },
 ]
 
 export default function CatalogContent({ id_tienda, productos, openCart }: Props) {
@@ -40,7 +38,7 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
 
   useEffect(() => {
     const tabParam = searchParams.get('tab')
-    if (tabParam && ['inicio', 'menu', 'pedidos', 'tickets'].includes(tabParam)) {
+    if (tabParam && ['inicio', 'menu', 'pedidos'].includes(tabParam)) {
       setActiveTab(tabParam as TabId)
     }
   }, [searchParams])
@@ -262,14 +260,6 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
         )}
 
         {activeTab === 'pedidos' && <TabPedidos id_tienda={id_tienda} />}
-
-        {activeTab === 'tickets' && (
-          <TabTickets
-            id_tienda={id_tienda}
-            onGiftModeActivate={handleGiftModeActivate}
-            giftMode={giftMode}
-          />
-        )}
 
         {/* ===== QUICK VIEW MODAL ===== */}
         {quickViewProduct && (
