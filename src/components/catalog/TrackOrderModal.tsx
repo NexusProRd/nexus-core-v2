@@ -6,9 +6,10 @@ import { createClient } from '@/lib/supabase'
 interface Props {
   open: boolean
   onClose: () => void
+  id_tienda: string
 }
 
-export default function TrackOrderModal({ open, onClose }: Props) {
+export default function TrackOrderModal({ open, onClose, id_tienda }: Props) {
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{
@@ -20,38 +21,13 @@ export default function TrackOrderModal({ open, onClose }: Props) {
   } | null>(null)
   const [error, setError] = useState('')
 
-  const canalRef = useRef<ReturnType<ReturnType<typeof createClient>['channel']> | null>(null)
-  const supabaseRef = useRef(createClient())
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    if (!result?.order_id) return
-
-    const supabase = supabaseRef.current
-    if (canalRef.current) {
-      supabase.removeChannel(canalRef.current)
-    }
-
-    const canal = supabase.channel(`track-order-${result.order_id}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'pedidos',
-        filter: `order_id=eq.${result.order_id}`,
-      }, (payload) => {
-        const updated = payload.new as { estado: string }
-        if (updated.estado) {
-          setResult(prev => prev ? { ...prev, estado: updated.estado } : prev)
-        }
-      })
-      .subscribe()
-
-    canalRef.current = canal
-
     return () => {
-      supabase.removeChannel(canal)
-      canalRef.current = null
+      if (pollRef.current) clearInterval(pollRef.current)
     }
-  }, [result?.order_id])
+  }, [])
 
   if (!open) return null
 
@@ -62,19 +38,33 @@ export default function TrackOrderModal({ open, onClose }: Props) {
     setResult(null)
 
     const supabase = createClient()
-    const q = query.trim()
+    const q = query.trim().toUpperCase()
 
-    const { data } = await supabase
-      .from('pedidos')
-      .select('order_id, estado, cliente_nombre, total, creado_at')
-      .or(`order_id.ilike.%${q}%,cliente_telefono.ilike.%${q}%,cliente_nombre.ilike.%${q}%`)
-      .limit(1)
+    const { data: raw } = await supabase
+      .rpc('track_pedido', { p_id_tienda: id_tienda, p_query: q })
       .maybeSingle()
+    const data = raw as { order_id: string; estado: string; cliente_nombre: string; total: number; creado_at: string } | undefined
 
     if (data) {
-      setResult(data)
+      setResult({
+        order_id: data.order_id,
+        estado: data.estado,
+        cliente_nombre: data.cliente_nombre,
+        total: data.total,
+        creado_at: data.creado_at,
+      })
+      if (pollRef.current) clearInterval(pollRef.current)
+      pollRef.current = setInterval(async () => {
+        const { data: freshRaw } = await supabase
+          .rpc('track_pedido', { p_id_tienda: id_tienda, p_query: data.order_id })
+          .maybeSingle()
+        const fresh = freshRaw as typeof data | undefined
+        if (fresh && fresh.estado !== data.estado) {
+          setResult(prev => prev ? { ...prev, estado: fresh.estado } : prev)
+        }
+      }, 6000)
     } else {
-      setError('No encontramos ningún pedido con ese número o teléfono.')
+      setError('No encontramos ningún pedido con ese número.')
     }
     setLoading(false)
   }
@@ -123,7 +113,7 @@ export default function TrackOrderModal({ open, onClose }: Props) {
         </div>
 
         <h3 className="text-lg font-bold text-slate-900 text-center mb-1">Rastrear pedido</h3>
-        <p className="text-xs text-slate-500 text-center mb-5">Ingresa tu número de pedido, nombre o teléfono</p>
+        <p className="text-xs text-slate-500 text-center mb-5">Ingresa tu número de pedido</p>
 
         <div className="flex gap-2">
           <input
@@ -131,7 +121,7 @@ export default function TrackOrderModal({ open, onClose }: Props) {
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleTrack()}
-            placeholder="Ej: NX-123 o tu teléfono"
+            placeholder="Ej: 3B1B06F8"
             className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] placeholder:text-slate-400"
           />
           <button

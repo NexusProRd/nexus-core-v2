@@ -118,7 +118,7 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
     const orderId = crypto.randomUUID().slice(0, 8).toUpperCase()
     const total = precioFinal * quantity
 
-    const { data: pedido, error } = await supabase.from('pedidos').insert({
+    const { error: insertError } = await supabase.from('pedidos').insert({
       id_tienda: idTienda,
       cliente_nombre: buyName.trim(),
       cliente_telefono: buyPhone.trim(),
@@ -128,16 +128,27 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
       total,
       estado: 'pendiente',
       detalles_pedido: [{ id_producto: producto.id, producto: nombreConVariante, cantidad: quantity, precio_unitario: precioFinal, precio_cobrado: precioFinal, variante_seleccionada: selectedTalla || null }],
-    }).select().single()
+    })
 
-    if (error || !pedido) {
+    if (insertError) {
+      setBuying(false)
+      alert('Error al procesar el pedido. Inténtalo de nuevo.')
+      return
+    }
+
+    const { data: pedidoIdRaw } = await supabase
+      .rpc('obtener_id_pedido_por_order', { p_id_tienda: idTienda, p_order_id: orderId })
+      .maybeSingle()
+    const pedidoId = pedidoIdRaw as string | undefined
+
+    if (!pedidoId) {
       setBuying(false)
       alert('Error al procesar el pedido. Inténtalo de nuevo.')
       return
     }
 
     await supabase.from('detalles_pedido').insert({
-      id_pedido: pedido.id,
+      id_pedido: pedidoId,
       id_producto: producto.id,
       producto: nombreConVariante,
       cantidad: quantity,
@@ -153,12 +164,12 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
       console.error('[ProductQuickView] stock decrement errors:', stockResult.errors)
     }
 
-    localStorage.setItem(`nexus-last-order-${idTienda}`, pedido.id)
+    localStorage.setItem(`nexus-last-order-${idTienda}`, pedidoId)
 
     fetch('/api/push/quickbuy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id_tienda: idTienda, cliente_nombre: buyName.trim(), total, id_pedido: pedido.id }),
+      body: JSON.stringify({ id_tienda: idTienda, cliente_nombre: buyName.trim(), total, id_pedido: pedidoId }),
     }).catch((e) => console.error('[ProductQuickView] push error', e))
 
     const msg = `🛍️ *¡Nuevo Pedido desde ${nombreTienda || 'el Catálogo'}!*\n\n`
@@ -176,7 +187,7 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
       window.open(`https://wa.me/${numLimpio}?text=${encodeURIComponent(msg)}`, '_blank')
     }
 
-    window.location.href = `/catalogo/exito?pedido=${pedido.id}&tienda=${idTienda}`
+    window.location.href = `/catalogo/exito?pedido=${pedidoId}&tienda=${idTienda}`
   }
 
   return (

@@ -11,14 +11,14 @@
 | Atributo | Valor |
 |----------|-------|
 | Stack | Next.js 16.2.6, React 19.2.4, Supabase, Tailwind v4 |
-| Base de datos | Supabase PostgreSQL (62 migraciones) |
+| Base de datos | Supabase PostgreSQL (63 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `c44dedf` — Sprint 4B.1 + 4B.2: Catalog card, onboarding alignment (Jun 7) |
-| Última verificación | 2026-06-07 — Sprint 4B.1 + 4B.2 completados + Typecheck PASS + Build PASS |
+| Último commit | `c95af08` — Sprint 4B.2 + Legal 1A: Onboarding alignment, RLS fix (Jun 7) |
+| Última verificación | 2026-06-07 — Sprint 4B.2 + Legal 1A completados + Typecheck PASS + Build PASS |
 
 ### Módulos
 
@@ -67,6 +67,7 @@
 **Sprint Conversión 4A — Audit de Conversión (First-Use Journey Analysis)**
 **Sprint Conversión 4B.1 — Catalog Presence Card on Dashboard (W1 + W5)**
 **Sprint Conversión 4B.2 — Onboarding Alineado al Cliente Ideal**
+**Sprint Legal 1A — Auditoría y Corrección RLS de Pedidos**
 
 ### Estado
 
@@ -187,6 +188,17 @@
 - Landing Industrias actualizada: 4 disponibles (Ropa, Cosméticos, Tecnología, General) + 3 próximamente (Colmados, Servicios, Tours)
 - Sin lógica especializada para cosmética/tecnología — todo no-ropa se comporta como estándar
 - Sin migración de datos — tiendas existentes mantienen su tipo actual
+- Typecheck PASS. Build PASS.
+
+**Sprint Legal 1A Completado.** Corrección de riesgos críticos P0 de privacidad:
+- Migración `063_fix_pedidos_rls.sql`: drop de `select_pedidos_anon` (`USING(true)`), recreación de `delete_pedidos_own_store` scoped a la tienda del owner
+- RPC `track_pedido(p_id_tienda, p_query)`: SECURITY DEFINER que requiere `id_tienda` + `order_id` para tracking legítimo, sin exponer `cliente_telefono`
+- RPC `obtener_id_pedido_por_order(p_id_tienda, p_order_id)`: devuelve UUID del pedido para flujos quick-buy post-INSERT
+- `TabPedidos.tsx`: migrado de `supabase.from('pedidos').select()` directo a RPC; real-time reemplazado por polling cada 6s
+- `TrackOrderModal.tsx`: eliminada búsqueda por teléfono (`cliente_telefono.ilike.%"`), ahora requiere `id_tienda` + solo busca por order_id
+- 4 flujos quick-buy (`ProductCard`, `ProductQuickView`, `ProductDetailClient`, `TrackingClic`): `.insert().select()` reemplazado por `.insert()` + RPC para obtener el id
+- `éxito page`: migrado de `createPublicClient()` a `createAdminClient()` para evitar dependencia de anon SELECT
+- Sin cambios en checkout API, gift-purchase, dashboard, PCC — todos usan admin client y no dependen de anon SELECT
 - Typecheck PASS. Build PASS.
 
 Todos los sprints de seguridad, hardening, data integrity, gift unification y commercial foundation ejecutados:

@@ -157,7 +157,7 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
     const orderId = crypto.randomUUID().slice(0, 8).toUpperCase()
     const total = precioFinal * quantity
 
-    const { data: pedido, error } = await supabase.from('pedidos').insert({
+    const { error: insertError } = await supabase.from('pedidos').insert({
       id_tienda: idTienda,
       cliente_nombre: quickBuyName.trim(),
       cliente_telefono: quickBuyPhone.trim(),
@@ -167,9 +167,20 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
       total,
       estado: 'pendiente',
       detalles_pedido: [{ id_producto: producto.id, producto: nombreConSize, cantidad: quantity, precio_unitario: precioFinal, precio_cobrado: precioFinal, variante_seleccionada: selectedSize || null }],
-    }).select().single()
+    })
 
-    if (error || !pedido) {
+    if (insertError) {
+      setBuying(false)
+      alert('Error al procesar el pedido. Inténtalo de nuevo.')
+      return
+    }
+
+    const { data: pedidoIdRaw } = await supabase
+      .rpc('obtener_id_pedido_por_order', { p_id_tienda: idTienda, p_order_id: orderId })
+      .maybeSingle()
+    const pedidoId = pedidoIdRaw as string | undefined
+
+    if (!pedidoId) {
       setBuying(false)
       alert('Error al procesar el pedido. Inténtalo de nuevo.')
       return
@@ -177,7 +188,7 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
 
     // Inserción en la tabla detalles_pedido para consistencia del Dashboard
     await supabase.from('detalles_pedido').insert({
-      id_pedido: pedido.id,
+      id_pedido: pedidoId,
       id_producto: producto.id,
       producto: nombreConSize,
       cantidad: quantity,
@@ -193,12 +204,12 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
       console.error('[ProductCard] stock decrement errors:', stockResult.errors)
     }
 
-    localStorage.setItem(`nexus-last-order-${idTienda}`, pedido.id)
+    localStorage.setItem(`nexus-last-order-${idTienda}`, pedidoId)
 
     fetch('/api/push/quickbuy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id_tienda: idTienda, cliente_nombre: quickBuyName.trim(), total, id_pedido: pedido.id }),
+      body: JSON.stringify({ id_tienda: idTienda, cliente_nombre: quickBuyName.trim(), total, id_pedido: pedidoId }),
     }).catch((e) => console.error('[ProductCard] push error', e))
 
     const numeroLimpio = whatsappNumber?.replace(/\D/g, '') || ''
@@ -217,7 +228,7 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
       window.open(`https://wa.me/${numeroLimpio}?text=${encodeURIComponent(msg)}`, '_blank')
     }
 
-    window.location.href = `/catalogo/exito?pedido=${pedido.id}&tienda=${idTienda}`
+    window.location.href = `/catalogo/exito?pedido=${pedidoId}&tienda=${idTienda}`
   }
 
   return (

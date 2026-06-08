@@ -17,12 +17,13 @@ interface OrderData {
   id: string
   order_id: string | null
   cliente_nombre: string
-  cliente_telefono: string | null
   total: number
   estado: string
   creado_at: string
   detalles_pedido?: DetalleItem[] | null
-  tiendas?: { nombre_tienda?: string; direccion?: string; rnc?: string } | null
+  nombre_tienda?: string
+  direccion?: string
+  rnc?: string
 }
 
 const steps = [
@@ -79,34 +80,7 @@ export default function TabPedidos({ id_tienda }: Props) {
   const [lastSearchedId, setLastSearchedId] = useState<string | null>(null)
 
   const supabase = createClient()
-  const canalRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
-
-  const subscribeToOrder = (orderId: string) => {
-    if (canalRef.current) {
-      supabase.removeChannel(canalRef.current)
-      canalRef.current = null
-    }
-
-    const canal = supabase
-      .channel(`tracking-${orderId}-${Date.now()}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'pedidos', filter: `id=eq.${orderId}` },
-        (payload) => { setPedido(payload.new as OrderData) }
-      )
-      .subscribe()
-
-    canalRef.current = canal
-  }
-
-  const buscarTiendaData = async () => {
-    const { data } = await supabase
-      .from('tiendas')
-      .select('nombre_tienda, direccion, rnc')
-      .eq('id', id_tienda)
-      .single()
-    return data
-  }
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const buscarPedido = async (codigo: string) => {
     setLoading(true)
@@ -115,40 +89,44 @@ export default function TabPedidos({ id_tienda }: Props) {
     const q = codigo.trim().toUpperCase()
 
     const { data, error: err } = await supabase
-      .from('pedidos')
-      .select('*')
-      .eq('order_id', q)
-      .eq('id_tienda', id_tienda)
+      .rpc('track_pedido', { p_id_tienda: id_tienda, p_query: q })
       .maybeSingle()
+    const row = data as unknown as OrderData | undefined
 
-    if (!data && codigo.includes('-') && codigo.length > 30) {
+    if (!row && codigo.includes('-') && codigo.length > 30) {
       const { data: retryData } = await supabase
-        .from('pedidos')
-        .select('*')
-        .eq('id', codigo)
-        .eq('id_tienda', id_tienda)
+        .rpc('track_pedido', { p_id_tienda: id_tienda, p_query: codigo.trim() })
         .maybeSingle()
+      const retryRow = retryData as unknown as OrderData | undefined
 
-      if (retryData) {
-        const tiendaData = await buscarTiendaData()
-        setPedido({ ...retryData, tiendas: tiendaData } as unknown as OrderData)
-        setLastSearchedId(retryData.id)
-        subscribeToOrder(retryData.id)
+      if (retryRow) {
+        setPedido(retryRow)
+        setLastSearchedId(retryRow.id)
+        startPolling(retryRow.id)
         setLoading(false)
         return
       }
     }
 
-    if (err || !data) {
+    if (err || !row) {
       setError('No encontramos un pedido con ese código. Verifica el número e intenta de nuevo.')
       setPedido(null)
     } else {
-      const tiendaData = await buscarTiendaData()
-      setPedido({ ...data, tiendas: tiendaData } as unknown as OrderData)
-      setLastSearchedId(data.id)
-      subscribeToOrder(data.id)
+      setPedido(row)
+      setLastSearchedId(row.id)
+      startPolling(row.id)
     }
     setLoading(false)
+  }
+
+  const startPolling = (pedidoId: string) => {
+    if (pollRef.current) clearInterval(pollRef.current)
+    pollRef.current = setInterval(async () => {
+      const { data } = await supabase
+        .rpc('track_pedido', { p_id_tienda: id_tienda, p_query: pedidoId })
+        .maybeSingle()
+      if (data) setPedido(data as unknown as OrderData)
+    }, 6000)
   }
 
   const handleSearch = async () => {
@@ -160,20 +138,14 @@ export default function TabPedidos({ id_tienda }: Props) {
     setSearching(false)
   }
 
-  const fetchStoreProfile = async () => {
-    if (!pedido) return { nombre_comercial: null, logo_url: null }
-    const { data } = await supabase
+  const handleDownloadPDF = async () => {
+    if (!pedido) return
+    const { data: perfil } = await supabase
       .from('perfil_tienda')
       .select('nombre_comercial, logo_url')
       .eq('id_tienda', id_tienda)
       .maybeSingle()
-    return data
-  }
-
-  const handleDownloadPDF = async () => {
-    if (!pedido) return
-    const perfil = await fetchStoreProfile()
-    const nombreComercial = perfil?.nombre_comercial || pedido.tiendas?.nombre_tienda || 'Tu Tienda'
+    const nombreComercial = perfil?.nombre_comercial || pedido.nombre_tienda || 'Tu Tienda'
     const logoUrl = perfil?.logo_url
     const ventana = window.open('', '_blank', 'width=600,height=800')
     if (!ventana) return
@@ -212,8 +184,8 @@ export default function TabPedidos({ id_tienda }: Props) {
             ${logoUrl ? `<img src="${logoUrl}" alt="${nombreComercial}" class="logo-img" />` : `<div class="logo-fallback">${(nombreComercial || 'T').charAt(0).toUpperCase()}</div>`}
             <div>
               <div class="shop-name">${nombreComercial}</div>
-              <div class="shop-address">${pedido?.tiendas?.direccion || 'Dirección no especificada'}</div>
-              ${pedido?.tiendas?.rnc && pedido.tiendas.rnc.trim() !== '' ? `<div style="font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 500;">RNC: ${pedido.tiendas.rnc}</div>` : ''}
+              <div class="shop-address">${pedido?.direccion || 'Dirección no especificada'}</div>
+              ${pedido?.rnc && pedido.rnc.trim() !== '' ? `<div style="font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 500;">RNC: ${pedido.rnc}</div>` : ''}
             </div>
           </div>
           <div>
@@ -222,7 +194,7 @@ export default function TabPedidos({ id_tienda }: Props) {
           </div>
         </div>
         <div class="meta-grid">
-          <div><div class="meta-label">Facturado A</div><div class="meta-value">${pedido?.cliente_nombre}</div><div class="meta-value" style="font-weight:500; color:#64748b; margin-top:2px;">${pedido?.cliente_telefono}</div></div>
+          <div><div class="meta-label">Facturado A</div><div class="meta-value">${pedido?.cliente_nombre}</div></div>
           <div style="text-align: right;"><div class="meta-label">Fecha de Emisión</div><div class="meta-value">${new Date(pedido?.creado_at).toLocaleDateString('es-DO', { day: 'numeric', month: 'short', year: 'numeric' })}</div></div>
         </div>
         <table class="items-table" style="width: 100%;">
@@ -274,7 +246,7 @@ export default function TabPedidos({ id_tienda }: Props) {
 
   useEffect(() => {
     return () => {
-      if (canalRef.current) supabase.removeChannel(canalRef.current)
+      if (pollRef.current) clearInterval(pollRef.current)
     }
   }, [])
 

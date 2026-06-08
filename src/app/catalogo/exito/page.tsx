@@ -1,4 +1,5 @@
-import { createPublicClient } from '@/lib/supabase/public'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { formatearPrecio } from '@/lib/utils'
 
@@ -22,7 +23,8 @@ export default async function ExitoPage({
     )
   }
 
-  const supabase = createPublicClient()
+  const admin = createAdminClient()
+  const supabase = admin.supabase || await createClient()
 
   const { data: pedido } = await supabase
     .from('pedidos')

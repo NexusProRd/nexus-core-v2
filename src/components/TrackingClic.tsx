@@ -22,24 +22,35 @@ export default function TrackingClic({
     
     const supabase = createClient()
     
-    const { data: pedido, error } = await supabase
+    const orderId = crypto.randomUUID().slice(0, 8).toUpperCase()
+
+    const { error: insertError } = await supabase
       .from('pedidos')
       .insert({
         id_tienda: idTienda,
         cliente_nombre: 'Cliente desde catálogo',
         total: precio,
-        estado: 'pendiente'
+        estado: 'pendiente',
+        order_id: orderId,
       })
-      .select()
-      .single()
 
-    if (error) {
-      console.error('Error creating order:', error)
+    if (insertError) {
+      console.error('Error creating order:', insertError)
+      return
+    }
+
+    const { data: pedidoIdRaw } = await supabase
+      .rpc('obtener_id_pedido_por_order', { p_id_tienda: idTienda, p_order_id: orderId })
+      .maybeSingle()
+    const pedidoId = pedidoIdRaw as string | undefined
+
+    if (!pedidoId) {
+      console.error('Error getting pedido id')
       return
     }
 
     await supabase.from('detalles_pedido').insert({
-      id_pedido: pedido.id,
+      id_pedido: pedidoId,
       producto: nombreProducto,
       cantidad: 1,
       precio_unitario: precio
