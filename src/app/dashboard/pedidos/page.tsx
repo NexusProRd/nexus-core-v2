@@ -1,3 +1,4 @@
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import Link from 'next/link'
@@ -22,7 +23,8 @@ interface Pedido {
 export const dynamic = 'force-dynamic'
 
 async function getPedidos(): Promise<{ pedidos: Pedido[]; tiendaId: string }> {
-  const supabase = await createClient()
+  const admin = createAdminClient()
+  const supabase = admin.supabase || await createClient()
   const cookieStore = await cookies()
   const rawSession = cookieStore.get('nx_session')?.value
   const session = await getSessionFromCookieValue(rawSession)

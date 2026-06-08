@@ -11,14 +11,14 @@
 | Atributo | Valor |
 |----------|-------|
 | Stack | Next.js 16.2.6, React 19.2.4, Supabase, Tailwind v4 |
-| Base de datos | Supabase PostgreSQL (63 migraciones) |
+| Base de datos | Supabase PostgreSQL (61 migraciones, hasta 063) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `c95af08` — Sprint 4B.2 + Legal 1A: Onboarding alignment, RLS fix (Jun 7) |
-| Última verificación | 2026-06-07 — Sprint 4B.2 + Legal 1A completados + Typecheck PASS + Build PASS |
+| Último commit | `a1625f7` — Sprint Legal 1A: Fix P0 pedidos RLS risks + dashboard migration to admin client (Jun 8) |
+| Última verificación | 2026-06-08 — Sprint Legal 1A extendido: pre-execution audit, dashboard migrado a admin client, 063 reescrito con limpieza completa + Typecheck PASS + Build PASS |
 
 ### Módulos
 
@@ -191,14 +191,14 @@
 - Typecheck PASS. Build PASS.
 
 **Sprint Legal 1A Completado.** Corrección de riesgos críticos P0 de privacidad:
-- Migración `063_fix_pedidos_rls.sql`: drop de `select_pedidos_anon` (`USING(true)`), recreación de `delete_pedidos_own_store` scoped a la tienda del owner
-- RPC `track_pedido(p_id_tienda, p_query)`: SECURITY DEFINER que requiere `id_tienda` + `order_id` para tracking legítimo, sin exponer `cliente_telefono`
-- RPC `obtener_id_pedido_por_order(p_id_tienda, p_order_id)`: devuelve UUID del pedido para flujos quick-buy post-INSERT
-- `TabPedidos.tsx`: migrado de `supabase.from('pedidos').select()` directo a RPC; real-time reemplazado por polling cada 6s
-- `TrackOrderModal.tsx`: eliminada búsqueda por teléfono (`cliente_telefono.ilike.%"`), ahora requiere `id_tienda` + solo busca por order_id
-- 4 flujos quick-buy (`ProductCard`, `ProductQuickView`, `ProductDetailClient`, `TrackingClic`): `.insert().select()` reemplazado por `.insert()` + RPC para obtener el id
-- `éxito page`: migrado de `createPublicClient()` a `createAdminClient()` para evitar dependencia de anon SELECT
-- Sin cambios en checkout API, gift-purchase, dashboard, PCC — todos usan admin client y no dependen de anon SELECT
+- Migración `063_fix_pedidos_rls.sql` (original): drop de `select_pedidos_anon` (`USING(true)`), recreación de `delete_pedidos_own_store` scoped, RPCs `track_pedido` y `obtener_id_pedido_por_order`
+- `TabPedidos.tsx`, `TrackOrderModal.tsx`, 4 quick-buy flows, `éxito page`: migrados a RPCs SECURITY DEFINER o admin client
+- **Pre-execution audit**: detectó que `dashboard/pedidos/page.tsx` y `actions.ts` usan `createClient()` (anon key) — se romperían al dropear `select_pedidos_anon`
+- **Corrección**: ambos archivos migrados a `createAdminClient()` con fallback anon (mismo patrón que `éxito page`)
+- **063 reescrito**: ahora también limpia políticas legacy `USING(true)` de la migración 019 en `detalles_pedido` y `gift_experiences` — reemplazadas con versiones scoped al owner
+- **Políticas finales**: pedidos (4 policies, todas scoped), detalles_pedido (3 policies, scoped), gift_experiences (6 policies, scoped) — cero `USING(true)` remanentes
+- **061 audit**: investigación de fallo en `cron.unschedule()` para Supabase SQL Editor; versión tolerante con `DO $$ EXCEPTION WHEN OTHERS` + cron v2 creado exitosamente
+- **Verificación timeline trial**: `trial_started_at + 30d = fecha_bloqueo_panel` confirmado en `register/route.ts:72-75` (misma base `ahora`)
 - Typecheck PASS. Build PASS.
 
 Todos los sprints de seguridad, hardening, data integrity, gift unification y commercial foundation ejecutados:

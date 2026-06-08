@@ -1,5 +1,6 @@
 'use server'
 
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -31,7 +32,8 @@ function parseGiftDetails(notas: string | null): { sender_name: string; recipien
 }
 
 export async function actualizarEstado(formData: FormData) {
-  const supabase = await createClient()
+  const admin = createAdminClient()
+  const supabase = admin.supabase || await createClient()
   const cookieStore = await cookies()
   const rawSession = cookieStore.get('nx_session')?.value
   const session = await getSessionFromCookieValue(rawSession)
@@ -139,7 +141,8 @@ export async function actualizarEstado(formData: FormData) {
 }
 
 export async function eliminarTodosLosPedidos() {
-  const supabase = await createClient()
+  const admin = createAdminClient()
+  const supabase = admin.supabase || await createClient()
   const cookieStore = await cookies()
   const rawSession = cookieStore.get('nx_session')?.value
   const session = await getSessionFromCookieValue(rawSession)
