@@ -207,7 +207,7 @@ export default function PrivacidadPage() {
             <ul className="list-disc pl-6 space-y-1">
               <li>Cifrado de las comunicaciones entre el navegador y los servidores</li>
               <li>Almacenamiento de contraseñas mediante funciones de hash con sal</li>
-              <li>Tokenses de sesión firmados criptográficamente</li>
+              <li>Tokens de sesión firmados criptográficamente</li>
               <li>Limitación de intentos de inicio de sesión para prevenir ataques de fuerza bruta</li>
               <li>Monitoreo básico de nuevos dispositivos en cada inicio de sesión</li>
             </ul>
