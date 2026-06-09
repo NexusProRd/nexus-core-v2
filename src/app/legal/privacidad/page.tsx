@@ -97,7 +97,7 @@ export default function PrivacidadPage() {
               <li>Productos: nombre, descripción, precio, imágenes, stock y variantes</li>
               <li>Número de WhatsApp de la tienda para contacto directo</li>
               <li>Dirección, horario y redes sociales (según lo configurado por el Socio)</li>
-              <li>Estado del pedido: cualquier persona con el número de pedido puede consultar su estado y productos incluidos</li>
+              <li>Los mecanismos de seguimiento de pedidos pueden mostrar información relacionada con el estado del pedido a quienes dispongan de los identificadores necesarios para realizar la consulta</li>
             </ul>
 
             <h2 className="text-xl font-bold text-slate-900 mt-8 mb-3">3. Finalidades del Tratamiento</h2>
