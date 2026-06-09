@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { LEGAL_UPDATED_AT } from '@/lib/legal'
 
 export const metadata: Metadata = {
   title: 'Política de Privacidad | Nexus',
@@ -10,7 +11,7 @@ export default function PrivacidadPage() {
       <div className="max-w-3xl mx-auto px-4 py-12 sm:py-16">
         <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-8 sm:p-12">
           <h1 className="text-3xl font-extrabold text-slate-900 mb-1">Política de Privacidad</h1>
-          <p className="text-sm text-slate-400 mb-8">Última actualización: [Fecha]</p>
+          <p className="text-sm text-slate-400 mb-8">Última actualización: {LEGAL_UPDATED_AT}</p>
 
           <section className="space-y-6 text-slate-700 text-[15px] leading-relaxed">
             <h2 className="text-xl font-bold text-slate-900 mt-8 mb-3">1. Responsable del Tratamiento</h2>
