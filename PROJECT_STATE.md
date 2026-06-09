@@ -11,14 +11,14 @@
 | Atributo | Valor |
 |----------|-------|
 | Stack | Next.js 16.2.6, React 19.2.4, Supabase, Tailwind v4 |
-| Base de datos | Supabase PostgreSQL (61 migraciones, hasta 063) |
+| Base de datos | Supabase PostgreSQL (62 migraciones, hasta 064) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `a1625f7` — Sprint Legal 1A: Fix P0 pedidos RLS risks + dashboard migration to admin client (Jun 8) |
-| Última verificación | 2026-06-08 — Sprint Legal 1A extendido: pre-execution audit, dashboard migrado a admin client, 063 reescrito con limpieza completa + Typecheck PASS + Build PASS |
+| Último commit | `9748047` — Sprint Legal 1A: terms, privacy policy, mandatory acceptance, catalog footer |
+| Última verificación | 2026-06-08 — Sprint Legal 1A completo: legal audit, privacy policy, terms of service, mandatory acceptance in register, catalog footer + Typecheck PASS + Build PASS |
 
 ### Módulos
 
@@ -67,7 +67,8 @@
 **Sprint Conversión 4A — Audit de Conversión (First-Use Journey Analysis)**
 **Sprint Conversión 4B.1 — Catalog Presence Card on Dashboard (W1 + W5)**
 **Sprint Conversión 4B.2 — Onboarding Alineado al Cliente Ideal**
-**Sprint Legal 1A — Auditoría y Corrección RLS de Pedidos**
+**Sprint Legal 1A — Auditoría y Corrección RLS de Pedidos** (part 1)
+**Sprint Legal 1A — Términos, Privacidad y Aceptación Obligatoria** (part 2)
 
 ### Estado
 
@@ -190,7 +191,9 @@
 - Sin migración de datos — tiendas existentes mantienen su tipo actual
 - Typecheck PASS. Build PASS.
 
-**Sprint Legal 1A Completado.** Corrección de riesgos críticos P0 de privacidad:
+**Sprint Legal 1A Completado (2 partes).**
+
+**Parte 1 — Corrección de riesgos críticos P0 de privacidad:**
 - Migración `063_fix_pedidos_rls.sql` (original): drop de `select_pedidos_anon` (`USING(true)`), recreación de `delete_pedidos_own_store` scoped, RPCs `track_pedido` y `obtener_id_pedido_por_order`
 - `TabPedidos.tsx`, `TrackOrderModal.tsx`, 4 quick-buy flows, `éxito page`: migrados a RPCs SECURITY DEFINER o admin client
 - **Pre-execution audit**: detectó que `dashboard/pedidos/page.tsx` y `actions.ts` usan `createClient()` (anon key) — se romperían al dropear `select_pedidos_anon`
@@ -200,6 +203,18 @@
 - **061 audit**: investigación de fallo en `cron.unschedule()` para Supabase SQL Editor; versión tolerante con `DO $$ EXCEPTION WHEN OTHERS` + cron v2 creado exitosamente
 - **Verificación timeline trial**: `trial_started_at + 30d = fecha_bloqueo_panel` confirmado en `register/route.ts:72-75` (misma base `ahora`)
 - Typecheck PASS. Build PASS.
+
+**Parte 2 — Legal documents, mandatory acceptance, catalog footer:**
+- Auditoría legal completa de todos los flujos de datos (register, login, checkout, orders, catalog, PCC, comercial)
+- Política de Privacidad y Términos de Uso redactados y revisados
+- Lenguaje conservador: sin algoritmos criptográficos específicos, sin períodos de retención hardcodeados, sin contactos fijos
+- Contacto legal dinámico desde `nexus_config.whatsapp_soporte` (editable via PCC)
+- Fecha de actualización centralizada en `src/lib/legal.ts` para mantenimiento futuro
+- Migración `064_legal_acceptance.sql`: columna `fecha_acepto_terminos TIMESTAMPTZ` en `tiendas`
+- Registro: checkbox obligatorio de aceptación de términos y privacidad
+- API de registro: validación server-side de `acepto_terminos: true`, almacena `fecha_acepto_terminos`
+- Footer legal en todas las páginas de catálogo público (`CatalogContent.tsx`)
+- Typecheck PASS. Build PASS. Commits: `26e4d63`, `195288c`, `dd0339c`, `f567726`, `c208c5d`, `86bc8c7`, `9748047`
 
 Todos los sprints de seguridad, hardening, data integrity, gift unification y commercial foundation ejecutados:
 - **P0-B/C**: Security Hardening (`0f4bba5`)
@@ -332,7 +347,7 @@ La monetización real depende de que PCC administre manualmente cada tienda, no 
 
 ### Próxima acción
 
-Rotar AUTH_SECRET, quick-buy UX error handling, ejecutar migración 059 en DB, implementar hallazgos de auditoría comercial.
+Ejecutar migraciones 059, 062, 063, 064 en DB producción. Rotar AUTH_SECRET. Quick-buy UX error handling.
 
 ### Bloqueadores
 
