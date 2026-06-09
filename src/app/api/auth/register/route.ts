@@ -14,10 +14,14 @@ function hashPassword(password: string): string {
 
 export async function POST(req: Request) {
   try {
-    const { nombre_socio, nombre_tienda, whatsapp, password } = await req.json()
+    const { nombre_socio, nombre_tienda, whatsapp, password, acepto_terminos } = await req.json()
 
     if (!nombre_socio?.trim() || !nombre_tienda?.trim() || !whatsapp?.trim() || !password?.trim()) {
       return NextResponse.json({ error: 'Todos los campos son obligatorios.' }, { status: 400 })
+    }
+
+    if (!acepto_terminos) {
+      return NextResponse.json({ error: 'Debes aceptar los Términos de Uso y la Política de Privacidad.' }, { status: 400 })
     }
 
     const digits = (whatsapp as string).replace(/\D/g, '')
@@ -78,6 +82,7 @@ export async function POST(req: Request) {
       tokens_disponibles: 0,
       password_hash,
       codigo_verificacion_hash: codigoHash,
+      fecha_acepto_terminos: ahora.toISOString(),
       ultima_ip: ipReal,
     }).select('id').single()
 

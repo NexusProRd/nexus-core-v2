@@ -18,6 +18,7 @@ export default function RegisterPage() {
   const [exito, setExito] = useState(false)
   const [codigo, setCodigo] = useState('')
   const [slugGenerado, setSlugGenerado] = useState('')
+  const [aceptoTerminos, setAceptoTerminos] = useState(false)
   const [redirectTo, setRedirectTo] = useState('/onboarding')
   const [copiado, setCopiado] = useState(false)
   const [whatsappAdmin, setWhatsappAdmin] = useState(WHATSAPP_FALLBACK)
@@ -65,6 +66,12 @@ export default function RegisterPage() {
       return
     }
 
+    if (!aceptoTerminos) {
+      setError('Debes aceptar los Términos de Uso y la Política de Privacidad.')
+      setLoading(false)
+      return
+    }
+
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -73,6 +80,7 @@ export default function RegisterPage() {
         nombre_tienda: nombreTienda.trim(),
         whatsapp: telefono.trim(),
         password,
+        acepto_terminos: true,
       }),
     })
     const data = await res.json()
@@ -267,6 +275,21 @@ export default function RegisterPage() {
               autoComplete="new-password"
             />
           </div>
+
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={aceptoTerminos}
+              onChange={(e) => setAceptoTerminos(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer shrink-0"
+            />
+            <span className="text-sm text-slate-600 group-hover:text-slate-800 transition-colors leading-relaxed">
+              Acepto los{' '}
+              <a href="/legal/terminos" target="_blank" className="text-blue-600 font-semibold hover:underline">Términos de Uso</a>
+              {' '}y la{' '}
+              <a href="/legal/privacidad" target="_blank" className="text-blue-600 font-semibold hover:underline">Política de Privacidad</a>
+            </span>
+          </label>
 
           <button
             type="submit"

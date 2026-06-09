@@ -23,6 +23,7 @@ export interface SocioTienda {
   fecha_suspension_catalogo: string | null;
   fecha_eliminacion_total: string | null;
   soft_deleted_at: string | null;
+  fecha_acepto_terminos: string | null;
 }
 
 export interface TallaVariant {

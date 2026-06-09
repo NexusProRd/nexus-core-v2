@@ -287,6 +287,14 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
           onRedirect={handleModalRedirect}
         />
       )}
+
+      <footer className="text-center py-4 px-4 border-t border-[var(--border-light)] mt-4">
+        <p className="text-xs text-slate-400">
+          <a href="/legal/terminos" target="_blank" className="hover:underline">Términos de Uso</a>
+          {' · '}
+          <a href="/legal/privacidad" target="_blank" className="hover:underline">Política de Privacidad</a>
+        </p>
+      </footer>
     </div>
   )
 }
