@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
+import { formatearPrecio } from '@/lib/utils'
 
 export default function TicketButton({ pedidoId }: { pedidoId: string }) {
   const [loading, setLoading] = useState(false)
@@ -10,7 +11,6 @@ export default function TicketButton({ pedidoId }: { pedidoId: string }) {
     setLoading(true)
     const supabase = createClient()
     const { data: pedido } = await supabase.from('pedidos').select('*').eq('id', pedidoId).single()
-    const { data: detalles } = await supabase.from('detalles_pedido').select('*').eq('id_pedido', pedidoId)
 
     if (!pedido) { setLoading(false); return }
 
@@ -24,8 +24,13 @@ export default function TicketButton({ pedidoId }: { pedidoId: string }) {
       if (perfil?.nombre_comercial) nombreTienda = perfil.nombre_comercial
     }
 
-    const items = (detalles || []).map((d: any) => ({
-      producto: d.producto, cantidad: d.cantidad, precio_unitario: d.precio_unitario
+    const jsonb = pedido.detalles_pedido as any
+    const items = (Array.isArray(jsonb) ? jsonb : jsonb ? [jsonb] : []).map((d: any) => ({
+      producto: d.producto || d.producto_nombre || d.nombre || 'Producto',
+      cantidad: d.cantidad || 1,
+      precio_unitario: d.precio_unitario || d.precio || 0,
+      subtotal: d.subtotal ?? (d.precio_unitario || d.precio || 0) * (d.cantidad || 1),
+      impuesto: d.impuesto || 0,
     }))
 
     let html = `<html><head><title>Ticket</title>
@@ -60,11 +65,24 @@ export default function TicketButton({ pedidoId }: { pedidoId: string }) {
         <td>${d.producto}</td>
         <td class="cen">${d.cantidad}</td>
         <td class="der">RD$${d.precio_unitario.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
-        <td class="der">RD$${(d.precio_unitario * d.cantidad).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+        <td class="der">RD$${(d.subtotal || d.precio_unitario * d.cantidad).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
       </tr>`
     })
-    html += `</tbody></table><div class="l"></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
+    const totalImpuestoTicket = items.reduce((s: number, d: any) => s + Number(d.impuesto || 0), 0)
+    html += `</tbody></table><div class="l"></div>`
+    if (totalImpuestoTicket > 0) {
+      const subtotalTicket = items.reduce((s: number, d: any) => s + Number(d.subtotal || d.precio_unitario * d.cantidad), 0)
+      html += `<div style="display:flex;justify-content:space-between;padding:4px 0;">
+        <span>Subtotal (sin impuesto):</span>
+        <span>RD$${subtotalTicket.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:4px 0;">
+        <span>Impuesto:</span>
+        <span>RD$${totalImpuestoTicket.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+      </div>
+      <div class="l"></div>`
+    }
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
         <span class="total-label">TOTAL</span>
         <span class="total-value">RD$${pedido.total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
       </div>

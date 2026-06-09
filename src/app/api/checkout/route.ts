@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { gestionarStock } from '@/lib/stock'
 import { sendPushToTienda } from '@/lib/push'
+import { calcularPrecioLinea, calcularTotalPedido } from '@/lib/precios'
 import { NextRequest, NextResponse } from 'next/server'
 
 function idProductoReal(item: any): string | null {
@@ -10,9 +11,6 @@ function idProductoReal(item: any): string | null {
 }
 
 export async function POST(req: NextRequest) {
-  const sessionId = req.cookies.get('nx_session')?.value
-  if (!sessionId) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
-
   const { supabase, error } = createAdminClient()
   if (error) return NextResponse.json({ error }, { status: 500 })
 
@@ -34,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (allProductIds.length > 0) {
     const { data: prods } = await supabase!
       .from('productos')
-      .select('id, tallas, stock, in_stock, precio, precio_oferta, costo_compra')
+      .select('id, tallas, stock, in_stock, precio, precio_oferta, costo_compra, aplica_impuesto, porcentaje_impuesto')
       .in('id', allProductIds)
 
     if (prods) {
@@ -75,14 +73,20 @@ export async function POST(req: NextRequest) {
   }
 
   // ───────────────────────────────────────────────
-  // PASO 2: Inyección segura del costo en privado
+  // PASO 2: Cálculo de precios con impuestos
   // ───────────────────────────────────────────────
-  const detallesPedido = await Promise.all(items.map(async (i: any) => {
+  const lineasCalculadas: Array<{ entry: Record<string, any>; calculo: import('@/lib/precios').CalculoLinea }> = []
+
+  for (const i of items) {
     const entry: Record<string, any> = {
       producto: i.nombre,
       cantidad: i.cantidad,
       precio_unitario: i.precio,
     }
+
+    let precioUnitario = Number(i.precio)
+    let aplicaImpuesto = false
+    let porcentajeImpuesto: number | null = null
 
     if (!i.isGift) {
       const pid = idProductoReal(i)
@@ -95,23 +99,41 @@ export async function POST(req: NextRequest) {
               typeof t === 'object' && t.talla === i.variante_seleccionada
             )
             if (variant) {
-              entry.precio_cobrado = variant.precio ?? prod.precio_oferta ?? prod.precio
+              precioUnitario = variant.precio ?? prod.precio_oferta ?? prod.precio
+              entry.precio_cobrado = precioUnitario
               entry.costo_real = variant.costo ?? prod.costo_compra ?? 0
             }
           } else {
             entry.costo_real = prod.costo_compra ?? 0
           }
+          aplicaImpuesto = prod.aplica_impuesto ?? false
+          porcentajeImpuesto = prod.porcentaje_impuesto ?? null
         }
       }
     }
 
-    return entry
-  }))
+    const calculo = calcularPrecioLinea({
+      precioUnitario,
+      cantidad: i.cantidad,
+      aplicaImpuesto,
+      porcentajeImpuesto,
+    })
 
-  let total = detallesPedido.reduce((sum: number, i: any) => {
-    const p = i.precio_cobrado ?? i.precio_unitario
-    return sum + Number(p) * i.cantidad
-  }, 0)
+    entry.subtotal = calculo.subtotal
+    entry.impuesto = calculo.impuesto
+    entry.total = calculo.total
+    entry.aplica_impuesto = aplicaImpuesto
+    entry.porcentaje_impuesto = porcentajeImpuesto
+
+    lineasCalculadas.push({ entry, calculo })
+  }
+
+  const resumen = calcularTotalPedido({
+    lineas: lineasCalculadas.map(l => l.calculo),
+  })
+
+  const detallesPedido = lineasCalculadas.map(l => l.entry)
+  let total = resumen.total
 
   // ───────────────────────────────────────────────
   // PASO 3: Validación y aplicación de cupón

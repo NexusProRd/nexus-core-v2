@@ -4,9 +4,8 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useCart } from '@/context/CartContext'
 import { useConfig } from '@/context/ConfigProvider'
-import { createClient } from '@/lib/supabase'
 import { formatearPrecio } from '@/lib/utils'
-import { gestionarStock } from '@/lib/stock'
+import { calcularPrecioConImpuesto } from '@/lib/precios'
 import ModalSeleccionarTalla from './ModalSeleccionarTalla'
 import BotonWhatsApp from './BotonWhatsApp'
 import ModalCompartirProducto from './ModalCompartirProducto'
@@ -49,6 +48,12 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
     return min
   }, producto.precio) ?? producto.precio
   const desdeMenor = !selectedPrecioVariant && precioMinimoVariantes < producto.precio
+  const tieneImpuesto = (producto.aplica_impuesto ?? false) && (producto.porcentaje_impuesto ?? 0) > 0
+  const mostrarConImpuesto = (precio: number) => {
+    if (!tieneImpuesto) return { mostrar: precio, impuesto: 0 }
+    const r = calcularPrecioConImpuesto(precio, true, producto.porcentaje_impuesto!)
+    return { mostrar: r.total, impuesto: r.impuesto }
+  }
   const numLimpio = whatsappNumber?.replace(/\D/g, '') || ''
   const qtyLabel = 'Cantidad'
 
@@ -65,6 +70,8 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
         imagen_url: producto.imagen_url,
         variante_seleccionada: variante,
         precio_cobrado: variante ? precioFinal : undefined,
+        aplica_impuesto: producto.aplica_impuesto ?? undefined,
+        porcentaje_impuesto: producto.porcentaje_impuesto ?? undefined,
       })
     }
   }
@@ -111,73 +118,46 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
 
     setBuying(true)
     setShowBuyForm(false)
-    const supabase = createClient()
     const precioFinal = selectedPrecioVariant ?? precioActivo
     const nombreConVariante = selectedTalla ? `${producto.nombre} (Talla: ${selectedTalla})` : producto.nombre
 
-    const orderId = crypto.randomUUID().slice(0, 8).toUpperCase()
-    const total = precioFinal * quantity
-
-    const { error: insertError } = await supabase.from('pedidos').insert({
-      id_tienda: idTienda,
-      cliente_nombre: buyName.trim(),
-      cliente_telefono: buyPhone.trim(),
-      is_gift: false,
-      notas: `Compra rápida directa: ${nombreConVariante} x${quantity}`,
-      order_id: orderId,
-      total,
-      estado: 'pendiente',
-      detalles_pedido: [{ id_producto: producto.id, producto: nombreConVariante, cantidad: quantity, precio_unitario: precioFinal, precio_cobrado: precioFinal, variante_seleccionada: selectedTalla || null }],
-    })
-
-    if (insertError) {
-      setBuying(false)
-      alert('Error al procesar el pedido. Inténtalo de nuevo.')
-      return
-    }
-
-    const { data: pedidoIdRaw } = await supabase
-      .rpc('obtener_id_pedido_por_order', { p_id_tienda: idTienda, p_order_id: orderId })
-      .maybeSingle()
-    const pedidoId = pedidoIdRaw as string | undefined
-
-    if (!pedidoId) {
-      setBuying(false)
-      alert('Error al procesar el pedido. Inténtalo de nuevo.')
-      return
-    }
-
-    await supabase.from('detalles_pedido').insert({
-      id_pedido: pedidoId,
-      id_producto: producto.id,
-      producto: nombreConVariante,
-      cantidad: quantity,
-      precio_unitario: precioFinal,
-    })
-
-    const stockResult = await gestionarStock(
-      supabase,
-      [{ id_producto: producto.id, nombre: producto.nombre, cantidad: quantity, variante_seleccionada: selectedTalla || null }],
-      'deduct'
-    )
-    if (!stockResult.ok) {
-      console.error('[ProductQuickView] stock decrement errors:', stockResult.errors)
-    }
-
-    localStorage.setItem(`nexus-last-order-${idTienda}`, pedidoId)
-
-    fetch('/api/push/quickbuy', {
+    const res = await fetch('/api/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id_tienda: idTienda, cliente_nombre: buyName.trim(), total, id_pedido: pedidoId }),
-    }).catch((e) => console.error('[ProductQuickView] push error', e))
+      body: JSON.stringify({
+        idTienda,
+        nombreCliente: buyName.trim(),
+        telefonoCliente: buyPhone.trim(),
+        items: [{
+          id: selectedTalla ? `${producto.id}-${selectedTalla}` : producto.id,
+          nombre: nombreConVariante,
+          precio: precioFinal,
+          cantidad: quantity,
+          variante_seleccionada: selectedTalla || null,
+        }],
+        isGift: false,
+        notas: `Compra rápida directa: ${nombreConVariante} x${quantity}`,
+      }),
+    })
+
+    if (!res.ok) {
+      const errData = await res.json()
+      console.error('[ProductQuickView] checkout error:', errData.error)
+      setBuying(false)
+      alert('Error al procesar el pedido. Inténtalo de nuevo.')
+      return
+    }
+
+    const { pedido } = await res.json()
+
+    localStorage.setItem(`nexus-last-order-${idTienda}`, pedido.id)
 
     const msg = `🛍️ *¡Nuevo Pedido desde ${nombreTienda || 'el Catálogo'}!*\n\n`
-      + `*Orden:* ${orderId}\n`
+      + `*Orden:* ${pedido.order_id}\n`
       + `*Cliente:* ${buyName.trim()}\n`
       + `*Contacto:* ${buyPhone.trim()}\n\n`
       + `*Producto(s):* ${nombreConVariante} (x${quantity}) = RD$${formatearPrecio(precioActivo)} c/u\n\n`
-      + `*Total a Cobrar: RD$${formatearPrecio(total)}*\n\n`
+      + `*Total a Cobrar: RD$${formatearPrecio(pedido.total)}*\n\n`
       + `Por favor, quedo atento para realizar la cotización del envío. ¡Muchas gracias!`
 
     setBuying(false)
@@ -187,7 +167,7 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
       window.open(`https://wa.me/${numLimpio}?text=${encodeURIComponent(msg)}`, '_blank')
     }
 
-    window.location.href = `/catalogo/exito?pedido=${pedidoId}&tienda=${idTienda}`
+    window.location.href = `/catalogo/exito?pedido=${pedido.id}&tienda=${idTienda}`
   }
 
   return (
@@ -239,17 +219,18 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
             </div>
             <div className="flex items-center gap-2 mt-2">
               {selectedPrecioVariant != null ? (
-                <span className="text-2xl sm:text-3xl font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(selectedPrecioVariant)}</span>
+                <span className="text-2xl sm:text-3xl font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(selectedPrecioVariant).mostrar)}</span>
               ) : producto.precio_oferta ? (
                 <>
-                  <span className="text-xl sm:text-2xl text-slate-400 line-through">{monedaSimbolo}{formatearPrecio(producto.precio)}</span>
-                  <span className="text-2xl sm:text-3xl font-bold text-rose-600">{monedaSimbolo}{formatearPrecio(producto.precio_oferta)}</span>
+                  <span className="text-xl sm:text-2xl text-slate-400 line-through">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio).mostrar)}</span>
+                  <span className="text-2xl sm:text-3xl font-bold text-rose-600">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio_oferta).mostrar)}</span>
                 </>
               ) : desdeMenor ? (
-                <span className="text-2xl sm:text-3xl font-bold text-[var(--primary)]">Desde {monedaSimbolo}{formatearPrecio(precioMinimoVariantes)}</span>
+                <span className="text-2xl sm:text-3xl font-bold text-[var(--primary)]">Desde {monedaSimbolo}{formatearPrecio(mostrarConImpuesto(precioMinimoVariantes).mostrar)}</span>
               ) : (
-                <span className="text-2xl sm:text-3xl font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(producto.precio)}</span>
+                <span className="text-2xl sm:text-3xl font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio).mostrar)}</span>
               )}
+              {tieneImpuesto && <span className="text-xs font-medium text-slate-400">Impuestos incl.</span>}
             </div>
           </div>
 

@@ -9,6 +9,9 @@ interface Detalle {
   producto: string
   cantidad: number
   precio_unitario: number
+  impuesto?: number
+  subtotal?: number
+  total?: number
 }
 
 interface Pedido {
@@ -83,12 +86,25 @@ export default function TicketPedido({ pedido, detalles }: { pedido: Pedido; det
               <td>${d.producto}</td>
               <td class="cen">${d.cantidad}</td>
               <td class="der">RD$${formatearPrecio(d.precio_unitario)}</td>
-              <td class="der">RD$${formatearPrecio(d.precio_unitario * d.cantidad)}</td>
+              <td class="der">RD$${formatearPrecio(d.subtotal ?? d.precio_unitario * d.cantidad)}</td>
             </tr>
           `).join('')}
         </tbody>
       </table>
-      <div class="linea"></div>
+      ${detalles.some(d => Number(d.impuesto) > 0) ? `
+        <div class="linea"></div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;">
+          <span>Subtotal (sin impuesto):</span>
+          <span>RD$${formatearPrecio(detalles.reduce((s, d) => s + Number(d.subtotal ?? d.precio_unitario * d.cantidad), 0))}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:4px 0;">
+          <span>Impuesto:</span>
+          <span>RD$${formatearPrecio(detalles.reduce((s, d) => s + Number(d.impuesto || 0), 0))}</span>
+        </div>
+        <div class="linea"></div>
+      ` : `
+        <div class="linea"></div>
+      `}
       <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
         <span class="total-label">TOTAL</span>
         <span class="total-value">RD$${formatearPrecio(pedido.total)}</span>
@@ -119,18 +135,31 @@ export default function TicketPedido({ pedido, detalles }: { pedido: Pedido; det
               <th className="der">Subtotal</th>
             </tr>
           </thead>
-          <tbody>
-            {detalles.map(d => (
-              <tr key={d.id}>
-                <td>{d.producto}</td>
-                <td className="cen">{d.cantidad}</td>
-                <td className="der">RD${formatearPrecio(d.precio_unitario)}</td>
-                <td className="der">RD${formatearPrecio(d.precio_unitario * d.cantidad)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="linea" />
+            <tbody>
+              {detalles.map(d => (
+                <tr key={d.id}>
+                  <td>{d.producto}</td>
+                  <td className="cen">{d.cantidad}</td>
+                  <td className="der">RD${formatearPrecio(d.precio_unitario)}</td>
+                  <td className="der">RD${formatearPrecio(d.subtotal ?? d.precio_unitario * d.cantidad)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {detalles.some(d => Number(d.impuesto) > 0) && (
+            <>
+              <div className="linea" />
+              <div>
+                <span>Subtotal (sin impuesto): </span>
+                <span>RD${formatearPrecio(detalles.reduce((s, d) => s + Number(d.subtotal ?? d.precio_unitario * d.cantidad), 0))}</span>
+              </div>
+              <div>
+                <span>Impuesto: </span>
+                <span>RD${formatearPrecio(detalles.reduce((s, d) => s + Number(d.impuesto || 0), 0))}</span>
+              </div>
+            </>
+          )}
+          <div className="linea" />
         <div>
           <span className="total-label">TOTAL</span>
           <span className="total-value">RD${formatearPrecio(pedido.total)}</span>

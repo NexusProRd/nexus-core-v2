@@ -212,11 +212,23 @@ export default function TabPedidos({ id_tienda }: Props) {
                 <td class="td-item bold">${det.producto}</td>
                 <td class="td-item" style="text-align:center;">${det.cantidad}</td>
                 <td class="td-item" style="text-align:right;">RD$${Number(det.precio_unitario || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
-                <td class="td-item right bold">RD$${Number((det.precio_unitario || 0) * det.cantidad).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+                <td class="td-item right bold">RD$${Number(det.subtotal ?? (det.precio_unitario || 0) * det.cantidad).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
+        ${pedido?.detalles_pedido && (pedido.detalles_pedido as any[]).some((d: any) => Number(d.impuesto) > 0) ? `
+          <div style="margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; color: #475569;">
+              <span>Subtotal (sin impuesto)</span>
+              <span style="font-weight: 600; color: #334155;">RD$${Number((pedido.detalles_pedido as any[]).reduce((s: number, d: any) => s + Number(d.subtotal ?? (d.precio_unitario || 0) * (d.cantidad || 0)), 0)).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; color: #475569;">
+              <span>Impuesto</span>
+              <span style="font-weight: 600; color: #334155;">RD$${Number((pedido.detalles_pedido as any[]).reduce((s: number, d: any) => s + Number(d.impuesto || 0), 0)).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+            </div>
+          </div>
+        ` : ''}
         <div class="total-section">
           <div class="total-wrapper">
             <span class="total-label">Total Neto</span>

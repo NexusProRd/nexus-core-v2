@@ -21,6 +21,8 @@ export interface ProductoSnapshot {
   imagen_url: string | null
   tallas: ProductoVariante[]
   tipo_articulo: string | null
+  aplica_impuesto: boolean
+  porcentaje_impuesto: number | null
 }
 
 export interface ProductoFormProps {

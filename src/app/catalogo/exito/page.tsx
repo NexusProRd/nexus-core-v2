@@ -62,15 +62,30 @@ export default async function ExitoPage({
         {detalles && detalles.length > 0 && (
           <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
             <p className="text-xs text-slate-500 mb-2 font-bold uppercase">Productos</p>
-            {detalles.map((d: any) => (
-              <div key={d.id} className="flex justify-between text-sm py-1">
-                <span className="text-slate-700">{d.producto} x{d.cantidad}</span>
-                <span className="font-bold text-slate-900">RD$${formatearPrecio(d.precio_unitario * d.cantidad)}</span>
-              </div>
-            ))}
+            {detalles.map((d: any) => {
+              const lineaTotal = d.total ?? (d.precio_unitario * d.cantidad)
+              return (
+                <div key={d.id} className="flex justify-between text-sm py-1">
+                  <span className="text-slate-700">{d.producto} x{d.cantidad}</span>
+                  <span className="font-bold text-slate-900">RD${formatearPrecio(lineaTotal)}</span>
+                </div>
+              )
+            })}
+            {detalles.some((d: any) => Number(d.impuesto) > 0) && (
+              <>
+                <div className="flex justify-between text-sm pt-2 border-t mt-2">
+                  <span className="text-slate-600">Subtotal (sin impuesto)</span>
+                  <span className="text-slate-700">RD${formatearPrecio(detalles.reduce((s: number, d: any) => s + Number(d.subtotal ?? d.precio_unitario * d.cantidad), 0))}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600">Impuesto</span>
+                  <span className="text-slate-700">RD${formatearPrecio(detalles.reduce((s: number, d: any) => s + Number(d.impuesto || 0), 0))}</span>
+                </div>
+              </>
+            )}
             <div className="border-t mt-2 pt-2 flex justify-between">
               <span className="font-bold text-slate-900">Total</span>
-              <span className="font-bold text-green-600">RD$${formatearPrecio(pedido?.total || 0)}</span>
+              <span className="font-bold text-green-600">RD${formatearPrecio(pedido?.total || 0)}</span>
             </div>
           </div>
         )}

@@ -29,6 +29,8 @@ interface DetallePedido {
   producto: string
   cantidad: number
   precio_unitario: number
+  impuesto?: number
+  subtotal?: number
 }
 
 interface Pedido {
@@ -502,7 +504,9 @@ export default function DashboardLayout({
                 id: d.id || `realtime-${i}-${Date.now()}`,
                 producto: d.producto || d.producto_nombre || d.nombre || 'Producto',
                 cantidad: d.cantidad || 1,
-                precio_unitario: d.precio_unitario || d.precio || 0
+                precio_unitario: d.precio_unitario || d.precio || 0,
+                impuesto: d.impuesto || 0,
+                subtotal: d.subtotal ?? (d.precio_unitario || d.precio || 0) * (d.cantidad || 1),
               }))
             } else {
               pedido.detalles_pedido = []
@@ -1087,9 +1091,22 @@ export default function DashboardLayout({
                         {pedido.detalles_pedido.map((d: DetallePedido) => (
                           <div key={d.id} className="flex justify-between text-sm">
                             <span className="text-slate-600 dark:text-slate-400">{d.producto} x{d.cantidad}</span>
-                            <span className="font-medium text-slate-900 dark:text-white">RD${formatearPrecio(d.precio_unitario * d.cantidad)}</span>
+                            <span className="font-medium text-slate-900 dark:text-white">RD${formatearPrecio(d.subtotal ?? d.precio_unitario * d.cantidad)}</span>
                           </div>
                         ))}
+                      </div>
+                    )}
+
+                    {pedido.detalles_pedido && pedido.detalles_pedido.some((d: DetallePedido) => Number(d.impuesto) > 0) && (
+                      <div className="text-xs text-slate-500 dark:text-slate-400 space-y-0.5 mb-2">
+                        <div className="flex justify-between">
+                          <span>Subtotal (sin impuesto)</span>
+                          <span>RD${formatearPrecio(pedido.detalles_pedido.reduce((s: number, d: DetallePedido) => s + Number(d.subtotal ?? d.precio_unitario * d.cantidad), 0))}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Impuesto</span>
+                          <span>RD${formatearPrecio(pedido.detalles_pedido.reduce((s: number, d: DetallePedido) => s + Number(d.impuesto || 0), 0))}</span>
+                        </div>
                       </div>
                     )}
 

@@ -13,7 +13,7 @@ interface CartDrawerProps {
 }
 
 export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideCheckout }: CartDrawerProps) {
-  const { items, isOpen, setIsOpen, removeFromCart, updateQuantity, clearCart, totalPrice, totalItems } = useCart()
+  const { items, isOpen, setIsOpen, removeFromCart, updateQuantity, clearCart, totalPrice, totalItems, totalImpuesto, subtotalSinImpuesto } = useCart()
   const { monedaSimbolo } = useConfig()
   const [nombreCliente, setNombreCliente] = useState('')
   const [telefonoCliente, setTelefonoCliente] = useState('')
@@ -44,7 +44,11 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
       }
     })
 
-    mensaje += `\n*💰 Total General: ${monedaSimbolo}${formatearPrecio(totalPrice)}*`
+    if (totalImpuesto > 0) {
+      mensaje += `\n*💵 Subtotal (sin impuesto): ${monedaSimbolo}${formatearPrecio(subtotalSinImpuesto)}*`
+      mensaje += `\n*🧾 Impuesto: ${monedaSimbolo}${formatearPrecio(totalImpuesto)}*`
+    }
+    mensaje += `\n*💰 Total General: ${monedaSimbolo}${formatearPrecio(totalPrice + totalImpuesto)}*`
     mensaje += `\n\n👤 *Cliente:* ${nombreCliente}`
     if (telefonoCliente) mensaje += `\n📞 *Teléfono:* ${telefonoCliente}`
     if (notas.trim()) mensaje += `\n📝 *Notas:* ${notas.trim()}`
@@ -233,8 +237,15 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
                 className="w-full px-4 py-3 text-[16px] border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900 resize-none" />
             </div>
             <div className="flex justify-between items-center mb-4">
-              <span className="text-slate-600 font-medium">Total:</span>
-              <span className="text-2xl font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(totalPrice)}</span>
+              <div>
+                <span className="text-slate-600 font-medium">Total:</span>
+                {totalImpuesto > 0 && (
+                  <div className="text-xs text-slate-400 mt-0.5">
+                    Subtotal {monedaSimbolo}{formatearPrecio(subtotalSinImpuesto)} + Impuesto {monedaSimbolo}{formatearPrecio(totalImpuesto)}
+                  </div>
+                )}
+              </div>
+              <span className="text-2xl font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(totalPrice + totalImpuesto)}</span>
             </div>
             <button
               onClick={handleCheckout}

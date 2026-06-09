@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useCart } from '@/context/CartContext'
 import { useConfig } from '@/context/ConfigProvider'
 import { formatearPrecio } from '@/lib/utils'
+import { calcularPrecioConImpuesto } from '@/lib/precios'
 import BotonWhatsApp from '@/components/catalog/BotonWhatsApp'
 import ModalCompartirProducto from '@/components/catalog/ModalCompartirProducto'
 
@@ -22,6 +23,8 @@ interface Producto {
   tipo_articulo?: string | null
   slug?: string | null
   id_tienda: string
+  aplica_impuesto?: boolean | null
+  porcentaje_impuesto?: number | null
 }
 
 export default function ProductDetailClient({ producto }: { producto: Producto }) {
@@ -39,6 +42,12 @@ export default function ProductDetailClient({ producto }: { producto: Producto }
     ? producto.tallas.reduce((min: number, t: any) => t.precio != null && t.precio < min ? t.precio : min, producto.precio)
     : producto.precio
   const desdeMenor = !selectedPrecioVariant && precioMinimoVariantes < producto.precio
+  const tieneImpuesto = (producto.aplica_impuesto ?? false) && (producto.porcentaje_impuesto ?? 0) > 0
+  const mostrarConImpuesto = (precio: number) => {
+    if (!tieneImpuesto) return { mostrar: precio, impuesto: 0 }
+    const r = calcularPrecioConImpuesto(precio, true, producto.porcentaje_impuesto!)
+    return { mostrar: r.total, impuesto: r.impuesto }
+  }
   const necesitaTalla = tipoNegocio === 'ropa' && Array.isArray(producto.tallas) && producto.tallas.length > 0
 
   const doAddToCart = (variante?: string, precioVariant?: number | null) => {
@@ -51,6 +60,8 @@ export default function ProductDetailClient({ producto }: { producto: Producto }
         imagen_url: producto.imagen_url,
         variante_seleccionada: variante,
         precio_cobrado: variante ? precioFinal : undefined,
+        aplica_impuesto: producto.aplica_impuesto ?? undefined,
+        porcentaje_impuesto: producto.porcentaje_impuesto ?? undefined,
       })
     }
     setFeedback('cart')
@@ -91,17 +102,18 @@ export default function ProductDetailClient({ producto }: { producto: Producto }
 
               <div className="flex items-center gap-2">
                 {selectedPrecioVariant != null ? (
-                  <span className="text-3xl font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(selectedPrecioVariant)}</span>
+                  <span className="text-3xl font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(selectedPrecioVariant).mostrar)}</span>
                 ) : producto.precio_oferta ? (
                   <>
-                    <span className="text-xl text-slate-400 line-through">{monedaSimbolo}{formatearPrecio(producto.precio)}</span>
-                    <span className="text-3xl font-bold text-rose-600">{monedaSimbolo}{formatearPrecio(producto.precio_oferta)}</span>
+                    <span className="text-xl text-slate-400 line-through">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio).mostrar)}</span>
+                    <span className="text-3xl font-bold text-rose-600">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio_oferta).mostrar)}</span>
                   </>
                 ) : desdeMenor ? (
-                  <span className="text-3xl font-bold text-[var(--primary)]">Desde {monedaSimbolo}{formatearPrecio(precioMinimoVariantes)}</span>
+                  <span className="text-3xl font-bold text-[var(--primary)]">Desde {monedaSimbolo}{formatearPrecio(mostrarConImpuesto(precioMinimoVariantes).mostrar)}</span>
                 ) : (
-                  <span className="text-3xl font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(producto.precio)}</span>
+                  <span className="text-3xl font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio).mostrar)}</span>
                 )}
+                {tieneImpuesto && <span className="text-sm font-medium text-slate-400">Impuestos incl.</span>}
               </div>
 
               {necesitaTalla && (

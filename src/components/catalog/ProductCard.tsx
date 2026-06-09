@@ -5,9 +5,8 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCart } from '@/context/CartContext'
 import { useConfig } from '@/context/ConfigProvider'
-import { createClient } from '@/lib/supabase'
 import { formatearPrecio } from '@/lib/utils'
-import { gestionarStock } from '@/lib/stock'
+import { calcularPrecioConImpuesto } from '@/lib/precios'
 import ModalSeleccionarTalla from './ModalSeleccionarTalla'
 import ProductQuickView from './ProductQuickView'
 import BotonWhatsApp from './BotonWhatsApp'
@@ -29,6 +28,8 @@ export interface Producto {
   tallas?: (string | TallaVariant)[]
   tipo_articulo?: string | null
   slug?: string | null
+  aplica_impuesto?: boolean | null
+  porcentaje_impuesto?: number | null
 }
 
 function hashRating(id: string): number {
@@ -97,6 +98,12 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
     return min
   }, producto.precio) ?? producto.precio, [producto.tallas, producto.precio])
   const desdeMenor = !selectedPrecioVariant && precioMinimoVariantes < producto.precio
+  const tieneImpuesto = (producto.aplica_impuesto ?? false) && (producto.porcentaje_impuesto ?? 0) > 0
+  const mostrarConImpuesto = (precio: number) => {
+    if (!tieneImpuesto) return { mostrar: precio, impuesto: 0 }
+    const r = calcularPrecioConImpuesto(precio, true, producto.porcentaje_impuesto!)
+    return { mostrar: r.total, impuesto: r.impuesto }
+  }
   const qtyLabel = 'Cant'
 
   const handleCart = (e: React.MouseEvent) => {
@@ -122,6 +129,8 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
         imagen_url: producto.imagen_url,
         variante_seleccionada: variante,
         precio_cobrado: variante ? precioFinal : undefined,
+        aplica_impuesto: producto.aplica_impuesto ?? undefined,
+        porcentaje_impuesto: producto.porcentaje_impuesto ?? undefined,
       })
     }
     setFeedback('cart')
@@ -150,75 +159,48 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
     }
 
     setBuying(true)
-    const supabase = createClient()
 
     const precioFinal = selectedPrecioVariant ?? precioActivo
     const nombreConSize = selectedSize ? `${producto.nombre} (Talla: ${selectedSize})` : producto.nombre
-    const orderId = crypto.randomUUID().slice(0, 8).toUpperCase()
-    const total = precioFinal * quantity
 
-    const { error: insertError } = await supabase.from('pedidos').insert({
-      id_tienda: idTienda,
-      cliente_nombre: quickBuyName.trim(),
-      cliente_telefono: quickBuyPhone.trim(),
-      is_gift: false,
-      notas: `Compra rápida directa: ${nombreConSize} x${quantity}`,
-      order_id: orderId,
-      total,
-      estado: 'pendiente',
-      detalles_pedido: [{ id_producto: producto.id, producto: nombreConSize, cantidad: quantity, precio_unitario: precioFinal, precio_cobrado: precioFinal, variante_seleccionada: selectedSize || null }],
-    })
-
-    if (insertError) {
-      setBuying(false)
-      alert('Error al procesar el pedido. Inténtalo de nuevo.')
-      return
-    }
-
-    const { data: pedidoIdRaw } = await supabase
-      .rpc('obtener_id_pedido_por_order', { p_id_tienda: idTienda, p_order_id: orderId })
-      .maybeSingle()
-    const pedidoId = pedidoIdRaw as string | undefined
-
-    if (!pedidoId) {
-      setBuying(false)
-      alert('Error al procesar el pedido. Inténtalo de nuevo.')
-      return
-    }
-
-    // Inserción en la tabla detalles_pedido para consistencia del Dashboard
-    await supabase.from('detalles_pedido').insert({
-      id_pedido: pedidoId,
-      id_producto: producto.id,
-      producto: nombreConSize,
-      cantidad: quantity,
-      precio_unitario: precioFinal,
-    })
-
-    const stockResult = await gestionarStock(
-      supabase,
-      [{ id_producto: producto.id, nombre: producto.nombre, cantidad: quantity, variante_seleccionada: selectedSize || null }],
-      'deduct'
-    )
-    if (!stockResult.ok) {
-      console.error('[ProductCard] stock decrement errors:', stockResult.errors)
-    }
-
-    localStorage.setItem(`nexus-last-order-${idTienda}`, pedidoId)
-
-    fetch('/api/push/quickbuy', {
+    const res = await fetch('/api/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id_tienda: idTienda, cliente_nombre: quickBuyName.trim(), total, id_pedido: pedidoId }),
-    }).catch((e) => console.error('[ProductCard] push error', e))
+      body: JSON.stringify({
+        idTienda,
+        nombreCliente: quickBuyName.trim(),
+        telefonoCliente: quickBuyPhone.trim(),
+        items: [{
+          id: selectedSize ? `${producto.id}-${selectedSize}` : producto.id,
+          nombre: nombreConSize,
+          precio: precioFinal,
+          cantidad: quantity,
+          variante_seleccionada: selectedSize || null,
+        }],
+        isGift: false,
+        notas: `Compra rápida directa: ${nombreConSize} x${quantity}`,
+      }),
+    })
+
+    if (!res.ok) {
+      const errData = await res.json()
+      console.error('[ProductCard] checkout error:', errData.error)
+      setBuying(false)
+      alert('Error al procesar el pedido. Inténtalo de nuevo.')
+      return
+    }
+
+    const { pedido } = await res.json()
+
+    localStorage.setItem(`nexus-last-order-${idTienda}`, pedido.id)
 
     const numeroLimpio = whatsappNumber?.replace(/\D/g, '') || ''
     let msg = `🛍️ *¡Nuevo Pedido desde ${nombreTienda || 'el Catálogo'}!*\n\n`
-    msg += `*Orden:* ${orderId}\n`
+    msg += `*Orden:* ${pedido.order_id}\n`
     msg += `*Cliente:* ${quickBuyName.trim()}\n`
     msg += `*Contacto:* ${quickBuyPhone.trim()}\n\n`
     msg += `*Producto(s):* ${nombreConSize} (x${quantity}) = ${monedaSimbolo}${formatearPrecio(precioActivo)} c/u\n\n`
-    msg += `*Total a Cobrar: ${monedaSimbolo}${formatearPrecio(total)}*\n\n`
+    msg += `*Total a Cobrar: ${monedaSimbolo}${formatearPrecio(pedido.total)}*\n\n`
     msg += `Por favor, quedo atento para realizar la cotización del envío. ¡Muchas gracias!`
 
     setBuying(false)
@@ -228,7 +210,7 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
       window.open(`https://wa.me/${numeroLimpio}?text=${encodeURIComponent(msg)}`, '_blank')
     }
 
-    window.location.href = `/catalogo/exito?pedido=${pedidoId}&tienda=${idTienda}`
+    window.location.href = `/catalogo/exito?pedido=${pedido.id}&tienda=${idTienda}`
   }
 
   return (
@@ -278,18 +260,19 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
 
           <div className="flex items-center gap-1.5 mb-2.5">
             {selectedPrecioVariant != null ? (
-              <span className="text-sm font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(selectedPrecioVariant)}</span>
+              <span className="text-sm font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(selectedPrecioVariant).mostrar)}</span>
             ) : producto.precio_oferta ? (
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700">Oferta</span>
-                <span className="text-xs text-slate-400 line-through">{monedaSimbolo}{formatearPrecio(producto.precio)}</span>
-                <span className="text-sm font-bold text-rose-600">{monedaSimbolo}{formatearPrecio(producto.precio_oferta)}</span>
+                <span className="text-xs text-slate-400 line-through">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio).mostrar)}</span>
+                <span className="text-sm font-bold text-rose-600">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio_oferta).mostrar)}</span>
               </div>
             ) : desdeMenor ? (
-              <span className="text-sm font-bold text-[var(--primary)]">Desde {monedaSimbolo}{formatearPrecio(precioMinimoVariantes)}</span>
+              <span className="text-sm font-bold text-[var(--primary)]">Desde {monedaSimbolo}{formatearPrecio(mostrarConImpuesto(precioMinimoVariantes).mostrar)}</span>
             ) : (
-              <span className="text-sm font-bold text-slate-900">{monedaSimbolo}{formatearPrecio(producto.precio)}</span>
+              <span className="text-sm font-bold text-slate-900">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio).mostrar)}</span>
             )}
+            {tieneImpuesto && <span className="text-[10px] font-medium text-slate-400">+Impuestos incl.</span>}
             {producto.unidad_medida === 'libra' && <span className="text-[10px] text-slate-400">/lb</span>}
           </div>
 

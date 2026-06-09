@@ -22,6 +22,8 @@ interface Producto {
   tipo_articulo?: string | null
   unidad_medida?: string | null
   slug?: string | null
+  aplica_impuesto?: boolean | null
+  porcentaje_impuesto?: number | null
 }
 
 interface Tienda {

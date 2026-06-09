@@ -14,6 +14,8 @@ export interface CartItem {
   precio_cobrado?: number
   peso_libras?: number
   modo_venta?: 'unidad' | 'libra'
+  aplica_impuesto?: boolean
+  porcentaje_impuesto?: number | null
 }
 
 interface CartContextType {
@@ -25,6 +27,8 @@ interface CartContextType {
   clearCart: () => void
   totalItems: number
   totalPrice: number
+  totalImpuesto: number
+  subtotalSinImpuesto: number
   isOpen: boolean
   setIsOpen: (open: boolean) => void
   hasGiftInCart: () => boolean
@@ -47,6 +51,8 @@ export function useCart() {
       clearCart: () => {},
       totalItems: 0,
       totalPrice: 0,
+      totalImpuesto: 0,
+      subtotalSinImpuesto: 0,
       isOpen: false,
       setIsOpen: () => {},
       hasGiftInCart: () => false,
@@ -198,6 +204,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
     return sum + Number(item.precio) * item.cantidad
   }, 0)
+  const totalImpuesto = items.reduce((sum, item) => {
+    if (item.isGift) return sum
+    if (!item.aplica_impuesto || !item.porcentaje_impuesto) return sum
+    const base = item.modo_venta === 'libra' && item.peso_libras
+      ? Number(item.precio) * item.peso_libras * item.cantidad
+      : Number(item.precio) * item.cantidad
+    return sum + Math.round(base * (item.porcentaje_impuesto / 100) * 100) / 100
+  }, 0)
+  const subtotalSinImpuesto = totalPrice
 
   if (!isHydrated) {
     return (
@@ -210,6 +225,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         clearCart: () => {},
         totalItems: 0,
         totalPrice: 0,
+        totalImpuesto: 0,
+        subtotalSinImpuesto: 0,
         isOpen,
         setIsOpen,
         hasGiftInCart: () => false,
@@ -231,6 +248,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       clearCart,
       totalItems,
       totalPrice,
+      totalImpuesto,
+      subtotalSinImpuesto,
       isOpen,
       setIsOpen,
       hasGiftInCart,

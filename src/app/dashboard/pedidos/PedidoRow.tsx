@@ -16,6 +16,8 @@ interface DetallePedido {
   cantidad: number
   precio_unitario: number
   productos: { nombre: string; imagen_url: string | null } | null
+  impuesto?: number
+  subtotal?: number
 }
 
 interface Pedido {
@@ -96,18 +98,17 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
     setAbierto(true)
     if (!detalles) {
       setCargando(true)
-      const supabase = createClient()
-      try {
-        const { data } = await supabase.from('detalles_pedido').select('*').eq('id_pedido', pedido.id)
-        if (data && data.length > 0) { setDetalles(data as DetallePedido[]); setCargando(false); return }
-      } catch {}
       const jsonb = pedido.detalles_pedido as any
       if (jsonb && typeof jsonb === 'object') {
         const arr = Array.isArray(jsonb) ? jsonb : [jsonb]
         setDetalles(arr.map((d: any, i: number) => ({
           id: `old-${i}`, id_producto: null,
           producto: d.producto || d.producto_nombre || d.nombre || 'Producto',
-          cantidad: d.cantidad || 1, precio_unitario: d.precio_unitario || d.precio || 0, productos: null
+          cantidad: d.cantidad || 1,
+          precio_unitario: d.precio_unitario || d.precio || 0,
+          productos: null,
+          impuesto: d.impuesto || 0,
+          subtotal: d.subtotal ?? (d.precio_unitario || d.precio || 0) * (d.cantidad || 1),
         })))
       } else { setDetalles([]) }
       setCargando(false)
@@ -300,9 +301,17 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
               ))}
               <div className="flex justify-between items-center pt-1 px-1">
                 <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">Total</span>
-                <span className={`text-base font-bold ${totalDetalles !== pedido.total ? 'text-rose-600' : 'text-emerald-600'}`}>
-                  RD${formatearPrecio(pedido.total)}
-                </span>
+                <div className="text-right">
+                  {items.some(d => Number(d.impuesto) > 0) && (
+                    <div className="text-[11px] text-slate-400 dark:text-slate-500 leading-tight">
+                      <div>Subtotal: RD${formatearPrecio(items.reduce((s, d) => s + Number(d.subtotal ?? d.precio_unitario * d.cantidad), 0))}</div>
+                      <div>Impuesto: RD${formatearPrecio(items.reduce((s, d) => s + Number(d.impuesto || 0), 0))}</div>
+                    </div>
+                  )}
+                  <span className={`text-base font-bold ${totalDetalles !== pedido.total && !items.some(d => Number(d.impuesto) > 0) ? 'text-rose-600' : 'text-emerald-600'}`}>
+                    RD${formatearPrecio(pedido.total)}
+                  </span>
+                </div>
               </div>
             </div>
           ) : (

@@ -75,6 +75,8 @@ export async function crearProducto(formData: FormData) {
     imagen_url: imagenUrl,
     tallas: usaVariantes ? tallas : [],
     tipo_articulo: formData.get('tipo_articulo') as string || null,
+    aplica_impuesto: formData.get('aplica_impuesto') === 'true',
+    porcentaje_impuesto: formData.get('aplica_impuesto') === 'true' ? parseFloat(formData.get('porcentaje_impuesto') as string) || null : null,
   })
 
   if (error) return { error: error.message }
@@ -145,6 +147,8 @@ export async function actualizarProducto(formData: FormData): Promise<{ success?
     imagen_url: formData.get('imagen_url') as string || undefined,
     tipo_articulo: formData.get('tipo_articulo') as string || null,
     tallas: usaVariantes ? tallas : [],
+    aplica_impuesto: formData.get('aplica_impuesto') === 'true',
+    porcentaje_impuesto: formData.get('aplica_impuesto') === 'true' ? parseFloat(formData.get('porcentaje_impuesto') as string) || null : null,
   }
   const { data: updatedRows, error: updateError } = await admin.supabase
     .from('productos').update(payload)

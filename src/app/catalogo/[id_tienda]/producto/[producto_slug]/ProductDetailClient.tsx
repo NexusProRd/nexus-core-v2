@@ -6,9 +6,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCart } from '@/context/CartContext'
 import { useConfig } from '@/context/ConfigProvider'
-import { createClient } from '@/lib/supabase'
 import { formatearPrecio } from '@/lib/utils'
-import { gestionarStock } from '@/lib/stock'
+import { calcularPrecioConImpuesto } from '@/lib/precios'
 import ModalCompartirProducto from '@/components/catalog/ModalCompartirProducto'
 import ModalSeleccionarTalla from '@/components/catalog/ModalSeleccionarTalla'
 import BottomNav, { type TabId } from '@/components/catalog/BottomNav'
@@ -27,6 +26,8 @@ interface Producto {
   tallas?: any
   tipo_articulo?: string | null
   slug?: string | null
+  aplica_impuesto?: boolean | null
+  porcentaje_impuesto?: number | null
 }
 
 interface ProductoSugerido {
@@ -98,6 +99,12 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
     ? producto.tallas.reduce((min: number, t: any) => t.precio != null && t.precio < min ? t.precio : min, producto.precio)
     : producto.precio
   const desdeMenor = !selectedPrecioVariant && precioMinimoVariantes < producto.precio
+  const tieneImpuesto = (producto.aplica_impuesto ?? false) && (producto.porcentaje_impuesto ?? 0) > 0
+  const mostrarConImpuesto = (precio: number) => {
+    if (!tieneImpuesto) return { mostrar: precio, impuesto: 0 }
+    const r = calcularPrecioConImpuesto(precio, true, producto.porcentaje_impuesto!)
+    return { mostrar: r.total, impuesto: r.impuesto }
+  }
   const necesitaTalla = tienda.tipo_negocio === 'ropa' && Array.isArray(producto.tallas) && producto.tallas.length > 0
 
   const doAddToCart = (variante?: string, precioVariant?: number | null) => {
@@ -115,6 +122,8 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
         imagen_url: producto.imagen_url,
         variante_seleccionada: variante,
         precio_cobrado: variante ? precioFinal : undefined,
+        aplica_impuesto: producto.aplica_impuesto ?? undefined,
+        porcentaje_impuesto: producto.porcentaje_impuesto ?? undefined,
       })
     }
     setFeedback('cart')
@@ -147,71 +156,44 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
     if (!buyName.trim() || !buyPhone.trim() || buying) return
     setBuying(true)
     setShowBuyForm(false)
-    const supabase = createClient()
     const precioFinal = selectedPrecioVariant ?? precioActivo
     const nombreConVariante = selectedTalla ? `${producto.nombre} (Talla: ${selectedTalla})` : producto.nombre
 
-    const orderId = crypto.randomUUID().slice(0, 8).toUpperCase()
-    const total = precioFinal * quantity
-
-    const { error: insertError } = await supabase.from('pedidos').insert({
-      id_tienda: tienda.id,
-      cliente_nombre: buyName.trim(),
-      cliente_telefono: buyPhone.trim(),
-      is_gift: false,
-      notas: `Compra rápida directa: ${nombreConVariante} x${quantity}`,
-      order_id: orderId,
-      total,
-      estado: 'pendiente',
-      detalles_pedido: [{ id_producto: producto.id, producto: nombreConVariante, cantidad: quantity, precio_unitario: precioFinal, precio_cobrado: precioFinal, variante_seleccionada: selectedTalla || null }],
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idTienda: tienda.id,
+        nombreCliente: buyName.trim(),
+        telefonoCliente: buyPhone.trim(),
+        items: [{
+          id: selectedTalla ? `${producto.id}-${selectedTalla}` : producto.id,
+          nombre: nombreConVariante,
+          precio: precioFinal,
+          cantidad: quantity,
+          variante_seleccionada: selectedTalla || null,
+        }],
+        isGift: false,
+        notas: `Compra rápida directa: ${nombreConVariante} x${quantity}`,
+      }),
     })
 
-    if (insertError) {
+    if (!res.ok) {
+      const errData = await res.json()
+      console.error('[ProductDetail] checkout error:', errData.error)
       setBuying(false)
       alert('Error al procesar el pedido. Inténtalo de nuevo.')
       return
     }
 
-    const { data: pedidoIdRaw } = await supabase
-      .rpc('obtener_id_pedido_por_order', { p_id_tienda: tienda.id, p_order_id: orderId })
-      .maybeSingle()
-    const pedidoId = pedidoIdRaw as string | undefined
-
-    if (!pedidoId) {
-      setBuying(false)
-      alert('Error al procesar el pedido. Inténtalo de nuevo.')
-      return
-    }
-
-    await supabase.from('detalles_pedido').insert({
-      id_pedido: pedidoId,
-      id_producto: producto.id,
-      producto: nombreConVariante,
-      cantidad: quantity,
-      precio_unitario: precioFinal,
-    })
-
-    const stockResult = await gestionarStock(
-      supabase,
-      [{ id_producto: producto.id, nombre: producto.nombre, cantidad: quantity, variante_seleccionada: selectedTalla || null }],
-      'deduct'
-    )
-    if (!stockResult.ok) {
-      console.error('[ProductDetail] stock decrement errors:', stockResult.errors)
-    }
+    const { pedido } = await res.json()
 
     setFeedback('buy')
     setBuying(false)
     setBuyName('')
     setBuyPhone('')
 
-    fetch('/api/push/quickbuy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id_tienda: tienda.id, cliente_nombre: buyName.trim(), total, id_pedido: pedidoId }),
-    }).catch((e) => console.error('[ProductDetail] push error', e))
-
-    const mensaje = `Hola! Quiero hacer el siguiente pedido:\n*Pedido #${orderId}*\n\n- ${nombreConVariante} x${quantity} = RD$${formatearPrecio(total)}\n\n*💰 Total General: RD$${formatearPrecio(total)}*\n\n👤 *Cliente:* ${buyName.trim()}${buyPhone.trim() ? `\n📞 *Teléfono:* ${buyPhone.trim()}` : ''}`
+    const mensaje = `Hola! Quiero hacer el siguiente pedido:\n*Pedido #${pedido.order_id}*\n\n- ${nombreConVariante} x${quantity} = RD$${formatearPrecio(pedido.total)}\n\n*💰 Total General: RD$${formatearPrecio(pedido.total)}*\n\n👤 *Cliente:* ${buyName.trim()}${buyPhone.trim() ? `\n📞 *Teléfono:* ${buyPhone.trim()}` : ''}`
     const whatsappUrl = `https://wa.me/${numeroLimpio}?text=${encodeURIComponent(mensaje)}`
     window.open(whatsappUrl, '_blank')
 
@@ -384,17 +366,18 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
 
             <div className="flex items-center gap-2">
               {selectedPrecioVariant != null ? (
-                <span className="text-xl" style={{ color: vars.textSecondary }}>{moneda} {formatearPrecio(selectedPrecioVariant)}</span>
+                <span className="text-xl" style={{ color: vars.textSecondary }}>{moneda} {formatearPrecio(mostrarConImpuesto(selectedPrecioVariant).mostrar)}</span>
               ) : producto.precio_oferta ? (
                 <>
-                  <span className="text-lg line-through" style={{ color: vars.textMuted }}>{moneda} {formatearPrecio(producto.precio)}</span>
-                  <span className="text-xl font-bold" style={{ color: vars.primary }}>{moneda} {formatearPrecio(producto.precio_oferta)}</span>
+                  <span className="text-lg line-through" style={{ color: vars.textMuted }}>{moneda} {formatearPrecio(mostrarConImpuesto(producto.precio).mostrar)}</span>
+                  <span className="text-xl font-bold" style={{ color: vars.primary }}>{moneda} {formatearPrecio(mostrarConImpuesto(producto.precio_oferta).mostrar)}</span>
                 </>
               ) : desdeMenor ? (
-                <span className="text-xl" style={{ color: vars.textSecondary }}>Desde {moneda} {formatearPrecio(precioMinimoVariantes)}</span>
+                <span className="text-xl" style={{ color: vars.textSecondary }}>Desde {moneda} {formatearPrecio(mostrarConImpuesto(precioMinimoVariantes).mostrar)}</span>
               ) : (
-                <span className="text-xl" style={{ color: vars.textSecondary }}>{moneda} {formatearPrecio(producto.precio)}</span>
+                <span className="text-xl" style={{ color: vars.textSecondary }}>{moneda} {formatearPrecio(mostrarConImpuesto(producto.precio).mostrar)}</span>
               )}
+              {tieneImpuesto && <span className="text-xs font-medium" style={{ color: vars.textMuted }}>Impuestos incl.</span>}
             </div>
 
             {necesitaTalla && (

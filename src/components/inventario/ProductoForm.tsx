@@ -48,6 +48,8 @@ export default function ProductoForm({ mode, initialData, tiendaId, tipoNegocio,
   const [enOferta, setEnOferta] = useState(!!initialData?.precio_oferta)
   const [precioOferta, setPrecioOferta] = useState(initialData?.precio_oferta?.toString() || '')
   const [stock, setStock] = useState(initialData?.stock?.toString() || '0')
+  const [aplicaImpuesto, setAplicaImpuesto] = useState(initialData?.aplica_impuesto ?? false)
+  const [porcentajeImpuesto, setPorcentajeImpuesto] = useState(initialData?.porcentaje_impuesto?.toString() || '')
 
   // Image
   const [imagenPreview, setImagenPreview] = useState<string | null>(null)
@@ -182,6 +184,8 @@ export default function ProductoForm({ mode, initialData, tiendaId, tipoNegocio,
       formData.append('precio_oferta', precioOferta)
       if (imagenUrl) formData.append('imagen_url', imagenUrl)
       formData.append('usa_variantes', usaVariantes ? 'true' : 'false')
+      formData.append('aplica_impuesto', aplicaImpuesto ? 'true' : 'false')
+      formData.append('porcentaje_impuesto', aplicaImpuesto ? porcentajeImpuesto : '')
 
       if (usaVariantes) {
         const variantesConSkus = variantes.map(v => ({
@@ -498,6 +502,26 @@ export default function ProductoForm({ mode, initialData, tiendaId, tipoNegocio,
             )}
           </div>
         )}
+
+        {/* Impuesto */}
+        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={aplicaImpuesto} onChange={e => { setAplicaImpuesto(e.target.checked); if (!e.target.checked) setPorcentajeImpuesto('') }}
+              className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-[var(--primary)] focus:ring-[var(--primary)]" />
+            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">Aplicar impuesto</span>
+          </label>
+          {aplicaImpuesto && (
+            <div className="mt-2">
+              <label className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">Porcentaje de impuesto</label>
+              <input type="number" step="0.01" min={0} max={100} value={porcentajeImpuesto} onChange={e => setPorcentajeImpuesto(e.target.value)}
+                placeholder="18"
+                className="w-full px-3 py-2.5 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl text-sm focus:ring-2 focus:ring-[var(--primary)] outline-none bg-white dark:bg-[#0a0a0d]" />
+              {porcentajeImpuesto && (parseFloat(porcentajeImpuesto) < 0 || parseFloat(porcentajeImpuesto) > 100) && (
+                <p className="text-xs text-rose-600 dark:text-rose-400 mt-1">El porcentaje debe estar entre 0 y 100.</p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Stock (when no variantes) */}

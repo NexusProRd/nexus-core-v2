@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { formatearPrecio } from '@/lib/utils'
+import { calcularPrecioConImpuesto } from '@/lib/precios'
 import type { TallaVariant } from '@/types/database'
 
 interface ProductoConTallas {
@@ -11,6 +12,8 @@ interface ProductoConTallas {
   precio_oferta: number | null
   tallas?: (string | TallaVariant)[]
   tipo_articulo?: string | null
+  aplica_impuesto?: boolean | null
+  porcentaje_impuesto?: number | null
 }
 
 interface Props {
@@ -42,6 +45,12 @@ export default function ModalSeleccionarTalla({ producto, monedaSimbolo = 'RD$',
   const precioBase = producto.precio_oferta ?? producto.precio
   const precioMostrar = selectedVariant?.precio ?? precioBase
   const tienePrecioEspecial = selectedVariant?.precio != null && selectedVariant.precio !== precioBase
+  const tieneImpuesto = (producto.aplica_impuesto ?? false) && (producto.porcentaje_impuesto ?? 0) > 0
+  const mostrarConImpuesto = (precio: number) => {
+    if (!tieneImpuesto) return { mostrar: precio, impuesto: 0 }
+    const r = calcularPrecioConImpuesto(precio, true, producto.porcentaje_impuesto!)
+    return { mostrar: r.total, impuesto: r.impuesto }
+  }
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-backdrop-in" onClick={onClose}>
@@ -60,13 +69,14 @@ export default function ModalSeleccionarTalla({ producto, monedaSimbolo = 'RD$',
         {selectedVariant && (
           <div className="flex items-baseline gap-1.5 mb-4">
             <span className="text-2xl font-bold text-[var(--primary)]">
-              {monedaSimbolo}{formatearPrecio(precioMostrar)}
+              {monedaSimbolo}{formatearPrecio(mostrarConImpuesto(precioMostrar).mostrar)}
             </span>
             {tienePrecioEspecial && (
               <span className="text-sm text-slate-400 line-through">
-                {monedaSimbolo}{formatearPrecio(precioBase)}
+                {monedaSimbolo}{formatearPrecio(mostrarConImpuesto(precioBase).mostrar)}
               </span>
             )}
+            {tieneImpuesto && <span className="text-xs font-medium text-slate-400">Impuestos incl.</span>}
           </div>
         )}
 

@@ -17,8 +17,8 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `e2c10c2` — Próximamente: Regalos button in catalog navbar (mobile + desktop) |
-| Última verificación | 2026-06-08 — Próximamente: Regalos button in catalog navbar (BottomNav + sidebar) + Typecheck PASS + Build PASS |
+| Último commit | `c386e6b` — Sprint Impuestos 0.3B: tax display en 5 catalog components + JSONB fix en PedidoRow |
+| Última verificación | 2026-06-09 — Sprint Impuestos 0.3B: build PASS, typecheck PASS |
 
 ### Módulos
 
@@ -69,6 +69,10 @@
 **Sprint Conversión 4B.2 — Onboarding Alineado al Cliente Ideal**
 **Sprint Legal 1A — Auditoría y Corrección RLS de Pedidos** (part 1)
 **Sprint Legal 1A — Términos, Privacidad y Aceptación Obligatoria** (part 2)
+**Sprint Impuestos 0.1 — Per-product tax infrastructure (migration, precios.ts, checkout, cart, receipts, tickets, WhatsApp)**
+**Sprint Impuestos 0.2B — Dashboard tax display (TicketButton, PedidoRow, TabPedidos, DashboardShell)**
+**Sprint Impuestos 0.3A — Audit of 59 price display points in catalog**
+**Sprint Impuestos 0.3B — Tax-inclusive price display in 5 catalog components + JSONB consumption fix in PedidoRow**
 
 ### Estado
 
@@ -215,6 +219,14 @@
 - API de registro: validación server-side de `acepto_terminos: true`, almacena `fecha_acepto_terminos`
 - Footer legal en todas las páginas de catálogo público (`CatalogContent.tsx`)
 - Typecheck PASS. Build PASS. Commits: `26e4d63`, `195288c`, `dd0339c`, `f567726`, `c208c5d`, `86bc8c7`, `9748047`
+
+**Sprint Impuestos 0.1 Completado.** Nueva migración 065 con columnas `aplica_impuesto` y `porcentaje_impuesto` en `productos`. Módulo `src/lib/precios.ts` con `calcularPrecioLinea()`, `calcularTotalPedido()`, `calcularPrecioConImpuesto()`. Integración en checkout (`/api/checkout`), carrito (`CartContext`, `CartDrawer`), todas las pantallas de pedidos (recibos, tickets, WhatsApp). Build PASS. Typecheck PASS.
+
+**Sprint Impuestos 0.2B Completado.** Dashboard tax breakdown en `TicketButton`, `PedidoRow`, `TabPedidos`, `DashboardShell`. Todos consumen `detalles_pedido` JSONB. Build PASS. Typecheck PASS.
+
+**Sprint Impuestos 0.3A Completado.** Auditoría de 59 price display points en 12+ archivos del catálogo. 5 core files identificados para modificación (ProductCard, ProductQuickView, ProductDetailClient ×2, ModalSeleccionarTalla).
+
+**Sprint Impuestos 0.3B Completado.** `calcularPrecioConImpuesto()` añadido a `precios.ts`. Los 5 componentes del catálogo ahora muestran precios con impuesto incluido + badge "Impuestos incl." cuando aplica. Bug corregido: `PedidoRow.tsx` consume `pedido.detalles_pedido` JSONB directamente (no la tabla relacional sin columnas fiscales), permitiendo que el breakdown fiscal aparezca tanto en el accordion detallado como en el ticket imprimible. Sin migraciones. Build PASS. Typecheck PASS.
 
 Todos los sprints de seguridad, hardening, data integrity, gift unification y commercial foundation ejecutados:
 - **P0-B/C**: Security Hardening (`0f4bba5`)
@@ -1856,6 +1868,15 @@ async function diag() {
 ---
 
 ## Changelog
+
+### 2026-06-09 — Sprint Impuestos 0.3B — Tax display in catalog + JSONB consumption fix
+
+##### Cambios
+
+- **`src/lib/precios.ts`** — Nuevo `calcularPrecioConImpuesto()` que retorna `{ precioBase, impuesto, total }`, reutilizando `calcularPrecioLinea` con `cantidad: 1`.
+- **5 catalog components updated** — `ProductCard`, `ProductQuickView`, `ModalSeleccionarTalla`, `ProductDetailClient` (×2) ahora muestran precios con impuesto incluido + badge "Impuestos incl." cuando `producto.aplica_impuesto` es `true`.
+- **Bug corregido: `PedidoRow.tsx`** — `toggleAccordion` ahora consume `pedido.detalles_pedido` JSONB directamente en lugar de consultar la tabla relacional `detalles_pedido` (que carece de columnas fiscales). Esto corrige el breakdown fiscal tanto en el accordion expandido como en el ticket imprimible.
+- **Sin migraciones** — No se modificó el esquema de base de datos. El JSONB ya contenía `subtotal`, `impuesto`, `total` desde el checkout.
 
 ### 2026-06-07 — Sprint 5C.2.1 — Recovery Code UX
 

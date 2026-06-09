@@ -42,6 +42,8 @@ export default function ProductoRowActions({ producto, categorias = [], tiendaId
       ? (producto.tallas.filter(t => typeof t === 'object' && t !== null) as ProductoVariante[])
       : [],
     tipo_articulo: producto.tipo_articulo || null,
+    aplica_impuesto: (producto as any).aplica_impuesto ?? false,
+    porcentaje_impuesto: (producto as any).porcentaje_impuesto ?? null,
   }
 
   return (
