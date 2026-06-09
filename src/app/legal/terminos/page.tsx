@@ -125,7 +125,7 @@ export default function TerminosPage() {
             </p>
 
             <h3 className="text-lg font-bold text-slate-800 mt-4 mb-2">6.2 Reactivación</h3>
-            <p>Una cuenta suspendida puede ser reactivada mediante la regularización de la suscripción, a criterio del equipo de Nexus.</p>
+            <p>Una cuenta suspendida podrá ser reactivada una vez regularizada la situación comercial correspondiente y siempre que la cuenta no haya alcanzado una fase irreversible de eliminación.</p>
 
             <h3 className="text-lg font-bold text-slate-800 mt-4 mb-2">6.3 Excepción para Fundadores</h3>
             <p>Los Socios designados como fundadores no están sujetos al proceso de suspensión automática descrito en esta sección.</p>
