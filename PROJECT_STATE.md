@@ -17,8 +17,8 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `9748047` — Sprint Legal 1A: terms, privacy policy, mandatory acceptance, catalog footer |
-| Última verificación | 2026-06-08 — Sprint Legal 1A completo: legal audit, privacy policy, terms of service, mandatory acceptance in register, catalog footer + Typecheck PASS + Build PASS |
+| Último commit | `e2c10c2` — Próximamente: Regalos button in catalog navbar (mobile + desktop) |
+| Última verificación | 2026-06-08 — Próximamente: Regalos button in catalog navbar (BottomNav + sidebar) + Typecheck PASS + Build PASS |
 
 ### Módulos
 
