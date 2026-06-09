@@ -105,7 +105,8 @@ export default function TerminosPage() {
             <p>
               Los Socios designados como "fundadores" por Nexus están exentos de la lógica automática de
               suspensión. Esta designación es otorgada discrecionalmente por Nexus. Nexus podrá modificar,
-              ampliar o retirar los beneficios de fundador en cualquier momento.
+              ampliar o retirar los beneficios de fundador en cualquier momento. La designación Founder
+              no constituye un derecho adquirido ni una garantía de permanencia indefinida de beneficios.
             </p>
 
             <h2 className="text-xl font-bold text-slate-900 mt-8 mb-3">6. Suspensión y Eliminación de Cuentas</h2>
