@@ -99,7 +99,7 @@ export default function TerminosPage() {
             </p>
 
             <h3 className="text-lg font-bold text-slate-800 mt-4 mb-2">5.3 Sistema de Tokens</h3>
-            <p>Las suscripciones se gestionan mediante un sistema interno de tokens. Los tokens son asignados a la cuenta del Socio por el equipo de Nexus.</p>
+            <p>Las suscripciones son administradas por Nexus mediante mecanismos internos de activación y control comercial.</p>
 
             <h3 className="text-lg font-bold text-slate-800 mt-4 mb-2">5.4 Fundadores</h3>
             <p>
