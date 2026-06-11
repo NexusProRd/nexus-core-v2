@@ -13,6 +13,7 @@ interface ConfigContextType {
   mensajeBienvenida: string
   whatsappNumber: string
   monedaSimbolo: string
+  currencyCode: string
   isLoading: boolean
   palette: Palette
   paletteName: string
@@ -58,10 +59,11 @@ interface ConfigProviderProps {
     theme_config?: unknown
   }
   monedaSimbolo?: string
+  currencyCode?: string
   tipoNegocio?: string
 }
 
-export function ConfigProvider({ children, idTienda, initialConfig, monedaSimbolo = 'RD$', tipoNegocio = 'estandar' }: ConfigProviderProps) {
+export function ConfigProvider({ children, idTienda, initialConfig, monedaSimbolo = 'RD$', currencyCode = 'DOP', tipoNegocio = 'estandar' }: ConfigProviderProps) {
   const [mounted, setMounted] = useState(false)
   const [colorPrimario, setColorPrimario] = useState('#3B82F6')
   const [colorSecundario, setColorSecundario] = useState('#8B5CF6')
@@ -162,6 +164,7 @@ export function ConfigProvider({ children, idTienda, initialConfig, monedaSimbol
     mensajeBienvenida: mounted ? mensajeBienvenida : '¡Bienvenido!',
     whatsappNumber: mounted ? whatsappNumber : '',
     monedaSimbolo,
+    currencyCode,
     isLoading: mounted && isLoading,
     palette: mounted ? palette : getPalette('elegante'),
     paletteName: mounted ? palette.name : 'elegante',

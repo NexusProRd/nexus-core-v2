@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
+import { formatCurrency } from '@/lib/utils'
+import { useConfig } from '@/context/ConfigProvider'
 
 interface Props {
   open: boolean
@@ -10,6 +12,7 @@ interface Props {
 }
 
 export default function TrackOrderModal({ open, onClose, id_tienda }: Props) {
+  const { currencyCode } = useConfig()
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{
@@ -149,7 +152,7 @@ export default function TrackOrderModal({ open, onClose, id_tienda }: Props) {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-xs text-slate-500 font-medium">Total</span>
-              <span className="text-sm font-bold text-emerald-600">RD${result.total.toFixed(2)}</span>
+              <span className="text-sm font-bold text-emerald-600">{formatCurrency(result.total, currencyCode)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-xs text-slate-500 font-medium">Estado</span>

@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
-import { formatearPrecio } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
+import { useDashboard } from './DashboardContext'
 
 export default function TicketButton({ pedidoId }: { pedidoId: string }) {
   const [loading, setLoading] = useState(false)
+  const { currencyCode } = useDashboard()
 
   const imprimir = async () => {
     setLoading(true)
@@ -64,8 +66,8 @@ export default function TicketButton({ pedidoId }: { pedidoId: string }) {
       html += `<tr>
         <td>${d.producto}</td>
         <td class="cen">${d.cantidad}</td>
-        <td class="der">RD$${d.precio_unitario.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
-        <td class="der">RD$${(d.subtotal || d.precio_unitario * d.cantidad).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+        <td class="der">${formatCurrency(d.precio_unitario, currencyCode)}</td>
+        <td class="der">${formatCurrency((d.subtotal || d.precio_unitario * d.cantidad), currencyCode)}</td>
       </tr>`
     })
     const totalImpuestoTicket = items.reduce((s: number, d: any) => s + Number(d.impuesto || 0), 0)
@@ -74,17 +76,17 @@ export default function TicketButton({ pedidoId }: { pedidoId: string }) {
       const subtotalTicket = items.reduce((s: number, d: any) => s + Number(d.subtotal || d.precio_unitario * d.cantidad), 0)
       html += `<div style="display:flex;justify-content:space-between;padding:4px 0;">
         <span>Subtotal (sin impuesto):</span>
-        <span>RD$${subtotalTicket.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+        <span>${formatCurrency(subtotalTicket, currencyCode)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;padding:4px 0;">
         <span>Impuesto:</span>
-        <span>RD$${totalImpuestoTicket.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+        <span>${formatCurrency(totalImpuestoTicket, currencyCode)}</span>
       </div>
       <div class="l"></div>`
     }
     html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
         <span class="total-label">TOTAL</span>
-        <span class="total-value">RD$${pedido.total.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+        <span class="total-value">${formatCurrency(pedido.total, currencyCode)}</span>
       </div>
       <div class="footer">¡Gracias por tu preferencia!</div>
       <script>window.print();window.close();<\/script></body></html>`

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { formatearPrecio } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import { ModalBokeh } from '@/components/pcc/BokehBackground'
 
 interface PlanConfig {
@@ -29,6 +29,7 @@ export default function ConfiguracionComercialPage() {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
 
+  const currencyCode = 'DOP'
   const [editPlan, setEditPlan] = useState<'emprendedor' | 'pro' | null>(null)
   const [editPrice, setEditPrice] = useState(0)
   const [editLimit, setEditLimit] = useState(0)
@@ -127,7 +128,7 @@ export default function ConfiguracionComercialPage() {
         <div className="grid grid-cols-2 gap-4">
           <div className="rounded-xl p-4 bg-slate-50 border border-slate-100">
             <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">Precio mensual</p>
-            <p className="text-2xl font-extrabold text-slate-900">RD$ {formatearPrecio(c.price)}</p>
+            <p className="text-2xl font-extrabold text-slate-900">{formatCurrency(c.price, currencyCode)}</p>
           </div>
           <div className="rounded-xl p-4 bg-slate-50 border border-slate-100">
             <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">Límite productos</p>

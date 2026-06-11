@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { formatCurrency } from '@/lib/utils'
+import { useConfig } from '@/context/ConfigProvider'
 
 interface Props {
   producto: { id: string; nombre: string; precio: number }
-  monedaSimbolo: string
   onConfirm: (fecha: string, hora: string) => void
   onClose: () => void
 }
@@ -21,7 +22,8 @@ const BLOQUES_HORARIOS = [
 const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
-export default function ModalSeleccionCita({ producto, monedaSimbolo, onConfirm, onClose }: Props) {
+export default function ModalSeleccionCita({ producto, onConfirm, onClose }: Props) {
+  const { currencyCode } = useConfig()
   const hoy = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d }, [])
   const [mesOffset, setMesOffset] = useState(0)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
@@ -74,7 +76,7 @@ export default function ModalSeleccionCita({ producto, monedaSimbolo, onConfirm,
           </div>
 
           <p className="text-sm font-semibold text-slate-800 mb-1">{producto.nombre}</p>
-          <p className="text-xs text-slate-400 mb-4">{monedaSimbolo}{producto.precio.toFixed(2)}</p>
+          <p className="text-xs text-slate-400 mb-4">{formatCurrency(producto.precio, currencyCode)}</p>
 
           {/* Calendar */}
           <div className="mb-4">

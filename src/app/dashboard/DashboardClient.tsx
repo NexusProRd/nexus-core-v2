@@ -12,8 +12,9 @@ import StoreToggle from './StoreToggle'
 import QrButton from './QrButton'
 import { usePermisos } from '@/context/PermisosContext'
 import TicketButton from './TicketButton'
-import { formatearPrecio } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import PrimerosPasos from '@/components/dashboard/PrimerosPasos'
+import { useDashboard } from './DashboardContext'
 
 interface Pedido {
   id: string
@@ -93,6 +94,7 @@ export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero
   useEffect(() => {
     fetch('/api/config/whatsapp-soporte').then(r => r.json()).then(d => { if (d.numero) setWhatsappSoporte(d.numero) }).catch(() => {})
   }, [])
+  const { currencyCode } = useDashboard()
 
   const publicUrl = tiendaSlug ? `${origin}/c/${tiendaSlug}` : catalogoUrl
 
@@ -305,7 +307,7 @@ export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero
                           {d ? d.toLocaleDateString('es-DO', { weekday: 'short', day: 'numeric', month: 'short' }) : label}
                         </p>
                         <p className="text-slate-600 dark:text-slate-300">
-                          Ventas: <span className="font-bold text-slate-900 dark:text-white">RD$ {formatearPrecio(Number(data.ventas) || 0)}</span>
+                          Ventas: <span className="font-bold text-slate-900 dark:text-white">{formatCurrency(Number(data.ventas) || 0, currencyCode)}</span>
                         </p>
                         <p className="text-slate-600 dark:text-slate-300">
                           Pedidos: <span className="font-bold text-slate-900 dark:text-white">{data.pedidos}</span>
@@ -334,13 +336,13 @@ export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero
           <div className="bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-3.5 shadow-sm">
             <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ventas Hoy</p>
             <p className={`text-lg sm:text-xl font-bold text-slate-900 dark:text-white mt-1 ${isLoading ? 'animate-pulse' : ''}`}>
-              RD$ {formatearPrecio(metricasFull.ventasHoy)}
+              {formatCurrency(metricasFull.ventasHoy, currencyCode)}
             </p>
           </div>
           <div className="bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-3.5 shadow-sm">
             <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ventas Mes</p>
             <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mt-1">
-              RD$ {formatearPrecio(metricasFull.ventasMes)}
+              {formatCurrency(metricasFull.ventasMes, currencyCode)}
             </p>
           </div>
           <div className="bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-3.5 shadow-sm">
@@ -354,7 +356,7 @@ export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero
           <div className="bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-3.5 shadow-sm">
             <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ticket Promedio</p>
             <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mt-1">
-              RD$ {formatearPrecio(metricasFull.ticketPromedio)}
+              {formatCurrency(metricasFull.ticketPromedio, currencyCode)}
             </p>
           </div>
           <div className="bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 px-4 py-3.5 shadow-sm">
@@ -382,13 +384,13 @@ export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero
           <div className="bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 px-5 py-4 shadow-sm">
             <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ganancia Hoy</p>
             <p className={`text-lg sm:text-xl font-bold mt-1.5 ${metricasFull.gananciaHoy >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-              RD$ {formatearPrecio(metricasFull.gananciaHoy)}
+              {formatCurrency(metricasFull.gananciaHoy, currencyCode)}
             </p>
           </div>
           <div className="bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 px-5 py-4 shadow-sm">
             <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ganancia Mes</p>
             <p className={`text-lg sm:text-xl font-bold mt-1.5 ${metricasFull.gananciaMes >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-              RD$ {formatearPrecio(metricasFull.gananciaMes)}
+              {formatCurrency(metricasFull.gananciaMes, currencyCode)}
             </p>
           </div>
           <div className="bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 px-5 py-4 shadow-sm">
@@ -453,10 +455,10 @@ export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero
           <div className="bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 px-5 py-4 shadow-sm">
             <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ventas Hoy vs Ayer</p>
             <div className="flex items-baseline justify-between mt-1.5">
-              <p className="text-lg font-bold text-slate-900 dark:text-white">RD$ {formatearPrecio(metricasFull.ventasHoy)}</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-white">{formatCurrency(metricasFull.ventasHoy, currencyCode)}</p>
               <Indicador actual={metricasFull.ventasHoy} anterior={metricasFull.ventasAyer} />
             </div>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Ayer: RD$ {formatearPrecio(metricasFull.ventasAyer)}</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Ayer: {formatCurrency(metricasFull.ventasAyer, currencyCode)}</p>
           </div>
           <div className="bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 px-5 py-4 shadow-sm">
             <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pedidos Hoy vs Ayer</p>
@@ -469,10 +471,10 @@ export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero
           <div className="bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 px-5 py-4 shadow-sm">
             <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Ventas Semana</p>
             <div className="flex items-baseline justify-between mt-1.5">
-              <p className="text-lg font-bold text-slate-900 dark:text-white">RD$ {formatearPrecio(metricasFull.ventasSemanaActual)}</p>
+              <p className="text-lg font-bold text-slate-900 dark:text-white">{formatCurrency(metricasFull.ventasSemanaActual, currencyCode)}</p>
               <Indicador actual={metricasFull.ventasSemanaActual} anterior={metricasFull.ventasSemanaAnterior} />
             </div>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Semana anterior: RD$ {formatearPrecio(metricasFull.ventasSemanaAnterior)}</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Semana anterior: {formatCurrency(metricasFull.ventasSemanaAnterior, currencyCode)}</p>
           </div>
           <div className="bg-white dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-700 px-5 py-4 shadow-sm">
             <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Pedidos Semana</p>
@@ -509,7 +511,7 @@ export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero
                   </div>
                   <div className="flex items-center gap-4 ml-4 shrink-0">
                     <span className="text-xs text-slate-500 dark:text-slate-400">{prod.cantidad} vendido{prod.cantidad !== 1 ? 's' : ''}</span>
-                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">RD$ {formatearPrecio(prod.ingreso)}</span>
+                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{formatCurrency(prod.ingreso, currencyCode)}</span>
                   </div>
                 </div>
               ))}
@@ -621,7 +623,7 @@ export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero
                     </p>
                   </div>
                   <div className="flex items-center gap-4 ml-4">
-                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">RD$ {formatearPrecio(p.total)}</span>
+                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{formatCurrency(p.total, currencyCode)}</span>
                     <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
                       p.estado === 'pendiente' ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800' :
                       p.estado === 'confirmado' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' :

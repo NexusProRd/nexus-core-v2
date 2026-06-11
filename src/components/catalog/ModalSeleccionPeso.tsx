@@ -1,18 +1,19 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { formatearPrecio } from '@/lib/utils'
+import { formatCurrency, getCurrencySymbol } from '@/lib/utils'
+import { useConfig } from '@/context/ConfigProvider'
 
 const PRESET_LBS = [0.5, 1, 1.5, 2, 3]
 
 interface Props {
   producto: { id: string; nombre: string; precio: number; precio_oferta?: number | null; imagen_url?: string | null }
-  monedaSimbolo: string
   onConfirm: (peso_libras: number, modo_venta: 'libra') => void
   onClose: () => void
 }
 
-export default function ModalSeleccionPeso({ producto, monedaSimbolo, onConfirm, onClose }: Props) {
+export default function ModalSeleccionPeso({ producto, onConfirm, onClose }: Props) {
+  const { currencyCode } = useConfig()
   const [tab, setTab] = useState<'peso' | 'dinero'>('peso')
   const [pesoInput, setPesoInput] = useState('1')
   const [dineroInput, setDineroInput] = useState('')
@@ -55,7 +56,7 @@ export default function ModalSeleccionPeso({ producto, monedaSimbolo, onConfirm,
           </div>
 
           <p className="text-sm font-semibold text-slate-800 mb-1">{producto.nombre}</p>
-          <p className="text-xs text-slate-400 mb-4">{monedaSimbolo}{formatearPrecio(precioPorLibra)} / lb</p>
+          <p className="text-xs text-slate-400 mb-4">{formatCurrency(precioPorLibra, currencyCode)} / lb</p>
 
           {/* Tabs */}
           <div className="flex rounded-xl bg-slate-100 p-1 mb-4">
@@ -82,7 +83,7 @@ export default function ModalSeleccionPeso({ producto, monedaSimbolo, onConfirm,
               </div>
               {dineroCalculado !== null && (
                 <p className="text-sm text-slate-500 text-center">
-                  Equivalente a <span className="font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(dineroCalculado)}</span>
+                  Equivalente a <span className="font-bold text-[var(--primary)]">{formatCurrency(dineroCalculado, currencyCode)}</span>
                 </p>
               )}
               <button onClick={handlePesoConfirm} disabled={!parseFloat(pesoInput) || parseFloat(pesoInput) <= 0} className="w-full py-2.5 bg-[var(--primary)] text-white font-bold rounded-xl text-sm hover:brightness-110 disabled:opacity-40 transition-all shadow-sm">
@@ -94,7 +95,7 @@ export default function ModalSeleccionPeso({ producto, monedaSimbolo, onConfirm,
               <div>
                 <label className="block text-xs font-medium text-slate-500 mb-1">¿Cuánto dinero quieres gastar?</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">{monedaSimbolo}</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">{getCurrencySymbol(currencyCode)}</span>
                   <input type="number" step="1" min="1" value={dineroInput} onChange={e => setDineroInput(e.target.value)} placeholder="100" className="w-full pl-8 pr-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:ring-2 focus:ring-[var(--primary)] outline-none" />
                 </div>
               </div>
@@ -104,7 +105,7 @@ export default function ModalSeleccionPeso({ producto, monedaSimbolo, onConfirm,
                 </p>
               )}
               <button onClick={handleDineroConfirm} disabled={!parseFloat(dineroInput) || parseFloat(dineroInput) <= 0} className="w-full py-2.5 bg-[var(--primary)] text-white font-bold rounded-xl text-sm hover:brightness-110 disabled:opacity-40 transition-all shadow-sm">
-                Agregar {dineroInput ? `${monedaSimbolo}${formatearPrecio(parseFloat(dineroInput))}` : ''}
+                Agregar {dineroInput ? formatCurrency(parseFloat(dineroInput), currencyCode) : ''}
               </button>
             </div>
           )}

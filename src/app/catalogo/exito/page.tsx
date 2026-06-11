@@ -1,7 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { formatearPrecio } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,6 +39,8 @@ export default async function ExitoPage({
 
   const idFinalTienda = tiendaId || pedido?.id_tienda
   const tiendaUrl = idFinalTienda ? `/catalogo/${idFinalTienda}` : '/'
+  const { data: tiendaData } = idFinalTienda ? await supabase.from('tiendas').select('currency_code').eq('id', idFinalTienda).maybeSingle() : { data: null }
+  const currencyCode = tiendaData?.currency_code || 'DOP'
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -67,7 +69,7 @@ export default async function ExitoPage({
               return (
                 <div key={d.id} className="flex justify-between text-sm py-1">
                   <span className="text-slate-700">{d.producto} x{d.cantidad}</span>
-                  <span className="font-bold text-slate-900">RD${formatearPrecio(lineaTotal)}</span>
+                  <span className="font-bold text-slate-900">{formatCurrency(lineaTotal, currencyCode)}</span>
                 </div>
               )
             })}
@@ -75,17 +77,17 @@ export default async function ExitoPage({
               <>
                 <div className="flex justify-between text-sm pt-2 border-t mt-2">
                   <span className="text-slate-600">Subtotal (sin impuesto)</span>
-                  <span className="text-slate-700">RD${formatearPrecio(detalles.reduce((s: number, d: any) => s + Number(d.subtotal ?? d.precio_unitario * d.cantidad), 0))}</span>
+                  <span className="text-slate-700">{formatCurrency(detalles.reduce((s: number, d: any) => s + Number(d.subtotal ?? d.precio_unitario * d.cantidad), 0), currencyCode)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-600">Impuesto</span>
-                  <span className="text-slate-700">RD${formatearPrecio(detalles.reduce((s: number, d: any) => s + Number(d.impuesto || 0), 0))}</span>
+                  <span className="text-slate-700">{formatCurrency(detalles.reduce((s: number, d: any) => s + Number(d.impuesto || 0), 0), currencyCode)}</span>
                 </div>
               </>
             )}
             <div className="border-t mt-2 pt-2 flex justify-between">
               <span className="font-bold text-slate-900">Total</span>
-              <span className="font-bold text-green-600">RD${formatearPrecio(pedido?.total || 0)}</span>
+              <span className="font-bold text-green-600">{formatCurrency(pedido?.total || 0, currencyCode)}</span>
             </div>
           </div>
         )}

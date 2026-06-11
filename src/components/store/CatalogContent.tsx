@@ -29,7 +29,7 @@ const navItems: { id: TabId; label: string; icon: string }[] = [
 ]
 
 export default function CatalogContent({ id_tienda, productos, openCart }: Props) {
-  const { logoUrl, bannerUrl, slogan, nombreTienda, mensajeBienvenida, whatsappNumber, monedaSimbolo, instagramUrl, facebookUrl, tiktokUrl, mapsUrl, tipoNegocio } = useConfig()
+  const { logoUrl, bannerUrl, slogan, nombreTienda, mensajeBienvenida, whatsappNumber, instagramUrl, facebookUrl, tiktokUrl, mapsUrl, tipoNegocio } = useConfig()
   const { setIsOpen, totalItems } = useCart()
 
   const searchParams = useSearchParams()
@@ -238,7 +238,6 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
             nombreTienda={nombreTienda}
             mensajeBienvenida={mensajeBienvenida}
             whatsappNumber={whatsappNumber}
-            monedaSimbolo={monedaSimbolo}
             masVendidos={masVendidos}
             nuevos={nuevos}
             giftMode={giftMode}
@@ -259,7 +258,6 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
             setSelectedCategory={setSelectedCategory}
             categories={categories}
             filtered={filtered}
-            monedaSimbolo={monedaSimbolo}
             giftMode={giftMode}
             trendingIds={trendingIds}
             onQuickView={setQuickViewProduct}
@@ -273,7 +271,6 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
         {quickViewProduct && (
           <ProductQuickView
             producto={quickViewProduct}
-            monedaSimbolo={monedaSimbolo}
             onClose={() => setQuickViewProduct(null)}
           />
         )}

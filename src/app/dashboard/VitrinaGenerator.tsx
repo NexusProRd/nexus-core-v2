@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase'
 import { toPng } from 'html-to-image'
 import QRCode from 'qrcode'
+import { formatCurrency } from '@/lib/utils'
+import { useDashboard } from './DashboardContext'
 
 interface Producto {
   id: string
@@ -37,10 +39,6 @@ const templates: { key: TemplateKey; label: string; desc: string }[] = [
   { key: 'noir', label: 'Noir Plateado', desc: 'Sobrio y metálico' },
 ]
 
-function formatearPrecio(precio: number): string {
-  return precio.toLocaleString('es-DO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
-}
-
 export default function VitrinaGenerator({ tiendaId, nombreTienda, catalogoUrl, slugUrl, onClose }: VitrinaGeneratorProps) {
   const [productos, setProductos] = useState<Producto[]>([])
   const [selectedId, setSelectedId] = useState('')
@@ -49,6 +47,7 @@ export default function VitrinaGenerator({ tiendaId, nombreTienda, catalogoUrl, 
   const [qrWhite, setQrWhite] = useState('')
   const [qrDark, setQrDark] = useState('')
   const [downloading, setDownloading] = useState(false)
+  const { currencyCode } = useDashboard()
   const previewRef = useRef<HTMLDivElement>(null)
 
   const producto = productos.find(p => p.id === selectedId) || null
@@ -155,7 +154,7 @@ export default function VitrinaGenerator({ tiendaId, nombreTienda, catalogoUrl, 
   const shareWhatsApp = () => {
     if (!producto) return
     const url = producto?.slug ? `${baseUrl}/producto/${producto.slug}` : baseUrl
-    const msg = `✨ *${nombreTienda}* ✨\n\n🔥 *${producto.nombre}*\n💰 RD$${formatearPrecio(producto.precio_oferta || producto.precio)}\n\n🛍️ ${url}`
+    const msg = `✨ *${nombreTienda}* ✨\n\n🔥 *${producto.nombre}*\n💰 ${formatCurrency(producto.precio_oferta || producto.precio, currencyCode)}\n\n🛍️ ${url}`
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank')
   }
 
@@ -248,11 +247,11 @@ export default function VitrinaGenerator({ tiendaId, nombreTienda, catalogoUrl, 
                       <div className="flex items-center justify-center gap-2">
                         {badgeOferta ? (
                           <>
-                            <span className={`text-xs line-through ${textSecondary()}`}>RD$ {formatearPrecio(producto.precio)}</span>
-                            <span className={`text-lg font-extrabold px-3 py-0.5 rounded-xl ${precioBg()}`}>RD$ {formatearPrecio(producto.precio_oferta!)}</span>
+                            <span className={`text-xs line-through ${textSecondary()}`}>{formatCurrency(producto.precio, currencyCode)}</span>
+                            <span className={`text-lg font-extrabold px-3 py-0.5 rounded-xl ${precioBg()}`}>{formatCurrency(producto.precio_oferta!, currencyCode)}</span>
                           </>
                         ) : (
-                          <span className={`text-lg font-extrabold px-3 py-0.5 rounded-xl ${precioBg()}`}>RD$ {formatearPrecio(producto.precio)}</span>
+                          <span className={`text-lg font-extrabold px-3 py-0.5 rounded-xl ${precioBg()}`}>{formatCurrency(producto.precio, currencyCode)}</span>
                         )}
                       </div>
                     )}
@@ -351,7 +350,7 @@ export default function VitrinaGenerator({ tiendaId, nombreTienda, catalogoUrl, 
                 <select value={selectedId} onChange={e => setSelectedId(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--primary)]">
                   {productos.map(p => (
-                    <option key={p.id} value={p.id}>{p.nombre} — RD$ {formatearPrecio(p.precio_oferta || p.precio)}</option>
+                    <option key={p.id} value={p.id}>{p.nombre} — {formatCurrency(p.precio_oferta || p.precio, currencyCode)}</option>
                   ))}
                 </select>
               </div>

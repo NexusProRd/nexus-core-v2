@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
+import { formatCurrency } from '@/lib/utils'
 import Link from 'next/link'
 import { getTiendaIdFromCookie } from '@/lib/cookie-utils'
+import { useDashboard } from '../DashboardContext'
 
 // DYNAMIC DASHBOARD FIX: Prevent static prerender — requires runtime Supabase session
 export const dynamic = 'force-dynamic'
@@ -28,6 +30,7 @@ export default function CuponesPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [storeId, setStoreId] = useState<string | null>(null)
+  const { currencyCode } = useDashboard()
   const supabase = createClient()
 
   const [code, setCode] = useState('')
@@ -147,7 +150,7 @@ export default function CuponesPage() {
                     <select value={discountType} onChange={e => setDiscountType(e.target.value as 'percentage' | 'fixed')}
                       className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:ring-2 focus:ring-[var(--primary)] outline-none">
                       <option value="percentage">Porcentaje (%)</option>
-                      <option value="fixed">Monto Fijo (RD$)</option>
+                      <option value="fixed">Monto Fijo</option>
                     </select>
                   </div>
                 </div>
@@ -198,9 +201,9 @@ export default function CuponesPage() {
                       </div>
                       <div className="flex gap-3 mt-1.5 text-xs text-slate-500 flex-wrap">
                         <span className="font-semibold text-[var(--primary)]">
-                          {c.discount_type === 'percentage' ? `${c.value}% OFF` : `RD$${c.value.toFixed(2)} OFF`}
+                          {c.discount_type === 'percentage' ? `${c.value}% OFF` : `${formatCurrency(c.value, currencyCode)} OFF`}
                         </span>
-                        {c.min_purchase_amount > 0 && <span>Mín: RD${c.min_purchase_amount.toFixed(2)}</span>}
+                        {c.min_purchase_amount > 0 && <span>Mín: {formatCurrency(c.min_purchase_amount, currencyCode)}</span>}
                         <span>Usos: {c.usage_count || 0}{c.usage_limit > 0 ? `/${c.usage_limit}` : ''}</span>
                       </div>
                     </div>

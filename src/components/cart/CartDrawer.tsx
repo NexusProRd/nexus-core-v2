@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useCart, CartItem } from '@/context/CartContext'
 import { useConfig } from '@/context/ConfigProvider'
-import { formatearPrecio } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 
 interface CartDrawerProps {
   idTienda: string
@@ -14,7 +14,7 @@ interface CartDrawerProps {
 
 export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideCheckout }: CartDrawerProps) {
   const { items, isOpen, setIsOpen, removeFromCart, updateQuantity, clearCart, totalPrice, totalItems, totalImpuesto, subtotalSinImpuesto } = useCart()
-  const { monedaSimbolo } = useConfig()
+  const { monedaSimbolo, currencyCode } = useConfig()
   const [nombreCliente, setNombreCliente] = useState('')
   const [telefonoCliente, setTelefonoCliente] = useState('')
   const [notas, setNotas] = useState('')
@@ -38,17 +38,17 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
         mensaje += `📅 ${item.nombre} - Reserva\n`
       } else if (item.modo_venta === 'libra' && item.peso_libras) {
         const subtotal = Number(item.precio) * item.peso_libras * item.cantidad
-        mensaje += `- ${item.nombre} (${item.peso_libras} lb - Equivalente a ${monedaSimbolo}${formatearPrecio(Number(item.precio) * item.peso_libras)}) x${item.cantidad} = ${monedaSimbolo}${formatearPrecio(subtotal)}\n`
+        mensaje += `- ${item.nombre} (${item.peso_libras} lb - Equivalente a ${formatCurrency(Number(item.precio) * item.peso_libras, currencyCode)}) x${item.cantidad} = ${formatCurrency(subtotal, currencyCode)}\n`
       } else {
-        mensaje += `- ${item.nombre} x${item.cantidad} = ${monedaSimbolo}${formatearPrecio(Number(item.precio) * item.cantidad)}\n`
+        mensaje += `- ${item.nombre} x${item.cantidad} = ${formatCurrency(Number(item.precio) * item.cantidad, currencyCode)}\n`
       }
     })
 
     if (totalImpuesto > 0) {
-      mensaje += `\n*💵 Subtotal (sin impuesto): ${monedaSimbolo}${formatearPrecio(subtotalSinImpuesto)}*`
-      mensaje += `\n*🧾 Impuesto: ${monedaSimbolo}${formatearPrecio(totalImpuesto)}*`
+      mensaje += `\n*💵 Subtotal (sin impuesto): ${formatCurrency(subtotalSinImpuesto, currencyCode)}*`
+      mensaje += `\n*🧾 Impuesto: ${formatCurrency(totalImpuesto, currencyCode)}*`
     }
-    mensaje += `\n*💰 Total General: ${monedaSimbolo}${formatearPrecio(totalPrice + totalImpuesto)}*`
+    mensaje += `\n*💰 Total General: ${formatCurrency(totalPrice + totalImpuesto, currencyCode)}*`
     mensaje += `\n\n👤 *Cliente:* ${nombreCliente}`
     if (telefonoCliente) mensaje += `\n📞 *Teléfono:* ${telefonoCliente}`
     if (notas.trim()) mensaje += `\n📝 *Notas:* ${notas.trim()}`
@@ -165,9 +165,9 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
                     ) : (
                       <>
                         {item.modo_venta === 'libra' && item.peso_libras ? (
-                          <p className="text-[var(--primary)] font-bold">{monedaSimbolo}{formatearPrecio(Number(item.precio) * item.peso_libras)} <span className="text-[11px] font-normal text-slate-400">({item.peso_libras} lb)</span></p>
+                          <p className="text-[var(--primary)] font-bold">{formatCurrency(Number(item.precio) * item.peso_libras, currencyCode)} <span className="text-[11px] font-normal text-slate-400">({item.peso_libras} lb)</span></p>
                         ) : (
-                          <p className="text-[var(--primary)] font-bold">{monedaSimbolo}{formatearPrecio(item.precio)}</p>
+                          <p className="text-[var(--primary)] font-bold">{formatCurrency(item.precio, currencyCode)}</p>
                         )}
                         {item.variante_seleccionada && <span className="text-[11px] text-violet-600 font-medium mt-0.5 block">📏 Talla: {item.variante_seleccionada}</span>}
                       </>
@@ -241,11 +241,11 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
                 <span className="text-slate-600 font-medium">Total:</span>
                 {totalImpuesto > 0 && (
                   <div className="text-xs text-slate-400 mt-0.5">
-                    Subtotal {monedaSimbolo}{formatearPrecio(subtotalSinImpuesto)} + Impuesto {monedaSimbolo}{formatearPrecio(totalImpuesto)}
+                    Subtotal {formatCurrency(subtotalSinImpuesto, currencyCode)} + Impuesto {formatCurrency(totalImpuesto, currencyCode)}
                   </div>
                 )}
               </div>
-              <span className="text-2xl font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(totalPrice + totalImpuesto)}</span>
+              <span className="text-2xl font-bold text-[var(--primary)]">{formatCurrency(totalPrice + totalImpuesto, currencyCode)}</span>
             </div>
             <button
               onClick={handleCheckout}

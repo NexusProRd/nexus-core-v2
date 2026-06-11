@@ -7,6 +7,7 @@ const SAFE_TIENDA_FIELDS = [
   'whatsapp_num',
   'pais_codigo',
   'moneda_simbolo',
+  'currency_code',
   'direccion',
   'rnc',
   'tipo_negocio',

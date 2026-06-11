@@ -3,10 +3,11 @@
 import { useState, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { actualizarEstado } from './actions'
-import { formatearPrecio } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import TicketPedido from './TicketPedido'
 import { usePermisos } from '@/context/PermisosContext'
 import { useToast } from '@/components/Toast'
+import { useDashboard } from '../DashboardContext'
 import { reemplazarVars } from './PedidosLista'
 
 interface DetallePedido {
@@ -90,6 +91,7 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
   const [cargando, setCargando] = useState(false)
   const [accionando, setAccionando] = useState<string | null>(null)
   const formResubmitRef = useRef(false)
+  const { currencyCode } = useDashboard()
 
   const cfg = STATUS_CONFIG[pedido.estado as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pendiente
 
@@ -196,7 +198,7 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
               </p>
             </div>
             <div className="text-right shrink-0 ml-2">
-              <p className="text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">RD${formatearPrecio(pedido.total)}</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white whitespace-nowrap">{formatCurrency(pedido.total, currencyCode)}</p>
               <span className={`inline-flex items-center gap-1 mt-1 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
                 <span>{cfg.icon}</span>
                 <span>{cfg.label}</span>
@@ -293,10 +295,10 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
                     )}
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{d.productos?.nombre || d.producto}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{d.cantidad} × RD${formatearPrecio(d.precio_unitario)}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">{d.cantidad} × {formatCurrency(d.precio_unitario, currencyCode)}</p>
                     </div>
                   </div>
-                  <span className="text-sm font-semibold text-slate-900 dark:text-white whitespace-nowrap ml-3 shrink-0">RD${formatearPrecio(d.precio_unitario * d.cantidad)}</span>
+                  <span className="text-sm font-semibold text-slate-900 dark:text-white whitespace-nowrap ml-3 shrink-0">{formatCurrency(d.precio_unitario * d.cantidad, currencyCode)}</span>
                 </div>
               ))}
               <div className="flex justify-between items-center pt-1 px-1">
@@ -304,12 +306,12 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
                 <div className="text-right">
                   {items.some(d => Number(d.impuesto) > 0) && (
                     <div className="text-[11px] text-slate-400 dark:text-slate-500 leading-tight">
-                      <div>Subtotal: RD${formatearPrecio(items.reduce((s, d) => s + Number(d.subtotal ?? d.precio_unitario * d.cantidad), 0))}</div>
-                      <div>Impuesto: RD${formatearPrecio(items.reduce((s, d) => s + Number(d.impuesto || 0), 0))}</div>
+                      <div>Subtotal: {formatCurrency(items.reduce((s, d) => s + Number(d.subtotal ?? d.precio_unitario * d.cantidad), 0), currencyCode)}</div>
+                      <div>Impuesto: {formatCurrency(items.reduce((s, d) => s + Number(d.impuesto || 0), 0), currencyCode)}</div>
                     </div>
                   )}
                   <span className={`text-base font-bold ${totalDetalles !== pedido.total && !items.some(d => Number(d.impuesto) > 0) ? 'text-rose-600' : 'text-emerald-600'}`}>
-                    RD${formatearPrecio(pedido.total)}
+                    {formatCurrency(pedido.total, currencyCode)}
                   </span>
                 </div>
               </div>
@@ -337,7 +339,7 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
                           pedido: `#${codigoReal}`,
                           tienda: tiendaNombre || '',
                           detalles: detallesStr,
-                          total: `RD$${formatearPrecio(pedido.total)}`,
+                          total: formatCurrency(pedido.total, currencyCode),
                           fecha: new Date(pedido.creado_at).toLocaleDateString('es-DO'),
                         })
                         window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(msg)}`, '_blank')
@@ -390,7 +392,7 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
                           pedido: `#${codigoReal}`,
                           tienda: tiendaNombre || '',
                           detalles: detallesStr,
-                          total: `RD$${formatearPrecio(pedido.total)}`,
+                          total: formatCurrency(pedido.total, currencyCode),
                           fecha: new Date(pedido.creado_at).toLocaleDateString('es-DO'),
                         })
                         window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(msg)}`, '_blank')
@@ -422,7 +424,7 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
                         pedido: `#${codigoReal}`,
                         tienda: tiendaNombre || '',
                         detalles: detallesStr,
-                        total: `RD$${formatearPrecio(pedido.total)}`,
+                        total: formatCurrency(pedido.total, currencyCode),
                         fecha: new Date(pedido.creado_at).toLocaleDateString('es-DO'),
                       })
                       window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(msg)}`, '_blank')

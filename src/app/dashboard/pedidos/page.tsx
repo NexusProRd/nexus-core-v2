@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import Link from 'next/link'
 import { getSessionFromCookieValue } from '@/lib/auth/get-session'
+import { formatCurrency } from '@/lib/utils'
 import PedidosLista from './PedidosLista'
 import ClearAllButton from './ClearAllButton'
 
@@ -22,30 +23,30 @@ interface Pedido {
 
 export const dynamic = 'force-dynamic'
 
-async function getPedidos(): Promise<{ pedidos: Pedido[]; tiendaId: string }> {
+async function getPedidos(): Promise<{ pedidos: Pedido[]; tiendaId: string; currencyCode: string }> {
   const admin = createAdminClient()
   const supabase = admin.supabase || await createClient()
   const cookieStore = await cookies()
   const rawSession = cookieStore.get('nx_session')?.value
   const session = await getSessionFromCookieValue(rawSession)
 
-  if (!session.valid || !session.tiendaId) return { pedidos: [], tiendaId: '' }
+  if (!session.valid || !session.tiendaId) return { pedidos: [], tiendaId: '', currencyCode: 'DOP' }
   const sessionId = session.tiendaId
 
-  const { data: pedidos } = await supabase
-    .from('pedidos')
-    .select('*')
-    .eq('id_tienda', sessionId)
-    .order('creado_at', { ascending: false })
+  const [pedidosRes, tiendaRes] = await Promise.all([
+    supabase.from('pedidos').select('*').eq('id_tienda', sessionId).order('creado_at', { ascending: false }),
+    supabase.from('tiendas').select('currency_code').eq('id', sessionId).maybeSingle(),
+  ])
 
   return {
-    pedidos: (pedidos || []) as Pedido[],
+    pedidos: (pedidosRes.data || []) as Pedido[],
     tiendaId: sessionId,
+    currencyCode: (tiendaRes.data?.currency_code as string) || 'DOP',
   }
 }
 
 export default async function PedidosPage() {
-  const { pedidos, tiendaId } = await getPedidos()
+  const { pedidos, tiendaId, currencyCode } = await getPedidos()
 
   const hoy = new Date().toISOString().slice(0, 10)
   const pedidosHoy = pedidos.filter(p => p.creado_at?.slice(0, 10) === hoy)
@@ -83,7 +84,7 @@ export default async function PedidosPage() {
               </div>
               <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-xl px-3.5 py-2.5 border border-emerald-200 dark:border-emerald-800/50">
                 <p className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Ventas hoy</p>
-                <p className="text-lg font-bold text-emerald-800 dark:text-emerald-300 mt-0.5">RD${new Intl.NumberFormat('es-DO').format(pedidosHoy.reduce((s, p) => s + Number(p.total || 0), 0))}</p>
+                <p className="text-lg font-bold text-emerald-800 dark:text-emerald-300 mt-0.5">{formatCurrency(pedidosHoy.reduce((s, p) => s + Number(p.total || 0), 0), currencyCode)}</p>
               </div>
             </div>
           )}

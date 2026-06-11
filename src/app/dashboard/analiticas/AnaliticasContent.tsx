@@ -2,7 +2,8 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { formatearPrecio } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
+import { useDashboard } from '../DashboardContext'
 import AutoRefresh from './AutoRefresh'
 import ReporteTallas from './ReporteTallas'
 import type { TallaVariant } from '@/types/database'
@@ -29,6 +30,7 @@ export default function AnaliticasContent({ pedidosIniciales, tiendaId, tipoNego
   const pedidos = pedidosIniciales
   const isLoading = false
   const [tipoGrafico, setTipoGrafico] = useState<'ventas' | 'ganancias'>('ventas')
+  const { currencyCode } = useDashboard()
 
   const metrics = useMemo(() => {
     const hoy = new Date()
@@ -132,7 +134,7 @@ export default function AnaliticasContent({ pedidosIniciales, tiendaId, tipoNego
                       return (
                         <div key={i} className="flex flex-col items-center flex-1 h-full justify-end">
                           <span className="text-[10px] sm:text-xs font-bold text-[var(--primary)] mb-1 leading-tight text-center">
-                            {valor > 0 ? `RD$${valor.toLocaleString('es-DO')}` : ''}
+                            {valor > 0 ? formatCurrency(valor, currencyCode) : ''}
                           </span>
                           <div className="w-full bg-[var(--primary)] rounded-t-md transition-all"
                             style={{ height: `${altura}%`, minHeight: valor > 0 ? '4px' : '0' }} />
@@ -177,22 +179,22 @@ export default function AnaliticasContent({ pedidosIniciales, tiendaId, tipoNego
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 rounded-2xl border border-emerald-200 dark:border-emerald-800 p-4 min-h-[110px] flex flex-col justify-between">
                 <p className="text-[10px] sm:text-xs font-bold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">Ventas de Hoy</p>
-                <p className={`text-xl font-bold text-emerald-700 dark:text-emerald-300 ${isLoading ? 'animate-pulse' : ''}`}>RD${formatearPrecio(ventasHoy)}</p>
+                <p className={`text-xl font-bold text-emerald-700 dark:text-emerald-300 ${isLoading ? 'animate-pulse' : ''}`}>{formatCurrency(ventasHoy, currencyCode)}</p>
                 <p className="text-[10px] text-emerald-600 dark:text-emerald-400">{pedidosHoyCount} pedido(s) hoy</p>
               </div>
               <div className="bg-white rounded-2xl border border-slate-200 p-4 min-h-[110px] flex flex-col justify-between">
                 <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Ticket Promedio</p>
-                <p className="text-xl font-bold text-slate-900">RD${formatearPrecio(Math.round(ticketPromedio))}</p>
+                <p className="text-xl font-bold text-slate-900">{formatCurrency(Math.round(ticketPromedio), currencyCode)}</p>
                 <p className="text-[10px] text-slate-400">{pedidos.filter(p => p.estado === 'confirmado').length} pedido(s)</p>
               </div>
               <div className="bg-white rounded-2xl border border-slate-200 p-4 min-h-[110px] flex flex-col justify-between">
                 <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Ingresos del Mes</p>
-                <p className="text-xl font-bold text-[var(--primary)]">RD${formatearPrecio(totalIngresos)}</p>
+                <p className="text-xl font-bold text-[var(--primary)]">{formatCurrency(totalIngresos, currencyCode)}</p>
                 <p className="text-[10px] text-slate-400">Total facturado</p>
               </div>
               <div className="bg-white rounded-2xl border border-slate-200 p-4 min-h-[110px] flex flex-col justify-between">
                 <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Ganancia Real</p>
-                <p className="text-xl font-bold text-[var(--primary)]">RD${formatearPrecio(Math.round(totalGanancias))}</p>
+                <p className="text-xl font-bold text-[var(--primary)]">{formatCurrency(Math.round(totalGanancias), currencyCode)}</p>
                 <p className="text-[10px] text-slate-400">Neto después de costos</p>
               </div>
               <div className="bg-white rounded-2xl border border-slate-200 p-4 min-h-[110px] flex flex-col justify-between">
@@ -202,7 +204,7 @@ export default function AnaliticasContent({ pedidosIniciales, tiendaId, tipoNego
               </div>
               <div className="bg-white rounded-2xl border border-slate-200 p-4 min-h-[110px] flex flex-col justify-between">
                 <p className="text-[10px] text-slate-500 uppercase tracking-wide font-semibold">Oportunidad</p>
-                <p className="text-xl font-bold text-rose-600">RD${formatearPrecio(eficiencia > 0 ? Math.round(totalIngresos * (1 - eficiencia / 100)) : 0)}</p>
+                <p className="text-xl font-bold text-rose-600">{formatCurrency(eficiencia > 0 ? Math.round(totalIngresos * (1 - eficiencia / 100)) : 0, currencyCode)}</p>
                 <p className="text-[10px] text-slate-400">En pedidos perdidos</p>
               </div>
             </div>

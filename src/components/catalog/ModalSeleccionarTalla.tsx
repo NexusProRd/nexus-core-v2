@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { formatearPrecio } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import { calcularPrecioConImpuesto } from '@/lib/precios'
+import { useConfig } from '@/context/ConfigProvider'
 import type { TallaVariant } from '@/types/database'
 
 interface ProductoConTallas {
@@ -18,12 +19,12 @@ interface ProductoConTallas {
 
 interface Props {
   producto: ProductoConTallas
-  monedaSimbolo?: string
   onConfirm: (talla: string, precioVariant: number | null) => void
   onClose: () => void
 }
 
-export default function ModalSeleccionarTalla({ producto, monedaSimbolo = 'RD$', onConfirm, onClose }: Props) {
+export default function ModalSeleccionarTalla({ producto, onConfirm, onClose }: Props) {
+  const { currencyCode } = useConfig()
   const [seleccionada, setSeleccionada] = useState('')
 
   const esCalzado = producto.tipo_articulo === 'calzado'
@@ -69,11 +70,11 @@ export default function ModalSeleccionarTalla({ producto, monedaSimbolo = 'RD$',
         {selectedVariant && (
           <div className="flex items-baseline gap-1.5 mb-4">
             <span className="text-2xl font-bold text-[var(--primary)]">
-              {monedaSimbolo}{formatearPrecio(mostrarConImpuesto(precioMostrar).mostrar)}
+              {formatCurrency(mostrarConImpuesto(precioMostrar).mostrar, currencyCode)}
             </span>
             {tienePrecioEspecial && (
               <span className="text-sm text-slate-400 line-through">
-                {monedaSimbolo}{formatearPrecio(mostrarConImpuesto(precioBase).mostrar)}
+                {formatCurrency(mostrarConImpuesto(precioBase).mostrar, currencyCode)}
               </span>
             )}
             {tieneImpuesto && <span className="text-xs font-medium text-slate-400">Impuestos incl.</span>}

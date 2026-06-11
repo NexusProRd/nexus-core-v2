@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useCart } from '@/context/CartContext'
 import { useConfig } from '@/context/ConfigProvider'
-import { formatearPrecio } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import { calcularPrecioConImpuesto } from '@/lib/precios'
 import ModalSeleccionarTalla from './ModalSeleccionarTalla'
 import ProductQuickView from './ProductQuickView'
@@ -53,7 +53,6 @@ const badgeStyles: Record<string, string> = {
 
 interface Props {
   producto: Producto
-  monedaSimbolo: string
   giftMode: boolean
   compact?: boolean
   trendingIds: Set<string>
@@ -61,10 +60,10 @@ interface Props {
   index?: number
 }
 
-export default function ProductCard({ producto, monedaSimbolo, giftMode, compact, trendingIds, onQuickView, index }: Props) {
+export default function ProductCard({ producto, giftMode, compact, trendingIds, onQuickView, index }: Props) {
   const router = useRouter()
   const { addToCart } = useCart()
-  const { idTienda, whatsappNumber, nombreTienda, tipoNegocio } = useConfig()
+  const { idTienda, whatsappNumber, nombreTienda, tipoNegocio, currencyCode } = useConfig()
   const [quantity, setQuantity] = useState(1)
   const [showQuickView, setShowQuickView] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
@@ -199,8 +198,8 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
     msg += `*Orden:* ${pedido.order_id}\n`
     msg += `*Cliente:* ${quickBuyName.trim()}\n`
     msg += `*Contacto:* ${quickBuyPhone.trim()}\n\n`
-    msg += `*Producto(s):* ${nombreConSize} (x${quantity}) = ${monedaSimbolo}${formatearPrecio(precioActivo)} c/u\n\n`
-    msg += `*Total a Cobrar: ${monedaSimbolo}${formatearPrecio(pedido.total)}*\n\n`
+    msg += `*Producto(s):* ${nombreConSize} (x${quantity}) = ${formatCurrency(precioActivo, currencyCode)} c/u\n\n`
+    msg += `*Total a Cobrar: ${formatCurrency(pedido.total, currencyCode)}*\n\n`
     msg += `Por favor, quedo atento para realizar la cotización del envío. ¡Muchas gracias!`
 
     setBuying(false)
@@ -260,17 +259,17 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
 
           <div className="flex items-center gap-1.5 mb-2.5">
             {selectedPrecioVariant != null ? (
-              <span className="text-sm font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(selectedPrecioVariant).mostrar)}</span>
+              <span className="text-sm font-bold text-[var(--primary)]">{formatCurrency(mostrarConImpuesto(selectedPrecioVariant).mostrar, currencyCode)}</span>
             ) : producto.precio_oferta ? (
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700">Oferta</span>
-                <span className="text-xs text-slate-400 line-through">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio).mostrar)}</span>
-                <span className="text-sm font-bold text-rose-600">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio_oferta).mostrar)}</span>
+                <span className="text-xs text-slate-400 line-through">{formatCurrency(mostrarConImpuesto(producto.precio).mostrar, currencyCode)}</span>
+                <span className="text-sm font-bold text-rose-600">{formatCurrency(mostrarConImpuesto(producto.precio_oferta).mostrar, currencyCode)}</span>
               </div>
             ) : desdeMenor ? (
-              <span className="text-sm font-bold text-[var(--primary)]">Desde {monedaSimbolo}{formatearPrecio(mostrarConImpuesto(precioMinimoVariantes).mostrar)}</span>
+              <span className="text-sm font-bold text-[var(--primary)]">Desde {formatCurrency(mostrarConImpuesto(precioMinimoVariantes).mostrar, currencyCode)}</span>
             ) : (
-              <span className="text-sm font-bold text-slate-900">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio).mostrar)}</span>
+              <span className="text-sm font-bold text-slate-900">{formatCurrency(mostrarConImpuesto(producto.precio).mostrar, currencyCode)}</span>
             )}
             {tieneImpuesto && <span className="text-[10px] font-medium text-slate-400">+Impuestos incl.</span>}
             {producto.unidad_medida === 'libra' && <span className="text-[10px] text-slate-400">/lb</span>}
@@ -363,7 +362,6 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
       {/* {showPesoModal && (
         <ModalSeleccionPeso
           producto={producto}
-          monedaSimbolo={monedaSimbolo}
           onConfirm={(peso_libras) => {
             setSelectedPeso(peso_libras)
             setShowPesoModal(false)
@@ -383,7 +381,6 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
       {showSizeModal && (
         <ModalSeleccionarTalla
           producto={{ ...producto, tallas: producto.tallas }}
-          monedaSimbolo={monedaSimbolo}
           onConfirm={(variante, precioVariant) => {
             setSelectedSize(variante)
             setSelectedPrecioVariant(precioVariant)
@@ -403,7 +400,6 @@ export default function ProductCard({ producto, monedaSimbolo, giftMode, compact
       {showQuickView && (
         <ProductQuickView
           producto={producto}
-          monedaSimbolo={monedaSimbolo}
           onClose={() => setShowQuickView(false)}
         />
       )}

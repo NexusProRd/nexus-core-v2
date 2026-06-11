@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { checkTiendaActiva } from '@/lib/commercial'
-import { formatearPrecio, generarMensaje } from '@/lib/utils'
+import { formatCurrency, generarMensaje } from '@/lib/utils'
 import { gestionarStock } from '@/lib/stock'
 import type { VarsWhatsApp } from '@/lib/utils'
 import { useTheme } from '@/context/ThemeContext'
@@ -23,6 +23,7 @@ import InstallAppButton from '@/components/InstallAppButton'
 import PushSubscribeButton from '@/components/PushSubscribeButton'
 import { SessionProvider, usePermisos } from '@/context/PermisosContext'
 import ToastProvider from '@/components/Toast'
+import { DashboardContext } from './DashboardContext'
 
 interface DetallePedido {
   id: string
@@ -339,6 +340,7 @@ export default function DashboardLayout({
   const [anunciosDescartados, setAnunciosDescartados] = useState<Set<string>>(new Set())
   const [bloqueado, setBloqueado] = useState(false)
   const [whatsappSoporte, setWhatsappSoporte] = useState('18299999999')
+  const [currencyCode, setCurrencyCode] = useState('DOP')
   // VERCEL BUILD FIX: Lazy-init Supabase client on first client-side render only
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
   const getSupabase = useCallback(() => {
@@ -409,7 +411,7 @@ export default function DashboardLayout({
 
         const { data: tienda } = await getSupabase()
             .from('tiendas')
-            .select('id, nombre_tienda')
+            .select('id, nombre_tienda, currency_code')
             .eq('id', sessionId)
             .maybeSingle()
 
@@ -420,6 +422,7 @@ export default function DashboardLayout({
 
           setTiendaId(tienda.id)
           setNombreTienda(tienda.nombre_tienda || '')
+          if (tienda.currency_code) setCurrencyCode(tienda.currency_code)
 
           const check = await checkTiendaActiva(getSupabase(), tienda.id)
           if (!check.ok) {
@@ -718,6 +721,7 @@ export default function DashboardLayout({
 
   if (loading) {
     return (
+      <DashboardContext.Provider value={{ currencyCode }}>
       <OrderAlertContext.Provider value={{ showAlert }}>
         <ToastProvider>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#0a0a0d] dark:via-[#0c0c10] dark:to-[#0e0e14]">
@@ -739,6 +743,7 @@ export default function DashboardLayout({
         </div>
         </ToastProvider>
       </OrderAlertContext.Provider>
+      </DashboardContext.Provider>
     )
   }
 
@@ -776,6 +781,7 @@ export default function DashboardLayout({
 
   return (
     <SessionProvider>
+    <DashboardContext.Provider value={{ currencyCode }}>
     <OrderAlertContext.Provider value={{ showAlert }}>
       <ToastProvider>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#0a0a0d] dark:via-[#0c0c10] dark:to-[#0e0e14]">
@@ -967,13 +973,13 @@ export default function DashboardLayout({
                                   )}
                                 </div>
                                 <span className="text-sm text-slate-700 dark:text-slate-300 truncate flex-1">{item.nombre}</span>
-                                <span className="text-xs font-medium text-slate-500 dark:text-slate-400 flex-shrink-0">RD${item.precio.toFixed(2)}</span>
+                                <span className="text-xs font-medium text-slate-500 dark:text-slate-400 flex-shrink-0">{formatCurrency(item.precio, currencyCode)}</span>
                               </div>
                             ))}
                           </div>
                           <div className="flex justify-between items-center pt-2 mt-1 border-t border-white/30 dark:border-white/[0.06]">
                             <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Total cupón</span>
-                            <span className="text-base font-bold text-[var(--primary)]">RD${g.items_list.reduce((s, i) => s + i.precio, 0).toFixed(2)}</span>
+                            <span className="text-base font-bold text-[var(--primary)]">{formatCurrency(g.items_list.reduce((s, i) => s + i.precio, 0), currencyCode)}</span>
                           </div>
                         </div>
                       )}
@@ -1091,7 +1097,7 @@ export default function DashboardLayout({
                         {pedido.detalles_pedido.map((d: DetallePedido) => (
                           <div key={d.id} className="flex justify-between text-sm">
                             <span className="text-slate-600 dark:text-slate-400">{d.producto} x{d.cantidad}</span>
-                            <span className="font-medium text-slate-900 dark:text-white">RD${formatearPrecio(d.subtotal ?? d.precio_unitario * d.cantidad)}</span>
+                            <span className="font-medium text-slate-900 dark:text-white">{formatCurrency(d.subtotal ?? d.precio_unitario * d.cantidad, currencyCode)}</span>
                           </div>
                         ))}
                       </div>
@@ -1101,16 +1107,16 @@ export default function DashboardLayout({
                       <div className="text-xs text-slate-500 dark:text-slate-400 space-y-0.5 mb-2">
                         <div className="flex justify-between">
                           <span>Subtotal (sin impuesto)</span>
-                          <span>RD${formatearPrecio(pedido.detalles_pedido.reduce((s: number, d: DetallePedido) => s + Number(d.subtotal ?? d.precio_unitario * d.cantidad), 0))}</span>
+                          <span>{formatCurrency(pedido.detalles_pedido.reduce((s: number, d: DetallePedido) => s + Number(d.subtotal ?? d.precio_unitario * d.cantidad), 0), currencyCode)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Impuesto</span>
-                          <span>RD${formatearPrecio(pedido.detalles_pedido.reduce((s: number, d: DetallePedido) => s + Number(d.impuesto || 0), 0))}</span>
+                          <span>{formatCurrency(pedido.detalles_pedido.reduce((s: number, d: DetallePedido) => s + Number(d.impuesto || 0), 0), currencyCode)}</span>
                         </div>
                       </div>
                     )}
 
-                    <p className="text-lg font-bold text-green-600 dark:text-green-400 mb-2">Total: RD${formatearPrecio(pedido.total)}</p>
+                    <p className="text-lg font-bold text-green-600 dark:text-green-400 mb-2">Total: {formatCurrency(pedido.total, currencyCode)}</p>
 
                     {(pedido.notas?.includes('🎁 Modo Regalo') || pedido.is_gift) && pedido.estado === 'confirmado' ? (
                       <div className="flex gap-2">
@@ -1198,7 +1204,7 @@ export default function DashboardLayout({
                         pedido: `#${codigoReal}`,
                         tienda: nombreTienda || 'nuestra tienda',
                         detalles: detallesStr,
-                        total: `RD$${formatearPrecio(pedido.total)}`,
+                        total: formatCurrency(pedido.total, currencyCode),
                         fecha: new Date(pedido.creado_at).toLocaleDateString('es-DO'),
                       }
                       const mensajeWhatsApp = generarMensaje(plantillas, 'confirmado', FALLBACK_CONFIRMADO, vars)
@@ -1241,6 +1247,7 @@ export default function DashboardLayout({
        <PwaRegister swUrl="/dashboard/sw.js" scope="/dashboard" manifestUrl={tiendaId ? `/api/manifest/dashboard/${tiendaId}` : undefined} logoUrl={storeLogoUrl} />
       <InstallAppButton />
     </OrderAlertContext.Provider>
+    </DashboardContext.Provider>
     </SessionProvider>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, memo } from 'react'
+import { formatCurrency } from '@/lib/utils'
 
 export interface CatalogoModalConfig {
   tipo: 'personalizado' | 'plantilla'
@@ -63,10 +64,6 @@ function fontFamily(template: string): string {
     case 'noir':     return 'var(--font-playfair), "Georgia", serif'
     default: return FONT_BASE
   }
-}
-
-function formatearPrecio(precio: number): string {
-  return precio.toLocaleString('es-DO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 }
 
 function bgGradient(template: string) {
@@ -342,7 +339,7 @@ const PlantillaPreview = memo(function PlantillaPreview({ config, tiendaNombre, 
                 {hasOferta ? (
                   <>
                     <span className="text-sm line-through" style={{ color: sec, fontFamily: font }}>
-                      RD$ {formatearPrecio(contenido.precio!)}
+                      {formatCurrency(contenido.precio!, 'DOP')}
                     </span>
                     <span className="text-xl font-extrabold px-4 py-1 rounded-xl"
                       style={{
@@ -351,7 +348,7 @@ const PlantillaPreview = memo(function PlantillaPreview({ config, tiendaNombre, 
                         border: `1px solid ${prim}35`,
                         fontFamily: font,
                       }}>
-                      RD$ {formatearPrecio(contenido.precio_oferta!)}
+                      {formatCurrency(contenido.precio_oferta!, 'DOP')}
                     </span>
                   </>
                 ) : (
@@ -362,7 +359,7 @@ const PlantillaPreview = memo(function PlantillaPreview({ config, tiendaNombre, 
                       border: `1px solid ${prim}30`,
                       fontFamily: font,
                     }}>
-                    RD$ {formatearPrecio(contenido.precio)}
+                      {formatCurrency(contenido.precio, 'DOP')}
                   </span>
                 )}
               </div>

@@ -10,7 +10,6 @@ interface Props {
   setSelectedCategory: (c: string) => void
   categories: string[]
   filtered: Producto[]
-  monedaSimbolo: string
   giftMode: boolean
   trendingIds: Set<string>
   onQuickView?: (p: Producto) => void
@@ -26,7 +25,6 @@ export default function TabMenu({
   setSelectedCategory,
   categories,
   filtered,
-  monedaSimbolo,
   giftMode,
   trendingIds,
   onQuickView,
@@ -157,7 +155,7 @@ export default function TabMenu({
         {sortedFiltered.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
             {sortedFiltered.map((p, idx) => (
-              <ProductCard key={p.id} producto={p} monedaSimbolo={monedaSimbolo} giftMode={giftMode} trendingIds={trendingIds} onQuickView={onQuickView} index={idx} />
+              <ProductCard key={p.id} producto={p} giftMode={giftMode} trendingIds={trendingIds} onQuickView={onQuickView} index={idx} />
             ))}
           </div>
         ) : (

@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useCart } from '@/context/CartContext'
 import { useConfig } from '@/context/ConfigProvider'
-import { formatearPrecio } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import { calcularPrecioConImpuesto } from '@/lib/precios'
 import BotonWhatsApp from '@/components/catalog/BotonWhatsApp'
 import ModalCompartirProducto from '@/components/catalog/ModalCompartirProducto'
@@ -29,7 +29,7 @@ interface Producto {
 
 export default function ProductDetailClient({ producto }: { producto: Producto }) {
   const { addToCart } = useCart()
-  const { nombreTienda, monedaSimbolo, idTienda, whatsappNumber, tipoNegocio } = useConfig()
+  const { nombreTienda, idTienda, whatsappNumber, tipoNegocio, currencyCode } = useConfig()
   const [quantity, setQuantity] = useState(1)
   const [feedback, setFeedback] = useState<'idle' | 'cart'>('idle')
   const [selectedTalla, setSelectedTalla] = useState<string | undefined>(undefined)
@@ -102,16 +102,16 @@ export default function ProductDetailClient({ producto }: { producto: Producto }
 
               <div className="flex items-center gap-2">
                 {selectedPrecioVariant != null ? (
-                  <span className="text-3xl font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(selectedPrecioVariant).mostrar)}</span>
+                  <span className="text-3xl font-bold text-[var(--primary)]">{formatCurrency(mostrarConImpuesto(selectedPrecioVariant).mostrar, currencyCode)}</span>
                 ) : producto.precio_oferta ? (
                   <>
-                    <span className="text-xl text-slate-400 line-through">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio).mostrar)}</span>
-                    <span className="text-3xl font-bold text-rose-600">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio_oferta).mostrar)}</span>
+                    <span className="text-xl text-slate-400 line-through">{formatCurrency(mostrarConImpuesto(producto.precio).mostrar, currencyCode)}</span>
+                    <span className="text-3xl font-bold text-rose-600">{formatCurrency(mostrarConImpuesto(producto.precio_oferta).mostrar, currencyCode)}</span>
                   </>
                 ) : desdeMenor ? (
-                  <span className="text-3xl font-bold text-[var(--primary)]">Desde {monedaSimbolo}{formatearPrecio(mostrarConImpuesto(precioMinimoVariantes).mostrar)}</span>
+                  <span className="text-3xl font-bold text-[var(--primary)]">Desde {formatCurrency(mostrarConImpuesto(precioMinimoVariantes).mostrar, currencyCode)}</span>
                 ) : (
-                  <span className="text-3xl font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio).mostrar)}</span>
+                  <span className="text-3xl font-bold text-[var(--primary)]">{formatCurrency(mostrarConImpuesto(producto.precio).mostrar, currencyCode)}</span>
                 )}
                 {tieneImpuesto && <span className="text-sm font-medium text-slate-400">Impuestos incl.</span>}
               </div>

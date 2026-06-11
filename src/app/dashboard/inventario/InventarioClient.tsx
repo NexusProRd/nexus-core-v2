@@ -7,13 +7,14 @@ import Link from 'next/link'
 import ProductoRowActions from './ProductoRowActions'
 import ProductoForm from '@/components/inventario/ProductoForm'
 import ProductoModal from '@/components/inventario/ProductoModal'
-import { formatearPrecio } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import { esIlimitado } from '@/lib/commercial'
 import { toggleStock } from './actions'
 import ImportadorCSV from './ImportadorCSV'
 import { getTiendaIdFromCookie } from '@/lib/cookie-utils'
 import { usePermisos } from '@/context/PermisosContext'
 import { useToast } from '@/components/Toast'
+import { useDashboard } from '../DashboardContext'
 import type { TallaVariant } from '@/types/database'
 
 interface Producto {
@@ -45,6 +46,7 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
   const [showAddModal, setShowAddModal] = useState(false)
   const [reservados, setReservados] = useState<Set<string>>(new Set())
   const [whatsappSoporte, setWhatsappSoporte] = useState('')
+  const { currencyCode } = useDashboard()
   const router = useRouter()
   const supabase = createClient()
 
@@ -263,7 +265,7 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
             </div>
             <div className="bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3.5 shadow-sm">
               <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Valor inventario</p>
-              <p className="text-2xl font-bold text-slate-800 dark:text-slate-200 mt-1">RD$ {formatearPrecio(kpiMetrics.valorTotal)}</p>
+              <p className="text-2xl font-bold text-slate-800 dark:text-slate-200 mt-1">{formatCurrency(kpiMetrics.valorTotal, currencyCode)}</p>
             </div>
             <div className="bg-white dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3.5 shadow-sm">
               <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">Margen promedio</p>
@@ -384,7 +386,7 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
                     {sinImagen && !agotado && <span className="text-[10px] font-medium text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-500/10 px-1.5 py-0.5 rounded-full shrink-0 leading-tight">Sin img</span>}
                   </div>
                   <div className="flex items-center gap-2 mt-1">
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">RD$ {formatearPrecio(p.precio)}</p>
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{formatCurrency(p.precio, currencyCode)}</p>
                     {p.categoria && <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700/50 px-1.5 py-0.5 rounded-full shrink-0">{p.categoria}</span>}
                   </div>
                   <div className="flex items-start gap-2 mt-1.5">
@@ -475,10 +477,10 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
                           : <span className="text-slate-400 dark:text-slate-500">—</span>}
                       </td>
                       <td className="px-4 py-2.5 whitespace-nowrap">
-                        <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">RD$ {formatearPrecio(p.precio)}</div>
-                        {p.precio_oferta && <div className="text-[11px] text-rose-600 dark:text-rose-400 font-medium">Oferta: RD$ {formatearPrecio(p.precio_oferta)}</div>}
+                        <div className="text-sm font-semibold text-slate-800 dark:text-slate-200">{formatCurrency(p.precio, currencyCode)}</div>
+                        {p.precio_oferta && <div className="text-[11px] text-rose-600 dark:text-rose-400 font-medium">Oferta: {formatCurrency(p.precio_oferta, currencyCode)}</div>}
                       </td>
-                      <td className="px-4 py-2.5 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">RD$ {formatearPrecio(p.costo_compra || 0)}</td>
+                      <td className="px-4 py-2.5 text-sm text-slate-600 dark:text-slate-400 whitespace-nowrap">{formatCurrency(p.costo_compra || 0, currencyCode)}</td>
                       <td className="px-4 py-2.5 whitespace-nowrap">
                         <span className={`text-sm font-semibold ${parseFloat(margin(p)) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{margin(p)}%</span>
                       </td>

@@ -56,7 +56,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 async function fetchTienda(supabase: any, id: string) {
   const { data } = await supabase
     .from('tiendas')
-    .select('id, nombre_tienda, moneda_simbolo, tipo_negocio, whatsapp_num')
+    .select('id, nombre_tienda, moneda_simbolo, currency_code, tipo_negocio, whatsapp_num')
     .eq('id', id)
     .maybeSingle()
   return data || null
@@ -118,7 +118,7 @@ export default async function ProductoCatalogoPage({ params }: PageProps) {
     <StoreProvider
       idTienda={id_tienda}
       perfil={perfil}
-      tiendaBase={{ nombre_tienda: tienda.nombre_tienda, moneda_simbolo: tienda.moneda_simbolo }}
+      tiendaBase={{ nombre_tienda: tienda.nombre_tienda, moneda_simbolo: tienda.moneda_simbolo, currency_code: tienda.currency_code }}
       tipoNegocio={tienda.tipo_negocio || 'estandar'}
     >
       <ProductDetailClient

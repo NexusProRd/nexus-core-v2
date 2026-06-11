@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { formatearPrecio } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 
 interface DashboardData {
   totalTiendas: number
@@ -18,6 +18,7 @@ interface DashboardData {
 export default function PccPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [sincronizando, setSincronizando] = useState(false)
+  const currencyCode = 'DOP'
   const [salud, setSalud] = useState<{ estado: string; latencia: number | null }>({ estado: 'verificando', latencia: null })
 
   const cargarDatos = useCallback(async () => {
@@ -108,9 +109,9 @@ export default function PccPage() {
       {/* KPIs */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPI label="Tiendas" value={data?.totalTiendas ?? '—'} sub={`${data?.activas ?? 0} activas · ${data?.suspendidas ?? 0} suspendidas`} color="text-slate-900" />
-        <KPI label="Ventas Generadas" value={`RD$ ${formatearPrecio(data?.totalVentas ?? 0)}`} sub="Acumulado global" color="text-emerald-600" />
+        <KPI label="Ventas Generadas" value={formatCurrency(data?.totalVentas ?? 0, currencyCode)} sub="Acumulado global" color="text-emerald-600" />
         <KPI label="Por Vencer" value={(data?.tiendasPorVencer ?? []).length} sub="Próximos 7 días" color="text-amber-600" subColor="text-amber-500" />
-        <KPI label="MRR" value={`RD$ ${formatearPrecio(data?.mrr ?? 0)}`} sub="Ingreso recurrente mensual" color="text-indigo-600" />
+        <KPI label="MRR" value={formatCurrency(data?.mrr ?? 0, currencyCode)} sub="Ingreso recurrente mensual" color="text-indigo-600" />
       </section>
 
       {/* Tiendas por vencer list + Nueva actividad */}

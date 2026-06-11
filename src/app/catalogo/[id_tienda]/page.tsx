@@ -35,6 +35,7 @@ interface PerfilTienda {
 interface Tienda {
   nombre_tienda: string
   moneda_simbolo: string
+  currency_code: string
   tipo_negocio: string | null
   direccion?: string | null
   whatsapp_num?: string | null
@@ -75,7 +76,7 @@ export default async function CatalogoPage({ params, searchParams }: { params: P
 
   const { data: tienda, error: tiendaError } = await supabase
     .from('tiendas')
-    .select('nombre_tienda, moneda_simbolo, fecha_suspension_catalogo, esta_activa, tipo_negocio, direccion, whatsapp_num')
+    .select('nombre_tienda, moneda_simbolo, currency_code, fecha_suspension_catalogo, esta_activa, tipo_negocio, direccion, whatsapp_num')
     .eq('id', id_tienda)
     .maybeSingle()
 
@@ -119,7 +120,7 @@ export default async function CatalogoPage({ params, searchParams }: { params: P
     .eq('id_tienda', id_tienda)
     .maybeSingle()
 
-  const tiendaBase: Tienda = { nombre_tienda: tienda.nombre_tienda, moneda_simbolo: tienda.moneda_simbolo, tipo_negocio: tienda.tipo_negocio || 'estandar', direccion: tienda.direccion, whatsapp_num: tienda.whatsapp_num }
+  const tiendaBase: Tienda = { nombre_tienda: tienda.nombre_tienda, moneda_simbolo: tienda.moneda_simbolo, currency_code: tienda.currency_code, tipo_negocio: tienda.tipo_negocio || 'estandar', direccion: tienda.direccion, whatsapp_num: tienda.whatsapp_num }
 
   const { data: productosRaw } = await supabase
     .from('productos')

@@ -29,6 +29,7 @@ interface Producto {
 interface Tienda {
   nombre_tienda: string
   moneda_simbolo: string
+  currency_code: string
   tipo_negocio: string
   direccion: string | null
   whatsapp_num: string | null
@@ -61,7 +62,7 @@ export default async function CatalogoSlugPage({ params }: PageProps) {
 
   const { data: tienda } = await supabase
     .from('tiendas')
-    .select('id, nombre_tienda, moneda_simbolo, tipo_negocio, direccion, whatsapp_num, tienda_abierta')
+    .select('id, nombre_tienda, moneda_simbolo, currency_code, tipo_negocio, direccion, whatsapp_num, tienda_abierta')
     .eq('slug', slug)
     .maybeSingle()
 
@@ -79,6 +80,7 @@ export default async function CatalogoSlugPage({ params }: PageProps) {
   const tiendaBase: Tienda = {
     nombre_tienda: tienda.nombre_tienda,
     moneda_simbolo: tienda.moneda_simbolo,
+    currency_code: tienda.currency_code,
     tipo_negocio: tienda.tipo_negocio || 'estandar',
     direccion: tienda.direccion,
     whatsapp_num: tienda.whatsapp_num,

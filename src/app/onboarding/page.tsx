@@ -30,9 +30,12 @@ export default async function OnboardingPage() {
 
     const db = (adminError || !adminSupabase ? supabase : adminSupabase)
 
+    const currencyCode = pais_codigo === 'DO' ? 'DOP' : 'USD'
+
     const { error } = await db.from('tiendas').update({
       pais_codigo,
       moneda_simbolo: pais_codigo === 'DO' ? 'RD$' : '$',
+      currency_code: currencyCode,
       tipo_negocio,
       onboarding_completo: true,
     }).eq('id', sessionId)

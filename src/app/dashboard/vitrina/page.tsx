@@ -13,6 +13,8 @@ import { toPng } from 'html-to-image'
 import { PlantillaPreview, ICONOS_ANUNCIO } from '@/components/catalog/CatalogoModal'
 import type { CatalogoModalConfig, TemplateKey } from '@/components/catalog/CatalogoModal'
 import { optimizarImagen } from '@/lib/image'
+import { formatCurrency } from '@/lib/utils'
+import { useDashboard } from '../DashboardContext'
 import DisenosLibrary from './DisenosLibrary'
 import BannerWizard from './BannerWizard'
 
@@ -131,6 +133,7 @@ export default function CatalogoModalPage() {
   const [previewImg, setPreviewImg] = useState<string | null>(null)
   const [vistaPrevia, setVistaPrevia] = useState(false)
   const [filtroHistorial, setFiltroHistorial] = useState<'catalogo' | 'whatsapp'>('catalogo')
+  const { currencyCode } = useDashboard()
 
   // DisenosLibrary state
   const [statusConfigActual, setStatusConfigActual] = useState<any>(null)
@@ -655,11 +658,11 @@ export default function CatalogoModalPage() {
                         )}
                         <p className="text-base sm:text-lg font-bold text-white leading-tight">{prodSel.nombre}</p>
                         <p className="text-xl sm:text-2xl font-bold text-white/90 mt-1.5">
-                          RD$ {Number(prodSel.precio || 0).toLocaleString('es-DO')}
+                          {formatCurrency(Number(prodSel.precio || 0), currencyCode)}
                         </p>
                         {prodSel.precio_oferta > 0 && prodSel.precio_oferta < prodSel.precio && (
                           <p className="text-xs text-emerald-300 mt-1 font-medium line-through decoration-1">
-                            RD$ {Number(prodSel.precio_oferta).toLocaleString('es-DO')}
+                            {formatCurrency(Number(prodSel.precio_oferta), currencyCode)}
                           </p>
                         )}
                       </div>
@@ -838,7 +841,7 @@ export default function CatalogoModalPage() {
                           className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/50 transition-all">
                           <option value="">Seleccionar producto...</option>
                           {productosOferta.map(p => (
-                            <option key={p.id} value={p.id}>{p.nombre} — RD$ {p.precio_oferta.toLocaleString('es-DO')}</option>
+                            <option key={p.id} value={p.id}>{p.nombre} — {formatCurrency(p.precio_oferta, currencyCode)}</option>
                           ))}
                         </select>
                       ) : (

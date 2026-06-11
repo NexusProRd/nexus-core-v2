@@ -2,6 +2,26 @@ export function formatearPrecio(precio: number): string {
   return precio.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+export function getCurrencySymbol(currencyCode: string): string {
+  if (currencyCode === 'USD') return '$'
+  return 'RD$'
+}
+
+export function getCurrencyLocale(currencyCode: string): string {
+  if (currencyCode === 'USD') return 'en-US'
+  return 'es-DO'
+}
+
+export function formatCurrency(amount: number, currencyCode: string): string {
+  const locale = getCurrencyLocale(currencyCode)
+  return amount.toLocaleString(locale, {
+    style: 'currency',
+    currency: currencyCode,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
 export function parsearCategorias(cadena?: string | null): string[] {
   if (!cadena || !cadena.trim()) return []
   return cadena.split(',').map(c => c.trim()).filter(Boolean)

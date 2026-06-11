@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCart } from '@/context/CartContext'
 import { useConfig } from '@/context/ConfigProvider'
-import { formatearPrecio } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import { calcularPrecioConImpuesto } from '@/lib/precios'
 import ModalCompartirProducto from '@/components/catalog/ModalCompartirProducto'
 import ModalSeleccionarTalla from '@/components/catalog/ModalSeleccionarTalla'
@@ -55,7 +55,7 @@ interface PerfilTienda {
 
 export default function ProductDetailClient({ producto, tienda, perfil, tiendaSlug, sugeridos = [] }: { producto: Producto; tienda: Tienda; perfil: PerfilTienda | null; tiendaSlug: string; sugeridos?: ProductoSugerido[] }) {
   const { addToCart, totalItems, setIsOpen } = useCart()
-  const { whatsappNumber, nombreTienda, logoUrl: configLogoUrl } = useConfig()
+  const { whatsappNumber, nombreTienda, logoUrl: configLogoUrl, currencyCode } = useConfig()
   const router = useRouter()
 
   const [dark, setDark] = useState(false)
@@ -193,7 +193,7 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
     setBuyName('')
     setBuyPhone('')
 
-    const mensaje = `Hola! Quiero hacer el siguiente pedido:\n*Pedido #${pedido.order_id}*\n\n- ${nombreConVariante} x${quantity} = RD$${formatearPrecio(pedido.total)}\n\n*💰 Total General: RD$${formatearPrecio(pedido.total)}*\n\n👤 *Cliente:* ${buyName.trim()}${buyPhone.trim() ? `\n📞 *Teléfono:* ${buyPhone.trim()}` : ''}`
+    const mensaje = `Hola! Quiero hacer el siguiente pedido:\n*Pedido #${pedido.order_id}*\n\n- ${nombreConVariante} x${quantity} = ${formatCurrency(pedido.total, currencyCode)}\n\n*💰 Total General: ${formatCurrency(pedido.total, currencyCode)}*\n\n👤 *Cliente:* ${buyName.trim()}${buyPhone.trim() ? `\n📞 *Teléfono:* ${buyPhone.trim()}` : ''}`
     const whatsappUrl = `https://wa.me/${numeroLimpio}?text=${encodeURIComponent(mensaje)}`
     window.open(whatsappUrl, '_blank')
 
@@ -366,16 +366,16 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
 
             <div className="flex items-center gap-2">
               {selectedPrecioVariant != null ? (
-                <span className="text-xl" style={{ color: vars.textSecondary }}>{moneda} {formatearPrecio(mostrarConImpuesto(selectedPrecioVariant).mostrar)}</span>
+                <span className="text-xl" style={{ color: vars.textSecondary }}>{formatCurrency(mostrarConImpuesto(selectedPrecioVariant).mostrar, currencyCode)}</span>
               ) : producto.precio_oferta ? (
                 <>
-                  <span className="text-lg line-through" style={{ color: vars.textMuted }}>{moneda} {formatearPrecio(mostrarConImpuesto(producto.precio).mostrar)}</span>
-                  <span className="text-xl font-bold" style={{ color: vars.primary }}>{moneda} {formatearPrecio(mostrarConImpuesto(producto.precio_oferta).mostrar)}</span>
+                  <span className="text-lg line-through" style={{ color: vars.textMuted }}>{formatCurrency(mostrarConImpuesto(producto.precio).mostrar, currencyCode)}</span>
+                  <span className="text-xl font-bold" style={{ color: vars.primary }}>{formatCurrency(mostrarConImpuesto(producto.precio_oferta).mostrar, currencyCode)}</span>
                 </>
               ) : desdeMenor ? (
-                <span className="text-xl" style={{ color: vars.textSecondary }}>Desde {moneda} {formatearPrecio(mostrarConImpuesto(precioMinimoVariantes).mostrar)}</span>
+                <span className="text-xl" style={{ color: vars.textSecondary }}>Desde {formatCurrency(mostrarConImpuesto(precioMinimoVariantes).mostrar, currencyCode)}</span>
               ) : (
-                <span className="text-xl" style={{ color: vars.textSecondary }}>{moneda} {formatearPrecio(mostrarConImpuesto(producto.precio).mostrar)}</span>
+                <span className="text-xl" style={{ color: vars.textSecondary }}>{formatCurrency(mostrarConImpuesto(producto.precio).mostrar, currencyCode)}</span>
               )}
               {tieneImpuesto && <span className="text-xs font-medium" style={{ color: vars.textMuted }}>Impuestos incl.</span>}
             </div>
@@ -540,7 +540,7 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
                     </div>
                     <div className="p-2.5">
                       <p className="text-xs font-semibold line-clamp-2 leading-snug" style={{ color: vars.textPrimary }}>{s.nombre}</p>
-                      <p className="text-sm font-bold mt-1" style={{ color: vars.primary }}>{tienda.moneda_simbolo}{formatearPrecio(precioFinal)}</p>
+                      <p className="text-sm font-bold mt-1" style={{ color: vars.primary }}>{formatCurrency(precioFinal, currencyCode)}</p>
                     </div>
                   </Link>
                 )
@@ -577,7 +577,6 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
       {showSizeModal && (
         <ModalSeleccionarTalla
           producto={producto}
-          monedaSimbolo={moneda}
           onConfirm={handleSizeConfirm}
           onClose={() => { setShowSizeModal(false); setPendingBuy(false) }}
         />

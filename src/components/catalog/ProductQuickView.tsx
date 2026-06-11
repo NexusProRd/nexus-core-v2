@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { useCart } from '@/context/CartContext'
 import { useConfig } from '@/context/ConfigProvider'
-import { formatearPrecio } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import { calcularPrecioConImpuesto } from '@/lib/precios'
 import ModalSeleccionarTalla from './ModalSeleccionarTalla'
 import BotonWhatsApp from './BotonWhatsApp'
@@ -14,16 +14,15 @@ import type { Producto } from './ProductCard'
 
 interface Props {
   producto: Producto
-  monedaSimbolo: string
   onClose: () => void
 }
 
-export default function ProductQuickView({ producto, monedaSimbolo, onClose }: Props) {
+export default function ProductQuickView({ producto, onClose }: Props) {
   const [quantity, setQuantity] = useState(1)
   const [feedback, setFeedback] = useState<'idle' | 'cart' | 'buy'>('idle')
   const [buying, setBuying] = useState(false)
   const { addToCart } = useCart()
-  const { whatsappNumber, nombreTienda, idTienda, tipoNegocio } = useConfig()
+  const { whatsappNumber, nombreTienda, idTienda, tipoNegocio, currencyCode } = useConfig()
 
   useEffect(() => {
     const prev = document.title
@@ -156,8 +155,8 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
       + `*Orden:* ${pedido.order_id}\n`
       + `*Cliente:* ${buyName.trim()}\n`
       + `*Contacto:* ${buyPhone.trim()}\n\n`
-      + `*Producto(s):* ${nombreConVariante} (x${quantity}) = RD$${formatearPrecio(precioActivo)} c/u\n\n`
-      + `*Total a Cobrar: RD$${formatearPrecio(pedido.total)}*\n\n`
+      + `*Producto(s):* ${nombreConVariante} (x${quantity}) = ${formatCurrency(precioActivo, currencyCode)} c/u\n\n`
+      + `*Total a Cobrar: ${formatCurrency(pedido.total, currencyCode)}*\n\n`
       + `Por favor, quedo atento para realizar la cotización del envío. ¡Muchas gracias!`
 
     setBuying(false)
@@ -219,16 +218,16 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
             </div>
             <div className="flex items-center gap-2 mt-2">
               {selectedPrecioVariant != null ? (
-                <span className="text-2xl sm:text-3xl font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(selectedPrecioVariant).mostrar)}</span>
+                <span className="text-2xl sm:text-3xl font-bold text-[var(--primary)]">{formatCurrency(mostrarConImpuesto(selectedPrecioVariant).mostrar, currencyCode)}</span>
               ) : producto.precio_oferta ? (
                 <>
-                  <span className="text-xl sm:text-2xl text-slate-400 line-through">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio).mostrar)}</span>
-                  <span className="text-2xl sm:text-3xl font-bold text-rose-600">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio_oferta).mostrar)}</span>
+                  <span className="text-xl sm:text-2xl text-slate-400 line-through">{formatCurrency(mostrarConImpuesto(producto.precio).mostrar, currencyCode)}</span>
+                  <span className="text-2xl sm:text-3xl font-bold text-rose-600">{formatCurrency(mostrarConImpuesto(producto.precio_oferta).mostrar, currencyCode)}</span>
                 </>
               ) : desdeMenor ? (
-                <span className="text-2xl sm:text-3xl font-bold text-[var(--primary)]">Desde {monedaSimbolo}{formatearPrecio(mostrarConImpuesto(precioMinimoVariantes).mostrar)}</span>
+                <span className="text-2xl sm:text-3xl font-bold text-[var(--primary)]">Desde {formatCurrency(mostrarConImpuesto(precioMinimoVariantes).mostrar, currencyCode)}</span>
               ) : (
-                <span className="text-2xl sm:text-3xl font-bold text-[var(--primary)]">{monedaSimbolo}{formatearPrecio(mostrarConImpuesto(producto.precio).mostrar)}</span>
+                <span className="text-2xl sm:text-3xl font-bold text-[var(--primary)]">{formatCurrency(mostrarConImpuesto(producto.precio).mostrar, currencyCode)}</span>
               )}
               {tieneImpuesto && <span className="text-xs font-medium text-slate-400">Impuestos incl.</span>}
             </div>
@@ -341,7 +340,6 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
       {showPesoModal && (
         <ModalSeleccionPeso
           producto={producto}
-          monedaSimbolo={monedaSimbolo}
           onConfirm={(peso_libras) => {
             setSelectedPeso(peso_libras)
             setShowPesoModal(false)
@@ -356,7 +354,6 @@ export default function ProductQuickView({ producto, monedaSimbolo, onClose }: P
       {showSizeModal && (
         <ModalSeleccionarTalla
           producto={{ ...producto, tallas: producto.tallas }}
-          monedaSimbolo={monedaSimbolo}
           onConfirm={(variante, precioVariant) => {
             setSelectedTalla(variante)
             setSelectedPrecioVariant(precioVariant)

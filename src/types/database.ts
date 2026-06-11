@@ -1,6 +1,8 @@
 export type PlanTipo = 'emprendedor' | 'pro';
 export type PlanStatus = 'trial' | 'active' | 'grace' | 'dashboard_suspended' | 'catalog_suspended' | 'deleted';
 
+export type CurrencyCode = 'DOP' | 'USD';
+
 export interface SocioTienda {
   id: string;
   id_owner: string;
@@ -9,6 +11,7 @@ export interface SocioTienda {
   whatsapp_num: string;
   pais_codigo: string;
   moneda_simbolo: string;
+  currency_code: CurrencyCode;
   plan_tipo: PlanTipo;
   plan_status: PlanStatus;
   is_founder: boolean;

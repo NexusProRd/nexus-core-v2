@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase'
+import { formatCurrency } from '@/lib/utils'
+import { useConfig } from '@/context/ConfigProvider'
 import Image from 'next/image'
 
 interface Producto {
@@ -36,6 +38,7 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber }: { idTiend
   const [success, setSuccess] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { currencyCode } = useConfig()
 
   useEffect(() => {
     const supabase = createClient()
@@ -182,7 +185,7 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber }: { idTiend
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-slate-900 truncate">{p.nombre}</p>
-                          <p className="text-xs text-slate-500">RD${p.precio.toFixed(2)}</p>
+                          <p className="text-xs text-slate-500">{formatCurrency(p.precio, currencyCode)}</p>
                         </div>
                         {sinStock(p) ? (
                           <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full shrink-0">Agotado</span>
@@ -216,7 +219,7 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber }: { idTiend
                       )}
                     </div>
                     <p className="text-sm font-medium text-slate-900 flex-1 min-w-0 truncate">{p.nombre}</p>
-                    <p className="text-xs text-slate-500 flex-shrink-0">RD${p.precio.toFixed(2)}</p>
+                    <p className="text-xs text-slate-500 flex-shrink-0">{formatCurrency(p.precio, currencyCode)}</p>
                     <button onClick={() => removeProduct(p.id)} type="button"
                       className="p-0.5 rounded-full text-slate-400 hover:text-rose-600 hover:bg-rose-100 transition-colors flex-shrink-0">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -227,7 +230,7 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber }: { idTiend
                 ))}
                 <div className="flex items-center justify-between pt-1 px-1">
                   <span className="text-xs text-slate-500">{selected.length} producto{selected.length !== 1 ? 's' : ''}</span>
-                  <span className="text-sm font-bold text-slate-900">Total: RD${total.toFixed(2)}</span>
+                  <span className="text-sm font-bold text-slate-900">Total: {formatCurrency(total, currencyCode)}</span>
                 </div>
               </div>
             )}

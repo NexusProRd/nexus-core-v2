@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
+import { formatCurrency } from '@/lib/utils'
+import { useConfig } from '@/context/ConfigProvider'
 
 interface Props {
   id_tienda: string
@@ -72,6 +74,7 @@ const steps = [
 const statusOrder = ['pendiente', 'en_proceso', 'en_camino', 'entregado']
 
 export default function TabPedidos({ id_tienda }: Props) {
+  const { currencyCode } = useConfig()
   const [pedido, setPedido] = useState<OrderData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -211,8 +214,8 @@ export default function TabPedidos({ id_tienda }: Props) {
               <tr>
                 <td class="td-item bold">${det.producto}</td>
                 <td class="td-item" style="text-align:center;">${det.cantidad}</td>
-                <td class="td-item" style="text-align:right;">RD$${Number(det.precio_unitario || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
-                <td class="td-item right bold">RD$${Number(det.subtotal ?? (det.precio_unitario || 0) * det.cantidad).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</td>
+                <td class="td-item" style="text-align:right;">${formatCurrency(Number(det.precio_unitario || 0), currencyCode)}</td>
+                <td class="td-item right bold">${formatCurrency(Number(det.subtotal ?? (det.precio_unitario || 0) * det.cantidad), currencyCode)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -221,18 +224,18 @@ export default function TabPedidos({ id_tienda }: Props) {
           <div style="margin-bottom: 16px;">
             <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; color: #475569;">
               <span>Subtotal (sin impuesto)</span>
-              <span style="font-weight: 600; color: #334155;">RD$${Number((pedido.detalles_pedido as any[]).reduce((s: number, d: any) => s + Number(d.subtotal ?? (d.precio_unitario || 0) * (d.cantidad || 0)), 0)).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+              <span style="font-weight: 600; color: #334155;">${formatCurrency(Number((pedido.detalles_pedido as any[]).reduce((s: number, d: any) => s + Number(d.subtotal ?? (d.precio_unitario || 0) * (d.cantidad || 0)), 0)), currencyCode)}</span>
             </div>
             <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; color: #475569;">
               <span>Impuesto</span>
-              <span style="font-weight: 600; color: #334155;">RD$${Number((pedido.detalles_pedido as any[]).reduce((s: number, d: any) => s + Number(d.impuesto || 0), 0)).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+              <span style="font-weight: 600; color: #334155;">${formatCurrency(Number((pedido.detalles_pedido as any[]).reduce((s: number, d: any) => s + Number(d.impuesto || 0), 0)), currencyCode)}</span>
             </div>
           </div>
         ` : ''}
         <div class="total-section">
           <div class="total-wrapper">
             <span class="total-label">Total Neto</span>
-            <span class="total-value">RD$${Number(pedido?.total || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+            <span class="total-value">${formatCurrency(Number(pedido?.total || 0), currencyCode)}</span>
           </div>
         </div>
         <div class="invoice-footer">¡Gracias por tu preferencia y confianza! 🙏✨</div>
@@ -333,7 +336,7 @@ export default function TabPedidos({ id_tienda }: Props) {
               </div>
               <p className="text-lg font-bold text-slate-900 mt-3">{pedido.cliente_nombre}</p>
               <div className="flex items-center justify-between mt-2">
-                <span className="text-2xl font-extrabold text-emerald-600">RD${Number(pedido.total ?? 0).toFixed(2)}</span>
+                <span className="text-2xl font-extrabold text-emerald-600">{formatCurrency(Number(pedido.total ?? 0), currencyCode)}</span>
                 <span className="text-xs text-slate-400">{new Date(pedido.creado_at).toLocaleDateString('es-DO', { day: 'numeric', month: 'long' })}</span>
               </div>
               <button onClick={handleDownloadPDF} className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition-all cursor-pointer">

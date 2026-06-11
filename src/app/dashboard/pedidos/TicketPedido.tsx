@@ -2,7 +2,8 @@
 
 import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
-import { formatearPrecio } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
+import { useDashboard } from '../DashboardContext'
 
 interface Detalle {
   id: string
@@ -26,6 +27,7 @@ interface Pedido {
 export default function TicketPedido({ pedido, detalles }: { pedido: Pedido; detalles: Detalle[] }) {
   const ticketRef = useRef<HTMLDivElement>(null)
   const [storeName, setStoreName] = useState('')
+  const { currencyCode } = useDashboard()
 
   const codigoTicket = pedido.order_id || pedido.id.slice(0, 8).toUpperCase()
 
@@ -85,8 +87,8 @@ export default function TicketPedido({ pedido, detalles }: { pedido: Pedido; det
             <tr>
               <td>${d.producto}</td>
               <td class="cen">${d.cantidad}</td>
-              <td class="der">RD$${formatearPrecio(d.precio_unitario)}</td>
-              <td class="der">RD$${formatearPrecio(d.subtotal ?? d.precio_unitario * d.cantidad)}</td>
+              <td class="der">${formatCurrency(d.precio_unitario, currencyCode)}</td>
+              <td class="der">${formatCurrency(d.subtotal ?? d.precio_unitario * d.cantidad, currencyCode)}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -95,11 +97,11 @@ export default function TicketPedido({ pedido, detalles }: { pedido: Pedido; det
         <div class="linea"></div>
         <div style="display:flex;justify-content:space-between;padding:4px 0;">
           <span>Subtotal (sin impuesto):</span>
-          <span>RD$${formatearPrecio(detalles.reduce((s, d) => s + Number(d.subtotal ?? d.precio_unitario * d.cantidad), 0))}</span>
+          <span>${formatCurrency(detalles.reduce((s, d) => s + Number(d.subtotal ?? d.precio_unitario * d.cantidad), 0), currencyCode)}</span>
         </div>
         <div style="display:flex;justify-content:space-between;padding:4px 0;">
           <span>Impuesto:</span>
-          <span>RD$${formatearPrecio(detalles.reduce((s, d) => s + Number(d.impuesto || 0), 0))}</span>
+          <span>${formatCurrency(detalles.reduce((s, d) => s + Number(d.impuesto || 0), 0), currencyCode)}</span>
         </div>
         <div class="linea"></div>
       ` : `
@@ -107,7 +109,7 @@ export default function TicketPedido({ pedido, detalles }: { pedido: Pedido; det
       `}
       <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;">
         <span class="total-label">TOTAL</span>
-        <span class="total-value">RD$${formatearPrecio(pedido.total)}</span>
+        <span class="total-value">${formatCurrency(pedido.total, currencyCode)}</span>
       </div>
       <div class="footer">¡Gracias por tu preferencia!</div>
       <script>window.print();window.close();<\/script>
@@ -140,8 +142,8 @@ export default function TicketPedido({ pedido, detalles }: { pedido: Pedido; det
                 <tr key={d.id}>
                   <td>{d.producto}</td>
                   <td className="cen">{d.cantidad}</td>
-                  <td className="der">RD${formatearPrecio(d.precio_unitario)}</td>
-                  <td className="der">RD${formatearPrecio(d.subtotal ?? d.precio_unitario * d.cantidad)}</td>
+                  <td className="der">{formatCurrency(d.precio_unitario, currencyCode)}</td>
+                  <td className="der">{formatCurrency(d.subtotal ?? d.precio_unitario * d.cantidad, currencyCode)}</td>
                 </tr>
               ))}
             </tbody>
@@ -151,18 +153,18 @@ export default function TicketPedido({ pedido, detalles }: { pedido: Pedido; det
               <div className="linea" />
               <div>
                 <span>Subtotal (sin impuesto): </span>
-                <span>RD${formatearPrecio(detalles.reduce((s, d) => s + Number(d.subtotal ?? d.precio_unitario * d.cantidad), 0))}</span>
+                <span>{formatCurrency(detalles.reduce((s, d) => s + Number(d.subtotal ?? d.precio_unitario * d.cantidad), 0), currencyCode)}</span>
               </div>
               <div>
                 <span>Impuesto: </span>
-                <span>RD${formatearPrecio(detalles.reduce((s, d) => s + Number(d.impuesto || 0), 0))}</span>
+                <span>{formatCurrency(detalles.reduce((s, d) => s + Number(d.impuesto || 0), 0), currencyCode)}</span>
               </div>
             </>
           )}
           <div className="linea" />
         <div>
           <span className="total-label">TOTAL</span>
-          <span className="total-value">RD${formatearPrecio(pedido.total)}</span>
+          <span className="total-value">{formatCurrency(pedido.total, currencyCode)}</span>
         </div>
       </div>
 

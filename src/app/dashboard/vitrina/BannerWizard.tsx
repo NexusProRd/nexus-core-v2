@@ -5,6 +5,8 @@ import { PlantillaPreview } from '@/components/catalog/CatalogoModal'
 import type { CatalogoModalConfig, TemplateKey } from '@/components/catalog/CatalogoModal'
 import { toPng } from 'html-to-image'
 import { createClient } from '@/lib/supabase'
+import { formatCurrency } from '@/lib/utils'
+import { useDashboard } from '../DashboardContext'
 
 type BannerObjetivo = 'oferta' | 'nuevo_producto' | 'evento' | 'delivery_gratis' | 'destacado'
 type BannerEstilo = 'premium' | 'minimalista' | 'moderno' | 'energetico'
@@ -95,6 +97,7 @@ export default function BannerWizard({
   const [downloading, setDownloading] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState<string | null>(null)
+  const { currencyCode } = useDashboard()
 
   const previewRefs = useRef<Record<number, HTMLDivElement | null>>({})
   useEffect(() => { return () => { previewRefs.current = {} } }, [])
@@ -314,7 +317,7 @@ export default function BannerWizard({
               <option value="">{objetivo && !OBJETIVOS.find(o => o.key === objetivo)?.requiereProducto ? 'Sin producto (mensaje genérico)' : 'Seleccionar producto...'}</option>
               {productos.map(p => (
                 <option key={p.id} value={p.id}>
-                  {p.nombre}{p.precio_oferta > 0 ? ` — RD$ ${p.precio_oferta.toLocaleString('es-DO')}` : ` — RD$ ${p.precio.toLocaleString('es-DO')}`}
+                  {p.nombre}{p.precio_oferta > 0 ? ` — ${formatCurrency(p.precio_oferta, currencyCode)}` : ` — ${formatCurrency(p.precio, currencyCode)}`}
                 </option>
               ))}
             </select>

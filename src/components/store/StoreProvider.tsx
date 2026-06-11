@@ -19,6 +19,7 @@ interface PerfilTienda {
 interface Tienda {
   nombre_tienda: string
   moneda_simbolo: string
+  currency_code?: string
   direccion?: string | null
 }
 
@@ -50,12 +51,14 @@ export default function StoreProvider({ children, idTienda, perfil, tiendaBase, 
   } : undefined)
 
   const monedaSimbolo = tiendaBase?.moneda_simbolo || 'RD$'
+  const currencyCode = tiendaBase?.currency_code || 'DOP'
 
   return (
     <ConfigProvider 
       idTienda={idTienda} 
       initialConfig={initialConfig || undefined}
       monedaSimbolo={monedaSimbolo}
+      currencyCode={currencyCode}
       tipoNegocio={tipoNegocio}
     >
       {children}

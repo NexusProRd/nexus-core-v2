@@ -28,7 +28,6 @@ interface Props {
   nombreTienda: string
   mensajeBienvenida: string | null
   whatsappNumber: string
-  monedaSimbolo: string
   masVendidos: Producto[]
   nuevos: Producto[]
   giftMode: boolean
@@ -47,7 +46,6 @@ export default function TabInicio({
   nombreTienda,
   mensajeBienvenida,
   whatsappNumber,
-  monedaSimbolo,
   masVendidos,
   nuevos,
   giftMode,
@@ -235,7 +233,6 @@ export default function TabInicio({
               <ProductCard
                 key={p.id}
                 producto={p}
-                monedaSimbolo={monedaSimbolo}
                 giftMode={giftMode}
                 compact
                 trendingIds={trendingIds}
@@ -262,7 +259,6 @@ export default function TabInicio({
               <ProductCard
                 key={p.id}
                 producto={p}
-                monedaSimbolo={monedaSimbolo}
                 giftMode={giftMode}
                 compact
                 trendingIds={trendingIds}

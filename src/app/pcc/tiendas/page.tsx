@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase'
 import type { SocioTienda } from '@/types/database'
 import { getPlanLabel, getPlanColor, getStatusLabel, getStatusColor } from '@/lib/commercial'
+import { formatCurrency } from '@/lib/utils'
 import { ModalBokeh } from '@/components/pcc/BokehBackground'
 
 function diasRestantes(fecha: string | null): number | null {
@@ -15,10 +16,6 @@ function diasRestantes(fecha: string | null): number | null {
 function formatearFecha(fecha: string | null): string {
   if (!fecha) return '—'
   return new Date(fecha).toLocaleDateString('es-DO', { day: '2-digit', month: 'short', year: 'numeric' })
-}
-
-function formatearDinero(valor: number): string {
-  return `RD$ ${valor.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 interface TokenModalState {
@@ -647,11 +644,11 @@ export default function PccTiendasPage() {
                     </div>
                   </td>
                   <td className="p-4 text-right">
-                    <p className="text-sm font-bold text-gray-900">{formatearDinero(metricsMap[t.id]?.ventas ?? 0)}</p>
+                    <p className="text-sm font-bold text-gray-900">{formatCurrency(metricsMap[t.id]?.ventas ?? 0, 'DOP')}</p>
                     <p className="text-[11px] text-gray-400">{metricsMap[t.id]?.pedidos ?? 0} pedido(s)</p>
                   </td>
                   <td className="p-4 text-right">
-                    <p className={`text-sm font-bold ${(metricsMap[t.id]?.ganancia ?? 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{formatearDinero(metricsMap[t.id]?.ganancia ?? 0)}</p>
+                    <p className={`text-sm font-bold ${(metricsMap[t.id]?.ganancia ?? 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{formatCurrency(metricsMap[t.id]?.ganancia ?? 0, 'DOP')}</p>
                   </td>
                   <td className="p-4">
                     <p className="text-sm text-gray-700">{formatearFecha(t.fecha_vencimiento)}</p>
@@ -806,13 +803,13 @@ export default function PccTiendasPage() {
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="bg-gray-50 rounded-xl p-2.5">
                       <p className="text-gray-400">Ventas</p>
-                      <p className="font-bold text-gray-900">{formatearDinero(metricsMap[t.id]?.ventas ?? 0)}</p>
+                      <p className="font-bold text-gray-900">{formatCurrency(metricsMap[t.id]?.ventas ?? 0, 'DOP')}</p>
                       <p className="text-gray-400">{metricsMap[t.id]?.pedidos ?? 0} pedido(s)</p>
                     </div>
                     <div className="bg-gray-50 rounded-xl p-2.5">
                       <p className="text-gray-400">Ganancia Neta</p>
                       <p className={`font-bold ${(metricsMap[t.id]?.ganancia ?? 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {formatearDinero(metricsMap[t.id]?.ganancia ?? 0)}
+                        {formatCurrency(metricsMap[t.id]?.ganancia ?? 0, 'DOP')}
                       </p>
                     </div>
                   </div>
