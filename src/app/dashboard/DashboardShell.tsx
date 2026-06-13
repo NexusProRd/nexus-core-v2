@@ -1218,7 +1218,7 @@ export default function DashboardLayout({
                             const codigoReal = pedido.order_id || pedido.id.slice(0, 8).toUpperCase()
                             const msgEntregado = `🛍️ *¡Hola, ${pedido.cliente_nombre}!* Tu pedido *#${codigoReal}* ya fue entregado, esperamos que lo disfrutes mucho.\n\nGracias por tu confianza.`
                             if (numeroCliente) {
-                              window.open(`https://api.whatsapp.com/send?phone=${numeroCliente}&text=${encodeURIComponent(msgEntregado)}`, '_blank')
+                              window.open(`https://wa.me/${numeroCliente}?text=${encodeURIComponent(msgEntregado)}`, '_blank')
                             }
                             actualizarEstado(pedido.id, 'entregado')
                           }}
@@ -1264,7 +1264,7 @@ export default function DashboardLayout({
                           <button
                             onClick={() => {
                               actualizarEstado(pedido.id, 'en_proceso')
-                              window.open(`https://api.whatsapp.com/send?phone=${(pedido.cliente_telefono || '').replace(/\D/g, '')}&text=${encodeURIComponent(mensajeWhatsApp)}`, '_blank')
+                              window.open(`https://wa.me/${(pedido.cliente_telefono || '').replace(/\D/g, '')}?text=${encodeURIComponent(mensajeWhatsApp)}`, '_blank')
                             }}
                             className="flex-1 bg-emerald-600/90 backdrop-blur-sm text-white py-1.5 px-3 rounded-xl hover:bg-emerald-700 transition-all text-sm font-medium border border-white/10"
                           >

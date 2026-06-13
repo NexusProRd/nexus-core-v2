@@ -371,6 +371,7 @@ export default function ProductQuickView({ producto, onClose }: Props) {
           productoNombre={producto.nombre}
           tiendaSlug={idTienda}
           productoSlug={producto.slug || producto.id}
+          whatsappNumber={whatsappNumber}
           onClose={() => setShowShareModal(false)}
         />
       )}

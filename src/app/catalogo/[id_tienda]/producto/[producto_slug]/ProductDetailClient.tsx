@@ -587,6 +587,7 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
           productoNombre={producto.nombre}
           tiendaSlug={tiendaSlug}
           productoSlug={productoSlug}
+          whatsappNumber={numeroLimpio}
           onClose={() => setShowShareModal(false)}
         />
       )}

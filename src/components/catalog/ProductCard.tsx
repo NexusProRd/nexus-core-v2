@@ -409,6 +409,7 @@ export default function ProductCard({ producto, giftMode, compact, trendingIds, 
           productoNombre={producto.nombre}
           tiendaSlug={idTienda}
           productoSlug={producto.slug || producto.id}
+          whatsappNumber={whatsappNumber}
           onClose={() => setShowShareModal(false)}
         />
       )}

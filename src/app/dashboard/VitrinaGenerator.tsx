@@ -21,6 +21,7 @@ interface VitrinaGeneratorProps {
   nombreTienda: string
   catalogoUrl: string
   slugUrl?: string
+  whatsappNumber?: string
   onClose: () => void
 }
 
@@ -39,7 +40,7 @@ const templates: { key: TemplateKey; label: string; desc: string }[] = [
   { key: 'noir', label: 'Noir Plateado', desc: 'Sobrio y metálico' },
 ]
 
-export default function VitrinaGenerator({ tiendaId, nombreTienda, catalogoUrl, slugUrl, onClose }: VitrinaGeneratorProps) {
+export default function VitrinaGenerator({ tiendaId, nombreTienda, catalogoUrl, slugUrl, whatsappNumber: waNum, onClose }: VitrinaGeneratorProps) {
   const [productos, setProductos] = useState<Producto[]>([])
   const [selectedId, setSelectedId] = useState('')
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
@@ -155,7 +156,8 @@ export default function VitrinaGenerator({ tiendaId, nombreTienda, catalogoUrl, 
     if (!producto) return
     const url = producto?.slug ? `${baseUrl}/producto/${producto.slug}` : baseUrl
     const msg = `✨ *${nombreTienda}* ✨\n\n🔥 *${producto.nombre}*\n💰 ${formatCurrency(producto.precio_oferta || producto.precio, currencyCode)}\n\n🛍️ ${url}`
-    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank')
+    const waNumLimpio = waNum?.replace(/\D/g, '') || ''
+    window.open(`https://wa.me/${waNumLimpio}?text=${encodeURIComponent(msg)}`, '_blank')
   }
 
   const badgeOferta = producto?.precio_oferta && producto.precio_oferta < producto.precio

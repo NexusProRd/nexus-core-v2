@@ -170,7 +170,7 @@ export default function RegisterPage() {
 
           <p className="text-xs text-slate-400 mt-4">
             ¿Tienes dudas?{' '}
-            <a href={`https://wa.me/${whatsappAdmin}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-semibold hover:underline">Contacta a soporte</a>
+            <a href={`https://wa.me/${whatsappAdmin}?text=${encodeURIComponent('Hola, necesito ayuda con mi cuenta.')}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-semibold hover:underline">Contacta a soporte</a>
           </p>
         </div>
       </div>

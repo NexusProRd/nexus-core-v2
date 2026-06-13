@@ -17,8 +17,8 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Sprint Comercial 1A: Centro de Suscripción + PCC Métodos de Cobro |
-| Última verificación | 2026-06-13 — Sprint Comercial 1A: build PASS |
+| Último commit | Sprint QA-WA-02: WhatsApp Quick Wins (QW1-QW5) |
+| Última verificación | 2026-06-13 — Sprint QA-WA-02: build PASS |
 
 ### Módulos
 
@@ -76,6 +76,7 @@
 **Sprint Moneda 0.3B.1 — DashboardContext + 10 dashboard components migrados a formatCurrency()**
 **Sprint Moneda 0.3C — PCC pages, vitrina files, dashboard/pedidos/page.tsx migrados; audit final**
 **Sprint Comercial 1A — Centro de Suscripción (`/dashboard/suscripcion`) + PCC Métodos de Cobro en Configuración Comercial**
+**Sprint QA-WA-02 — WhatsApp Quick Wins (QW1-QW5): CTAs sin contexto, share sin número, URLs inconsistentes**
 
 ### Estado
 
@@ -133,6 +134,14 @@
 - **`/dashboard/suscripcion/`**: ruta dinámica con server component (`page.tsx`) que obtiene datos de plan, cuentas bancarias, PayPal y precios desde `nexus_config`; client component (`SuscripcionClient.tsx`) con 4 estados UX (active, trial, próximo a vencer, sin métodos), botones "Copiar titular/cuenta/todo" con feedback visual, "Enviar comprobante por WhatsApp" con mensaje pre-rellenado, y badge de fundador
 - **Zero migraciones de DB**: todas las nuevas claves (`bank_accounts`, `paypal_email`, `paypal_activo`) se insertan vía `upsert()` runtime
 - Build PASS.
+
+**Sprint QA-WA-02 Completado.** WhatsApp Quick Wins post-Auditoría A3 (QW1-QW5):
+- **QW1**: Hero y footer CTAs en TabInicio — ahora envían `?text=¡Hola! Quiero información sobre sus productos.` — elimina chats vacíos en el CTA principal del catálogo
+- **QW2**: ModalCompartirProducto — nueva prop `whatsappNumber`; share link cambió de `wa.me/?text=` (sin destinatario) a `wa.me/{numero}?text=`. Prop propagada a los 3 callers (ProductCard, ProductQuickView, ProductDetailClient)
+- **QW3**: VitrinaGenerator — misma corrección: `wa.me/?text=` → `wa.me/{numero}?text=` vía nueva prop `whatsappNumber`
+- **QW4**: DashboardShell — 2 URLs `api.whatsapp.com/send?phone=` unificadas a `wa.me/{numero}?text=` — formato 100% consistente en toda la app
+- **QW5**: Register y Suscripcion CTAs — ahora envían texto contextual en lugar de abrir chat vacío
+- Typecheck PASS. Build PASS.
 
 **Sprint 5C.4.1 Completado.** UX Polish del checklist con deep links y navegación directa:
 - CTAs navegan a `/dashboard/configurar#seguridad`, `#logo`, `#informacion`
