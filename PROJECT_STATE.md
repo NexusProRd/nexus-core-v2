@@ -11,14 +11,14 @@
 | Atributo | Valor |
 |----------|-------|
 | Stack | Next.js 16.2.6, React 19.2.4, Supabase, Tailwind v4 |
-| Base de datos | Supabase PostgreSQL (62 migraciones, hasta 064) |
+| Base de datos | Supabase PostgreSQL (66 migraciones, hasta 066) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
-| Moneda | RD$ (peso dominicano) — hardcodeado en toda la UI |
-| Último commit | `c386e6b` — Sprint Impuestos 0.3B: tax display en 5 catalog components + JSONB fix en PedidoRow |
-| Última verificación | 2026-06-09 — Sprint Impuestos 0.3B: build PASS, typecheck PASS |
+| Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
+| Último commit | Sprint Comercial 1A: Centro de Suscripción + PCC Métodos de Cobro |
+| Última verificación | 2026-06-13 — Sprint Comercial 1A: build PASS |
 
 ### Módulos
 
@@ -73,6 +73,9 @@
 **Sprint Impuestos 0.2B — Dashboard tax display (TicketButton, PedidoRow, TabPedidos, DashboardShell)**
 **Sprint Impuestos 0.3A — Audit of 59 price display points in catalog**
 **Sprint Impuestos 0.3B — Tax-inclusive price display in 5 catalog components + JSONB consumption fix in PedidoRow**
+**Sprint Moneda 0.3B.1 — DashboardContext + 10 dashboard components migrados a formatCurrency()**
+**Sprint Moneda 0.3C — PCC pages, vitrina files, dashboard/pedidos/page.tsx migrados; audit final**
+**Sprint Comercial 1A — Centro de Suscripción (`/dashboard/suscripcion`) + PCC Métodos de Cobro en Configuración Comercial**
 
 ### Estado
 
@@ -112,6 +115,24 @@
 - Checklist computado en server page (`preguntas_recuperacion`, `perfil_tienda`, `productos`)
 - Pasado como prop a `DashboardClient` y renderizado condicional
 - Typecheck PASS. Build PASS.
+
+**Sprint Moneda 0.3B.1 Completado.** DashboardContext creado (context + hook en `DashboardContext.tsx`) eliminando 10× queries duplicadas de `SELECT currency_code FROM tiendas`. 9 componentes migrados a `useDashboard()`/`useConfig()`: DashboardClient, InventarioClient, AnaliticasContent, cupones/page, PedidoRow, GiftPurchaseForm, TrackOrderModal, TicketButton, TicketPedido. Typecheck PASS. Build PASS.
+
+**Sprint Moneda 0.3C Completado.** Migración multi-moneda completada en todos los frentes restantes:
+- PCC pages (pcc, pcc/finanzas, pcc/configuracion-comercial) — `RD$ {formatearPrecio(x)}` → `formatCurrency(x, 'DOP')`
+- Vitrina files (VitrinaGenerator, vitrina/page, BannerWizard) — `toLocaleString('es-DO')`/`RD$` → `formatCurrency(x, currencyCode)` via `useDashboard()`
+- dashboard/pedidos/page — server component: fetch `currency_code` + `formatCurrency()`
+- TicketButton/TicketPedido — refetch eliminado, ahora reciben currencyCode vía context
+- Audit confirmó 4 archivos restantes (whatsapp page, 3 API routes) son texto interno/notificaciones — sin migración necesaria
+- Build PASS (84 static pages, ~20s). Commit `3c20fa6` — `"feat: add multi-currency support (DOP/USD)"` — 43 files, +301/-224 — pushed a `origin/main`.
+
+**Sprint Comercial 1A Completado.** Implementación del Centro de Suscripción (`/dashboard/suscripcion`) y sección Métodos de Cobro en PCC Configuración Comercial:
+- **DashboardContext** extendido con `planTipo`, `planStatus`, `fechaVencimiento`, `isFounder` — sin queries adicionales, datos servidos desde el SELECT existente de `DashboardShell`
+- **DashboardShell** actualizado: SELECT incluye `plan_tipo`, `plan_status`, `fecha_vencimiento`, `is_founder`; Provider expone los 4 nuevos campos; navegación lateral incluye ítem "Suscripción" con icono de tarjeta de crédito; panel bloqueado ahora muestra plan + cuentas bancarias activas con CTA de envío de comprobante
+- **PCC Configuración Comercial** (`pcc/configuracion-comercial/page.tsx`): nueva sección "Métodos de Cobro" con CRUD completo de cuentas bancarias (persistencia vía `nexus_config.bank_accounts` como JSON array) y campo PayPal (preparación futura). Cada acción (crear/editar/eliminar/toggle) persiste inmediatamente a DB. Sin nueva migración — `nexus_config` es schema-less.
+- **`/dashboard/suscripcion/`**: ruta dinámica con server component (`page.tsx`) que obtiene datos de plan, cuentas bancarias, PayPal y precios desde `nexus_config`; client component (`SuscripcionClient.tsx`) con 4 estados UX (active, trial, próximo a vencer, sin métodos), botones "Copiar titular/cuenta/todo" con feedback visual, "Enviar comprobante por WhatsApp" con mensaje pre-rellenado, y badge de fundador
+- **Zero migraciones de DB**: todas las nuevas claves (`bank_accounts`, `paypal_email`, `paypal_activo`) se insertan vía `upsert()` runtime
+- Build PASS.
 
 **Sprint 5C.4.1 Completado.** UX Polish del checklist con deep links y navegación directa:
 - CTAs navegan a `/dashboard/configurar#seguridad`, `#logo`, `#informacion`
@@ -359,7 +380,7 @@ La monetización real depende de que PCC administre manualmente cada tienda, no 
 
 ### Próxima acción
 
-Ejecutar migraciones 059, 062, 063, 064 en DB producción. Rotar AUTH_SECRET. Quick-buy UX error handling.
+Implementar historial de pagos (`nexus_pagos`). Integrar PayPal como método de pago real (webhooks, verificación). Mejorar fake ratings P0 y quick-buy stock failure UX (pendientes de auditoría A1).
 
 ### Bloqueadores
 
@@ -521,6 +542,7 @@ src/
 │   │   ├── marketing/    ← Herramientas de marketing
 │   │   ├── pedidos/      ← Gestión de pedidos
 │   │   ├── regalos/      ← Regalos corporativos entrantes
+│   │   ├── suscripcion/  ← Centro de Suscripción (plan, métodos de pago, comprobante)
 │   │   ├── vitrina/      ← Vitrina Studio + Banner Builder
 │   │   └── whatsapp/     ← Configuración WhatsApp
 │   ├── login/            ← Login del socio
@@ -1878,6 +1900,64 @@ async function diag() {
 - **Bug corregido: `PedidoRow.tsx`** — `toggleAccordion` ahora consume `pedido.detalles_pedido` JSONB directamente en lugar de consultar la tabla relacional `detalles_pedido` (que carece de columnas fiscales). Esto corrige el breakdown fiscal tanto en el accordion expandido como en el ticket imprimible.
 - **Sin migraciones** — No se modificó el esquema de base de datos. El JSONB ya contenía `subtotal`, `impuesto`, `total` desde el checkout.
 
+### 2026-06-10 — Sprint Moneda 0.3B.1 + 0.3C — Multi-currency migration (DOP/USD)
+
+##### Cambios
+
+- **`src/app/dashboard/DashboardContext.tsx`** — Nuevo context + hook `useDashboard()` que expone `currencyCode`, eliminando 10× queries duplicadas `SELECT currency_code FROM tiendas`.
+- **`src/app/dashboard/DashboardShell.tsx`** — Ahora wrappea el árbol hijo con `<DashboardContext.Provider>`.
+- **`src/lib/utils.ts`** — Nuevas funciones: `formatCurrency(value, currencyCode)`, `getCurrencySymbol(currencyCode)`, `getCurrencyLocale(currencyCode)` usando `Intl.NumberFormat(style:'currency')`.
+- **`supabase/migrations/066_add_currency_code.sql`** — Nueva migración: `ALTER TABLE tiendas ADD COLUMN currency_code TEXT DEFAULT 'DOP' CHECK (... IN ('DOP','USD'))`.
+- **`src/context/ConfigProvider.tsx`** / **`src/components/store/StoreProvider.tsx`** — Ahora aceptan y propagan `currencyCode`.
+- **`src/app/onboarding/page.tsx`** — Asigna `currencyCode = 'DOP'` si `pais_codigo === 'DO'`, sino `'USD'`.
+- **Sprint 0.3B.1**: 9 componentes migrados de DB fetches individuales a `useDashboard()`/`useConfig()`: `DashboardClient`, `InventarioClient`, `AnaliticasContent`, `cupones/page`, `PedidoRow`, `GiftPurchaseForm`, `TrackOrderModal`, `TicketButton`, `TicketPedido`.
+- **Sprint 0.3C**: PCC pages (`pcc/page.tsx`, `pcc/finanzas/page.tsx`, `pcc/configuracion-comercial/page.tsx`) — `RD$ {formatearPrecio(x)}` → `formatCurrency(x, 'DOP')`. Vitrina files (`VitrinaGenerator.tsx`, `vitrina/page.tsx`, `BannerWizard.tsx`) — `toLocaleString('es-DO')`/`RD$` → `formatCurrency(x, currencyCode)`. Server component `dashboard/pedidos/page.tsx` — fetch `currency_code` + `formatCurrency()`. `TicketButton`/`TicketPedido` — refetch eliminado.
+- **Audit final**: `dashboard/whatsapp/page.tsx` + 3 API routes (`checkout`, `push/send`, `push/quickbuy`) confirmados como texto interno/notificaciones — sin migración necesaria. Escaneo final entregó 18 ocurrencias restantes válidas (date formatting, labels, landing page, API text, GraficoSemanal chart tooltip).
+- **Sin cambios funcionales** — No hay currency selector, no hay conversión, no se modificó lógica de negocio.
+
+##### Archivos modificados (Sprint 0.3B.1)
+
+```
+src/app/dashboard/DashboardContext.tsx           | +15 (NUEVO — context + hook)
+src/app/dashboard/DashboardShell.tsx             |  +1 / -0  (Provider wrapper)
+src/app/dashboard/DashboardClient.tsx            |  +1 / -1  (useDashboard en lugar de query)
+src/app/dashboard/inventario/DashboardInventario.tsx |  +1 / -1
+src/app/dashboard/analiticas/AnaliticasContent.tsx   |  +3 / -2
+src/app/dashboard/cupones/page.tsx               |  +2 / -2
+src/app/dashboard/pedidos/PedidoRow.tsx          |  +2 / -3
+src/app/dashboard/pedidos/TicketButton.tsx       |  +3 / -4
+src/app/dashboard/pedidos/TicketPedido.tsx       |  +2 / -14
+src/components/dashboard/GiftPurchaseForm.tsx    |  +5 / -1
+src/components/dashboard/TrackOrderModal.tsx     |  +1 / -13
+src/lib/utils.ts                                 | +53 / -0  (formatCurrency + helpers)
+supabase/migrations/066_add_currency_code.sql    |  +4 (NUEVO)
+src/app/onboarding/page.tsx                      |  +3 / -0  (currencyCode set)
+src/context/ConfigProvider.tsx                    |  +6 / -1  (currencyCode prop)
+src/components/store/StoreProvider.tsx            |  +1 / -1  (pasa currency_code)
+```
+
+##### Archivos modificados (Sprint 0.3C)
+
+```
+src/app/pcc/page.tsx                           |  +3 / -3
+src/app/pcc/finanzas/page.tsx                  |  +8 / -8
+src/app/pcc/configuracion-comercial/page.tsx   |  +3 / -3
+src/components/vitrina/VitrinaGenerator.tsx    |  +8 / -7
+src/app/(main)/vitrina/page.tsx                |  +2 / -2
+src/components/vitrina/BannerWizard.tsx        |  +4 / -4
+src/app/dashboard/pedidos/page.tsx             |  +11 / -4
+src/components/dashboard/GiftPurchaseForm.tsx  |  +1 / -1 (segunda pasada: currencyCode tipado)
+```
+
+##### Verificación
+
+- Typecheck PASS ✅
+- Build PASS ✅ (84 static pages, ~20s)
+
+##### Commit
+
+`3c20fa6` — `"feat: add multi-currency support (DOP/USD)"` — 43 files, +301/-224 — pushed to `origin/main`
+
 ### 2026-06-07 — Sprint 5C.2.1 — Recovery Code UX
 
 ##### Cambios
@@ -2486,7 +2566,7 @@ Todos los flujos ahora usan el mismo `gestionarStock()` de `@/lib/stock`.
 - **'use client'** / **'use server'** explícito en cada archivo
 - **Tailwind CSS v4** con diseño responsive: `sm:` para tablet, `md:` para desktop
 - **Dark mode** via atributo `data-theme` + `dark:` prefix
-- **Moneda:** RD$ hardcodeado (no hay soporte multi-moneda)
+- **Moneda:** `formatCurrency()` con `currencyCode` desde DashboardContext/ConfigProvider — DOP/USD soportado
 - **Formularios:** Preferir `useActionState` + Server Actions para mutations
 - **Componentes de una sola página** (no hay barrel exports)
 - **Modals** con backdrop `bg-black/40 backdrop-blur-sm`

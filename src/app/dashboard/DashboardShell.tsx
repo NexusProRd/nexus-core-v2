@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { checkTiendaActiva } from '@/lib/commercial'
+import type { PlanTipo, PlanStatus } from '@/lib/commercial'
 import { formatCurrency, generarMensaje } from '@/lib/utils'
 import { gestionarStock } from '@/lib/stock'
 import type { VarsWhatsApp } from '@/lib/utils'
@@ -87,6 +88,7 @@ function SidebarDesktop({ tiendaId }: { tiendaId?: string }) {
         { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: 'chat', group: 'c' },
         { href: '/dashboard/regalos', label: 'Regalos', icon: 'gift', group: 'c' },
         { href: '/dashboard/configurar', label: 'Configuración', icon: 'settings', group: 'd' },
+        { href: '/dashboard/suscripcion', label: 'Suscripción', icon: 'credit', group: 'd' },
       ]
     : permisos?.dashboard
     ? [
@@ -121,6 +123,7 @@ function SidebarDesktop({ tiendaId }: { tiendaId?: string }) {
       case 'chat': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
       case 'megaphone': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
       case 'settings': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+      case 'credit': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
       default: return null
     }
   }
@@ -231,6 +234,7 @@ const BottomNav = memo(function BottomNav({ moreOpen, setMoreOpen }: any) {
         { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: 'chat' },
         { href: '/dashboard/regalos', label: 'Regalos', icon: 'gift' },
         { href: '/dashboard/configurar', label: 'Configuración', icon: 'settings' },
+        { href: '/dashboard/suscripcion', label: 'Suscripción', icon: 'credit' },
       ]
     : permisos?.dashboard
     ? [
@@ -278,6 +282,7 @@ const BottomNav = memo(function BottomNav({ moreOpen, setMoreOpen }: any) {
       case 'chat': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
       case 'megaphone': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
       case 'settings': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+      case 'credit': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
       default: return null
     }
   }
@@ -340,7 +345,13 @@ export default function DashboardLayout({
   const [anunciosDescartados, setAnunciosDescartados] = useState<Set<string>>(new Set())
   const [bloqueado, setBloqueado] = useState(false)
   const [whatsappSoporte, setWhatsappSoporte] = useState('18299999999')
+  const [blockedBankAccounts, setBlockedBankAccounts] = useState<{ banco: string; tipo_cuenta: string; numero_cuenta: string }[]>([])
+  const [blockedPlanPrice, setBlockedPlanPrice] = useState(380)
   const [currencyCode, setCurrencyCode] = useState('DOP')
+  const [planTipo, setPlanTipo] = useState<PlanTipo>('emprendedor')
+  const [planStatus, setPlanStatus] = useState<PlanStatus>('trial')
+  const [fechaVencimiento, setFechaVencimiento] = useState<string | null>(null)
+  const [isFounder, setIsFounder] = useState(false)
   // VERCEL BUILD FIX: Lazy-init Supabase client on first client-side render only
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null)
   const getSupabase = useCallback(() => {
@@ -411,7 +422,7 @@ export default function DashboardLayout({
 
         const { data: tienda } = await getSupabase()
             .from('tiendas')
-            .select('id, nombre_tienda, currency_code')
+            .select('id, nombre_tienda, currency_code, plan_tipo, plan_status, fecha_vencimiento, is_founder')
             .eq('id', sessionId)
             .maybeSingle()
 
@@ -423,6 +434,10 @@ export default function DashboardLayout({
           setTiendaId(tienda.id)
           setNombreTienda(tienda.nombre_tienda || '')
           if (tienda.currency_code) setCurrencyCode(tienda.currency_code)
+          if (tienda.plan_tipo) setPlanTipo(tienda.plan_tipo as PlanTipo)
+          if (tienda.plan_status) setPlanStatus(tienda.plan_status as PlanStatus)
+          if (tienda.fecha_vencimiento) setFechaVencimiento(tienda.fecha_vencimiento)
+          if (tienda.is_founder) setIsFounder(true)
 
           const check = await checkTiendaActiva(getSupabase(), tienda.id)
           if (!check.ok) {
@@ -461,6 +476,16 @@ export default function DashboardLayout({
           try {
             const { data: logoCfg } = await getSupabase().from('nexus_config').select('valor').eq('clave', 'landing_logo_url').maybeSingle()
             if (logoCfg?.valor) setLandingLogoUrl(logoCfg.valor)
+          } catch {}
+
+          try {
+            const { data: bankCfg } = await getSupabase().from('nexus_config').select('valor').eq('clave', 'bank_accounts').maybeSingle()
+            if (bankCfg?.valor) { try { setBlockedBankAccounts(JSON.parse(bankCfg.valor).filter((a: any) => a.activo)) } catch {} }
+          } catch {}
+
+          try {
+            const { data: priceCfg } = await getSupabase().from('nexus_config').select('valor').eq('clave', 'plan_emprendedor_price').maybeSingle()
+            if (priceCfg?.valor) setBlockedPlanPrice(Number(priceCfg.valor))
           } catch {}
       } catch {
         console.error('Error al cargar la tienda')
@@ -598,6 +623,7 @@ export default function DashboardLayout({
     '/dashboard/whatsapp': 'WhatsApp',
     '/dashboard/regalos': 'Regalos',
     '/dashboard/configurar': 'Configuración',
+    '/dashboard/suscripcion': 'Suscripción',
   }
   const pageTitle = sectionTitles[pathname] || 'Dashboard'
 
@@ -721,7 +747,7 @@ export default function DashboardLayout({
 
   if (loading) {
     return (
-      <DashboardContext.Provider value={{ currencyCode }}>
+      <DashboardContext.Provider value={{ currencyCode, planTipo, planStatus, fechaVencimiento, isFounder }}>
       <OrderAlertContext.Provider value={{ showAlert }}>
         <ToastProvider>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#0a0a0d] dark:via-[#0c0c10] dark:to-[#0e0e14]">
@@ -748,8 +774,9 @@ export default function DashboardLayout({
   }
 
   if (bloqueado) {
+    const cuentasTexto = blockedBankAccounts.map(a => `${a.banco} (${a.tipo_cuenta}): ${a.numero_cuenta}`).join('\n')
     const msgWhatsApp = encodeURIComponent(
-      '¡Hola Nexus! Mi panel de administración ha sido bloqueado. Quiero reactivar mi cuenta.'
+      `¡Hola Nexus! Mi panel de administración ha sido bloqueado. Quiero reactivar mi cuenta.\n\nPlan: Emprendedor — ${formatCurrency(blockedPlanPrice, currencyCode)}/mes${cuentasTexto ? `\n\n${cuentasTexto}` : ''}`
     )
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
@@ -760,9 +787,20 @@ export default function DashboardLayout({
             </svg>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 mb-3">Panel Bloqueado</h1>
-          <p className="text-sm sm:text-base text-slate-500 leading-relaxed mb-8">
-            Tu panel de administración se encuentra suspendido. Si deseas reactivar tu cuenta, ponte en contacto con el equipo de Nexus.
+          <p className="text-sm sm:text-base text-slate-500 leading-relaxed mb-4">
+            Tu panel de administración se encuentra suspendido. Para reactivar tu cuenta, realiza el pago y envía tu comprobante por WhatsApp.
           </p>
+          <div className="bg-slate-50 rounded-xl p-4 mb-6 text-left space-y-2">
+            <p className="text-sm font-bold text-slate-900">Plan: Emprendedor — {formatCurrency(blockedPlanPrice, currencyCode)}/mes</p>
+            {blockedBankAccounts.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Cuentas bancarias</p>
+                {blockedBankAccounts.map((acc, i) => (
+                  <p key={i} className="text-sm text-slate-700 font-mono">{acc.banco} ({acc.tipo_cuenta}): {acc.numero_cuenta}</p>
+                ))}
+              </div>
+            )}
+          </div>
           <a
             href={`https://wa.me/${whatsappSoporte}?text=${msgWhatsApp}`}
             target="_blank"
@@ -772,7 +810,7 @@ export default function DashboardLayout({
             <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
             </svg>
-            Contactar a Nexus por WhatsApp
+            Enviar comprobante por WhatsApp
           </a>
         </div>
       </div>
@@ -781,7 +819,7 @@ export default function DashboardLayout({
 
   return (
     <SessionProvider>
-    <DashboardContext.Provider value={{ currencyCode }}>
+    <DashboardContext.Provider value={{ currencyCode, planTipo, planStatus, fechaVencimiento, isFounder }}>
     <OrderAlertContext.Provider value={{ showAlert }}>
       <ToastProvider>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#0a0a0d] dark:via-[#0c0c10] dark:to-[#0e0e14]">
