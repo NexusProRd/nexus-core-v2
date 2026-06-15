@@ -1,13 +1,10 @@
-// UX EVOLUTION — Marketing placeholder
 'use client'
 
-// DYNAMIC DASHBOARD FIX: Prevent static prerender — requires runtime Supabase session
 export const dynamic = 'force-dynamic'
 
 export default function MarketingPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-6">
-      {/* Header */}
       <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border border-white/20 dark:border-slate-700/30 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/30 p-5 sm:p-7">
         <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-rose-500/10 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-10 -left-10 w-40 h-40 rounded-full bg-amber-400/5 blur-3xl pointer-events-none" />
@@ -22,7 +19,6 @@ export default function MarketingPage() {
         </div>
       </div>
 
-      {/* Cards grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-2xl bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 p-5 sm:p-6 hover:shadow-md transition-shadow">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white shadow-sm mb-4">
@@ -71,18 +67,6 @@ export default function MarketingPage() {
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
           </a>
         </div>
-      </div>
-
-      {/* Coming soon section */}
-      <div className="rounded-2xl bg-white/50 dark:bg-slate-800/20 border border-dashed border-slate-200 dark:border-slate-700 p-6 sm:p-8 text-center">
-        <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gradient-to-br from-rose-100 to-amber-100 dark:from-rose-900/20 dark:to-amber-900/20 flex items-center justify-center">
-          <svg className="w-6 h-6 text-rose-500 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-        </div>
-        <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">Más Herramientas Marketing</h3>
-        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-          Estamos trabajando en campañas automatizadas, embudos de ventas e integraciones con redes sociales. Próximamente.
-        </p>
-        <span className="inline-block mt-3 text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-3 py-1 rounded-full">Próximamente</span>
       </div>
     </div>
   )

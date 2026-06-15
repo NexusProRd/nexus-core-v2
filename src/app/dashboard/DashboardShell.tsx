@@ -77,16 +77,24 @@ export function useOrderAlert() {
 function SidebarDesktop({ tiendaId }: { tiendaId?: string }) {
   const { esDueno, nombreColaborador, permisos } = usePermisos()
   const pathname = usePathname()
+  const [marketingExpanded, setMarketingExpanded] = useState(true)
 
-  // DASHBOARD STRUCTURE PASS
+  const isMarketingChild = (p: string) =>
+    p.startsWith('/dashboard/portadas') || p.startsWith('/dashboard/cupones') || p.startsWith('/dashboard/regalos') || p.startsWith('/dashboard/marketing')
+
+  useEffect(() => {
+    if (isMarketingChild(pathname) && !marketingExpanded) setMarketingExpanded(true)
+  }, [pathname])
+
   const navItems = esDueno
     ? [
         { href: '/dashboard', label: 'Inicio', icon: 'home', group: 'a' },
         { href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart', group: 'b' },
         { href: '/dashboard/inventario', label: 'Productos', icon: 'box', group: 'b' },
         { href: '/dashboard/vitrina', label: 'Vitrina', icon: 'window', group: 'c' },
+        { href: '/dashboard/marketing', label: 'Marketing', icon: 'megaphone', group: 'c', isGroup: true },
+        { href: '/dashboard/analiticas', label: 'Analíticas', icon: 'chart', group: 'c' },
         { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: 'chat', group: 'c' },
-        { href: '/dashboard/regalos', label: 'Regalos', icon: 'gift', group: 'c' },
         { href: '/dashboard/configurar', label: 'Configuración', icon: 'settings', group: 'd' },
         { href: '/dashboard/suscripcion', label: 'Suscripción', icon: 'credit', group: 'd' },
       ]
@@ -96,14 +104,23 @@ function SidebarDesktop({ tiendaId }: { tiendaId?: string }) {
         { href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart', group: 'b' },
         { href: '/dashboard/inventario', label: 'Productos', icon: 'box', group: 'b' },
         { href: '/dashboard/vitrina', label: 'Vitrina', icon: 'window', group: 'c' },
+        { href: '/dashboard/marketing', label: 'Marketing', icon: 'megaphone', group: 'c', isGroup: true },
+        { href: '/dashboard/analiticas', label: 'Analíticas', icon: 'chart', group: 'c' },
         { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: 'chat', group: 'c' },
-        { href: '/dashboard/regalos', label: 'Regalos', icon: 'gift', group: 'c' },
       ]
     : [
         ...(permisos?.dashboard ? [{ href: '/dashboard', label: 'Inicio', icon: 'home', group: 'a' }] : []),
         ...(permisos?.productos ? [{ href: '/dashboard/inventario', label: 'Productos', icon: 'box', group: 'b' }] : []),
         ...(permisos?.pedidos ? [{ href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart', group: 'b' }] : []),
       ]
+
+  const marketingSubItems = esDueno || permisos?.dashboard
+    ? [
+        { href: '/dashboard/portadas', label: 'Portadas', icon: 'stack' },
+        { href: '/dashboard/cupones', label: 'Cupones', icon: 'tag' },
+        { href: '/dashboard/regalos', label: 'Regalos', icon: 'gift' },
+      ]
+    : []
 
   const esActivo = (href: string) => {
     if (href === '/dashboard') return pathname === '/dashboard'
@@ -122,6 +139,7 @@ function SidebarDesktop({ tiendaId }: { tiendaId?: string }) {
       case 'window': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 2v4m8-4v4M4 10h16" /></svg>
       case 'chat': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
       case 'megaphone': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+      case 'stack': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
       case 'settings': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
       case 'credit': return <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
       default: return null
@@ -136,6 +154,46 @@ function SidebarDesktop({ tiendaId }: { tiendaId?: string }) {
             const active = esActivo(item.href)
             const prevGroup = i > 0 ? navItems[i-1].group : null
             const showDivider = prevGroup && item.group !== prevGroup
+
+            if ((item as any).isGroup) {
+              const marketingActive = isMarketingChild(pathname)
+              return (
+                <div key={item.href}>
+                  {showDivider && <div className="h-px bg-white/[0.06] mx-3 my-1.5" />}
+                  <button onClick={() => setMarketingExpanded(!marketingExpanded)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-sm font-medium no-tap-delay press-scale-sm ${
+                      marketingActive
+                        ? 'text-white bg-white/[0.07] border-l-[3px] border-[var(--primary)] shadow-[inset_0_0_12px_-8px_var(--primary)] pl-[9px]'
+                        : 'text-white/40 hover:text-white/80 hover:bg-white/5 border-l-[3px] border-transparent pl-[9px]'
+                    }`}>
+                    {iconSVG(item.icon)}
+                    <span className="flex-1 text-left truncate">{item.label}</span>
+                    <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${marketingExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                  {marketingExpanded && (
+                    <div className="ml-3 space-y-0.5 mt-0.5">
+                      {marketingSubItems.map(sub => {
+                        const subActive = esActivo(sub.href)
+                        return (
+                          <Link key={sub.href} href={sub.href}
+                            className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-sm font-medium no-tap-delay press-scale-sm ${
+                              subActive
+                                ? 'text-white bg-white/[0.07] border-l-[3px] border-[var(--primary)] shadow-[inset_0_0_12px_-8px_var(--primary)] pl-[9px]'
+                                : 'text-white/40 hover:text-white/80 hover:bg-white/5 border-l-[3px] border-transparent pl-[9px]'
+                            }`}>
+                            {iconSVG(sub.icon)}
+                            <span className="truncate">{sub.label}</span>
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
             return (
               <div key={item.href}>
                 {showDivider && <div className="h-px bg-white/[0.06] mx-3 my-1.5" />}
@@ -231,8 +289,11 @@ const BottomNav = memo(function BottomNav({ moreOpen, setMoreOpen }: any) {
         { href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart' },
         { href: '/dashboard/inventario', label: 'Productos', icon: 'box' },
         { href: '/dashboard/vitrina', label: 'Vitrina', icon: 'window' },
-        { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: 'chat' },
+        { href: '/dashboard/portadas', label: 'Portadas', icon: 'stack' },
+        { href: '/dashboard/cupones', label: 'Cupones', icon: 'tag' },
         { href: '/dashboard/regalos', label: 'Regalos', icon: 'gift' },
+        { href: '/dashboard/analiticas', label: 'Analíticas', icon: 'chart' },
+        { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: 'chat' },
         { href: '/dashboard/configurar', label: 'Configuración', icon: 'settings' },
         { href: '/dashboard/suscripcion', label: 'Suscripción', icon: 'credit' },
       ]
@@ -242,8 +303,11 @@ const BottomNav = memo(function BottomNav({ moreOpen, setMoreOpen }: any) {
         { href: '/dashboard/pedidos', label: 'Pedidos', icon: 'cart' },
         { href: '/dashboard/inventario', label: 'Productos', icon: 'box' },
         { href: '/dashboard/vitrina', label: 'Vitrina', icon: 'window' },
-        { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: 'chat' },
+        { href: '/dashboard/portadas', label: 'Portadas', icon: 'stack' },
+        { href: '/dashboard/cupones', label: 'Cupones', icon: 'tag' },
         { href: '/dashboard/regalos', label: 'Regalos', icon: 'gift' },
+        { href: '/dashboard/analiticas', label: 'Analíticas', icon: 'chart' },
+        { href: '/dashboard/whatsapp', label: 'WhatsApp', icon: 'chat' },
       ]
     : [
         ...(permisos?.dashboard ? [{ href: '/dashboard', label: 'Inicio', icon: 'home' }] : []),
@@ -281,6 +345,7 @@ const BottomNav = memo(function BottomNav({ moreOpen, setMoreOpen }: any) {
       case 'window': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 2v4m8-4v4M4 10h16" /></svg>
       case 'chat': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
       case 'megaphone': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" /></svg>
+      case 'stack': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
       case 'settings': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
       case 'credit': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
       default: return null
@@ -620,8 +685,12 @@ export default function DashboardLayout({
     '/dashboard/pedidos': 'Pedidos',
     '/dashboard/inventario': 'Productos',
     '/dashboard/vitrina': 'Vitrina',
-    '/dashboard/whatsapp': 'WhatsApp',
+    '/dashboard/marketing': 'Marketing',
+    '/dashboard/portadas': 'Portadas',
+    '/dashboard/cupones': 'Cupones',
     '/dashboard/regalos': 'Regalos',
+    '/dashboard/analiticas': 'Analíticas',
+    '/dashboard/whatsapp': 'WhatsApp',
     '/dashboard/configurar': 'Configuración',
     '/dashboard/suscripcion': 'Suscripción',
   }

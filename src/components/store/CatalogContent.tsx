@@ -7,6 +7,7 @@ import { useConfig } from '@/context/ConfigProvider'
 import { useCart } from '@/context/CartContext'
 import CartDrawer from '@/components/cart/CartDrawer'
 import BottomNav, { type TabId } from '@/components/catalog/BottomNav'
+import StoreHeader from '@/components/store/StoreHeader'
 import SocialToast from '@/components/catalog/SocialToast'
 import TabInicio from '@/components/catalog/TabInicio'
 import TabMenu from '@/components/catalog/TabMenu'
@@ -15,6 +16,7 @@ import ProductQuickView from '@/components/catalog/ProductQuickView'
 import type { Producto } from '@/components/catalog/ProductCard'
 import CatalogoModal from '@/components/catalog/CatalogoModal'
 import type { CatalogoModalConfig } from '@/components/catalog/CatalogoModal'
+import type { Portada } from '@/types/portada'
 
 interface Props {
   id_tienda: string
@@ -49,6 +51,20 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
   const [giftMessage, setGiftMessage] = useState('')
   const [quickViewProduct, setQuickViewProduct] = useState<Producto | null>(null)
   const [showRegalosMsg, setShowRegalosMsg] = useState(false)
+
+  const [portadas, setPortadas] = useState<Portada[]>([])
+
+  useEffect(() => {
+    fetch(`/api/portadas?id_tienda=${id_tienda}`)
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setPortadas(data) })
+      .catch(() => {})
+  }, [id_tienda])
+
+  const handleOpenProduct = useCallback((productId: string) => {
+    const product = productos.find(p => p.id === productId)
+    if (product) setQuickViewProduct(product)
+  }, [productos])
 
   const [dark, setDark] = useState(false)
   const [catalogoModal, setCatalogoModal] = useState<{ modal: CatalogoModalConfig; tienda: { logo_url: string | null; nombre: string } } | null>(null)
@@ -109,7 +125,24 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
     return ['', ...Array.from(cats).sort()]
   }, [productos])
 
-  const nuevos = useMemo(() => [...productos].reverse().slice(0, 8), [productos])
+  const nuevos = useMemo(() => {
+    return [...productos]
+      .sort((a, b) => {
+        const dateA = (a as any).creado_at
+        const dateB = (b as any).creado_at
+        if (!dateA && !dateB) return 0
+        if (!dateA) return 1
+        if (!dateB) return -1
+        return new Date(dateB).getTime() - new Date(dateA).getTime()
+      })
+      .slice(0, 8)
+  }, [productos])
+
+  const ofertas = useMemo(() => {
+    return [...productos]
+      .filter(p => p.precio_oferta != null && p.precio_oferta > 0 && p.precio_oferta < p.precio)
+      .slice(0, 8)
+  }, [productos])
 
   const masVendidos = useMemo(() => {
     return [...productos].filter(p => p.in_stock && p.stock > 0).slice(0, 8)
@@ -142,76 +175,20 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-body)] pb-24 md:pb-0 md:flex" style={{ color: 'var(--text-primary)' }}>
+    <div className="min-h-screen bg-[var(--bg-body)] pb-24" style={{ color: 'var(--text-primary)' }}>
 
-      {/* ===== DESKTOP SIDEBAR (md+) ===== */}
-      <aside className="hidden md:flex md:flex-col md:w-60 md:shrink-0 md:h-screen md:sticky md:top-0 sidebar md:border-r md:border-[var(--border-light)] md:p-5">
-        <Link href={`/catalogo/${id_tienda}`} className="flex items-center gap-3 mb-5 hover:opacity-80 transition-opacity">
-          {logoUrl ? (
-            <img src={logoUrl} alt="" className="w-9 h-9 rounded-lg object-cover ring-1 ring-[var(--border-light)]" />
-          ) : (
-            <div className="w-9 h-9 rounded-lg bg-[var(--primary)] flex items-center justify-center text-white text-sm font-bold">
-              {nombreTienda[0]}
-            </div>
-          )}
-          <div className="min-w-0">
-            <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{nombreTienda}</p>
-          </div>
-        </Link>
-
-        <button onClick={() => setIsOpen(true)}
-          className="w-full flex items-center justify-between gap-2 px-4 py-2.5 mb-4 rounded-xl bg-[var(--primary)]/10 text-[var(--primary)] text-sm font-bold hover:bg-[var(--primary)]/20 transition-all border border-[var(--primary)]/20">
-          <span className="flex items-center gap-2">
-            <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-            </svg>
-            Carrito
-          </span>
-          {totalItems > 0 && (
-            <span className="bg-[var(--primary)] text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
-              {totalItems > 9 ? '9+' : totalItems}
-            </span>
-          )}
-        </button>
-
-        <nav className="flex flex-col gap-1">
-          {navItems.map(item => (
-            <button key={item.id} onClick={() => setActiveTab(item.id)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
-                activeTab === item.id
-                  ? 'bg-[var(--primary)]/10 text-[var(--primary)] font-semibold'
-                  : 'hover:bg-[var(--border-light)]'
-              }`} style={{ color: activeTab === item.id ? undefined : 'var(--text-secondary)' }}>
-              <span className="text-base">{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-          <button onClick={() => setShowRegalosMsg(true)}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left hover:bg-[var(--border-light)] relative"
-            style={{ color: 'var(--text-secondary)' }}>
-            <span className="text-base">🎁</span>
-            <span>Regalos</span>
-            <span className="text-[10px] text-amber-500 font-medium ml-auto">Próximamente</span>
-          </button>
-        </nav>
-
-        <div className="mt-auto pt-4 border-t border-[var(--border-light)]">
-          <button onClick={toggleTheme}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-[var(--border-light)] transition-all"
-            style={{ color: 'var(--text-secondary)' }}>
-            {dark ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-              </svg>
-            )}
-            {dark ? 'Modo Claro' : 'Modo Oscuro'}
-          </button>
-        </div>
-      </aside>
+      <StoreHeader
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        dark={dark}
+        onToggleTheme={toggleTheme}
+        logoUrl={logoUrl}
+        nombreTienda={nombreTienda}
+        whatsappNumber={whatsappNumber}
+        onShowRegalos={() => setShowRegalosMsg(true)}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
 
       {/* MOBILE EXPERIENCE PASS: Theme toggle with better position above nav */}
       <button onClick={toggleTheme}
@@ -229,9 +206,10 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
       </button>
 
       {/* ===== MAIN CONTENT ===== */}
-      <div className="flex-1 min-w-0">
+      <div>
         {activeTab === 'inicio' && (
           <TabInicio
+            portadas={portadas}
             logoUrl={logoUrl}
             bannerUrl={bannerUrl}
             slogan={slogan}
@@ -240,6 +218,7 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
             whatsappNumber={whatsappNumber}
             masVendidos={masVendidos}
             nuevos={nuevos}
+            ofertas={ofertas}
             giftMode={giftMode}
             trendingIds={trendingIds}
             onQuickView={setQuickViewProduct}
@@ -247,6 +226,8 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
             facebookUrl={facebookUrl}
             tiktokUrl={tiktokUrl}
             mapsUrl={mapsUrl}
+            onVerProductos={() => setActiveTab('menu')}
+            onOpenProduct={handleOpenProduct}
           />
         )}
 
@@ -293,8 +274,8 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
         />
       )}
 
-      <footer className="text-center py-4 px-4 border-t border-[var(--border-light)] mt-4">
-        <p className="text-xs text-slate-400">
+      <footer className="text-center py-5 px-4 border-t border-slate-100 mt-4">
+        <p className="text-[10px] text-slate-400">
           <a href="/legal/terminos" target="_blank" className="hover:underline">Términos de Uso</a>
           {' · '}
           <a href="/legal/privacidad" target="_blank" className="hover:underline">Política de Privacidad</a>

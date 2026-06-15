@@ -38,15 +38,22 @@ async function sign(payload: string): Promise<string> {
 
 async function verify(payload: string, signature: string): Promise<boolean> {
   const secret = getSecret()
-  const key = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(secret),
-    ALGORITHM,
-    false,
-    ['verify']
-  )
-  const signatureBytes = new Uint8Array(signature.match(/.{1,2}/g)!.map(b => parseInt(b, 16)))
-  return crypto.subtle.verify(ALGORITHM, key, signatureBytes, new TextEncoder().encode(payload))
+  try {
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      ALGORITHM,
+      false,
+      ['sign']
+    )
+    const newSig = await crypto.subtle.sign(ALGORITHM, key, new TextEncoder().encode(payload))
+    const newHex = Array.from(new Uint8Array(newSig))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+    return newHex === signature
+  } catch {
+    return false
+  }
 }
 
 export async function createSessionToken(tiendaId: string): Promise<string> {

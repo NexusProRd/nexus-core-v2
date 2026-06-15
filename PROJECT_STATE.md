@@ -77,8 +77,18 @@
 **Sprint Moneda 0.3C — PCC pages, vitrina files, dashboard/pedidos/page.tsx migrados; audit final**
 **Sprint Comercial 1A — Centro de Suscripción (`/dashboard/suscripcion`) + PCC Métodos de Cobro en Configuración Comercial**
 **Sprint QA-WA-02 — WhatsApp Quick Wins (QW1-QW5): CTAs sin contexto, share sin número, URLs inconsistentes**
+**Sprint UX-VITRINA-01 — Hero + Header + Portada cleanup, Destacados auto-slide mobile**
 
 ### Estado
+
+**Sprint UX-VITRINA-01 Completado.** Hero + Header + Portada + Destacados visual cleanup:
+- Hero simplificado: portada carrusel con imágenes del dashboard, sin logo/nombre/contactar duplicados
+- StoreHeader ya existente en CatalogContent maneja logo + nombre + WhatsApp
+- Benefits bar movida debajo de todos los productos (no entre Hero y Destacados)
+- Destacados: mobile single-card full-width con scroll-snap + auto-slide cada 4s (pausa al tocar, desactivado en tablet+); desktop grid 3 columnas sin cambios
+- Novedades: horizontal compact, Ofertas: con "Aprovechar Oferta"
+- Footer: sin cambios
+- Typecheck PASS. Build PASS.
 
 **P3-C Completado.** Subsistema B (tickets/pedidos.is_gift) eliminado. Toda la lógica de regalos unificada en gift_experiences. Tickets migrados con backfill, creación de gifts redirigida a gift_experiences, enlaces legacy redirigen a /canje. Stock management, aprobación y canje permanecen inalterados.
 
