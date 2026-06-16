@@ -134,42 +134,103 @@ export default function TabInicio({
               }}
               onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
               {p.imagen_url ? (
-                <Image src={p.imagen_url} alt="" fill className="object-cover" priority sizes="100vw" />
+                <>
+                  {/* DESKTOP: producto/oferta — blurred bg + gradient */}
+                  {p.tipo !== 'institucional' && (
+                    <>
+                      <Image src={p.imagen_url} alt="" fill className="object-cover lg:scale-110 lg:blur-2xl lg:opacity-60" priority sizes="100vw" />
+                      <div className="hidden lg:block absolute inset-0 bg-gradient-to-r from-transparent via-transparent/20 to-slate-900/90" />
+                    </>
+                  )}
+
+                  {/* ALL: mobile full-bleed image + gradient (also desktop for institucional) */}
+                  <div className={`${p.tipo !== 'institucional' ? 'lg:hidden ' : ''}absolute inset-0`}>
+                    <Image src={p.imagen_url} alt="" fill className="object-cover" priority sizes="100vw" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/40 to-black/20" />
+                  </div>
+
+                  {/* Mobile content */}
+                  <div className="lg:hidden absolute bottom-0 left-0 right-0 p-6 sm:p-10 z-10">
+                    {p.titulo && (
+                      <>
+                        <h2 className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg">{p.titulo}</h2>
+                        {p.descripcion && <p className="text-sm text-white/80 mt-1 drop-shadow-md">{p.descripcion}</p>}
+                        {pData && p.tipo !== 'institucional' && (
+                          <div className="mt-2 flex items-baseline gap-2">
+                            {p.tipo === 'oferta' && pData.precio_oferta ? (
+                              <>
+                                <span className="text-sm text-white/60 line-through">{formatCurrency(pData.precio, currencyCode)}</span>
+                                <span className="text-lg font-bold text-amber-300">{formatCurrency(pData.precio_oferta, currencyCode)}</span>
+                              </>
+                            ) : (
+                              <span className="text-lg font-bold text-white">{formatCurrency(pData.precio, currencyCode)}</span>
+                            )}
+                          </div>
+                        )}
+                        {(p.cta_accion === 'ver_productos' || (p.cta_accion === 'ver_producto' && p.id_producto)) && (
+                          <button onClick={(e) => {
+                            e.stopPropagation()
+                            if (p.cta_accion === 'ver_productos') {
+                              onVerProductos?.()
+                            } else if (p.cta_accion === 'ver_producto' && p.id_producto) {
+                              onOpenProduct?.(p.id_producto)
+                            }
+                          }}
+                            className="mt-3 inline-block px-5 py-2 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-semibold hover:bg-white/30 transition-all">
+                            {p.cta_texto || (p.tipo === 'institucional' ? 'Ver productos' : p.tipo === 'oferta' ? 'Aprovechar Oferta' : 'Ver detalle')}
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Desktop content: left-right layout */}
+                  <div className="hidden lg:flex absolute inset-0 z-10 items-center">
+                    {p.tipo !== 'institucional' && (
+                      <div className="w-1/2 h-full relative">
+                        <div className="absolute inset-6 sm:inset-10">
+                          <Image src={p.imagen_url} alt="" fill className="object-contain" priority sizes="50vw" />
+                        </div>
+                      </div>
+                    )}
+                    <div className={`${p.tipo !== 'institucional' ? 'w-1/2' : 'w-full'} h-full flex flex-col justify-center p-8 lg:p-12`}>
+                      {p.titulo && (
+                        <>
+                          <h2 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">{p.titulo}</h2>
+                          {p.descripcion && <p className="text-sm text-white/80 mt-2 drop-shadow-md max-w-lg">{p.descripcion}</p>}
+                          {pData && p.tipo !== 'institucional' && (
+                            <div className="mt-3 flex items-baseline gap-2">
+                              {p.tipo === 'oferta' && pData.precio_oferta ? (
+                                <>
+                                  <span className="text-sm text-white/60 line-through">{formatCurrency(pData.precio, currencyCode)}</span>
+                                  <span className="text-lg font-bold text-amber-300">{formatCurrency(pData.precio_oferta, currencyCode)}</span>
+                                </>
+                              ) : (
+                                <span className="text-lg font-bold text-white">{formatCurrency(pData.precio, currencyCode)}</span>
+                              )}
+                            </div>
+                          )}
+                          {(p.cta_accion === 'ver_productos' || (p.cta_accion === 'ver_producto' && p.id_producto)) && (
+                            <button onClick={(e) => {
+                              e.stopPropagation()
+                              if (p.cta_accion === 'ver_productos') {
+                                onVerProductos?.()
+                              } else if (p.cta_accion === 'ver_producto' && p.id_producto) {
+                                onOpenProduct?.(p.id_producto)
+                              }
+                            }}
+                              className="mt-4 self-start px-6 py-2.5 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-semibold hover:bg-white/30 transition-all">
+                              {p.cta_texto || (p.tipo === 'institucional' ? 'Ver productos' : p.tipo === 'oferta' ? 'Aprovechar Oferta' : 'Ver detalle')}
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </>
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
                   <span className="text-white/40 text-sm">Sin imagen</span>
-                </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/40 to-black/20" />
-              {p.titulo && (
-                <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
-                  <h2 className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg">{p.titulo}</h2>
-                  {p.descripcion && <p className="text-sm text-white/80 mt-1 drop-shadow-md">{p.descripcion}</p>}
-                  {pData && p.tipo !== 'institucional' && (
-                    <div className="mt-2 flex items-baseline gap-2">
-                      {p.tipo === 'oferta' && pData.precio_oferta ? (
-                        <>
-                          <span className="text-sm text-white/60 line-through">{formatCurrency(pData.precio, currencyCode)}</span>
-                          <span className="text-lg font-bold text-amber-300">{formatCurrency(pData.precio_oferta, currencyCode)}</span>
-                        </>
-                      ) : (
-                        <span className="text-lg font-bold text-white">{formatCurrency(pData.precio, currencyCode)}</span>
-                      )}
-                    </div>
-                  )}
-                  {(p.cta_accion === 'ver_productos' || (p.cta_accion === 'ver_producto' && p.id_producto)) && (
-                    <button onClick={(e) => {
-                      e.stopPropagation()
-                      if (p.cta_accion === 'ver_productos') {
-                        onVerProductos?.()
-                      } else if (p.cta_accion === 'ver_producto' && p.id_producto) {
-                        onOpenProduct?.(p.id_producto)
-                      }
-                    }}
-                      className="mt-3 inline-block px-5 py-2 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-semibold hover:bg-white/30 transition-all">
-                      {p.cta_texto || (p.tipo === 'institucional' ? 'Ver productos' : p.tipo === 'oferta' ? 'Aprovechar Oferta' : 'Ver detalle')}
-                    </button>
-                  )}
                 </div>
               )}
             </div>

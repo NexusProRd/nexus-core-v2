@@ -92,6 +92,7 @@
 - Precios en portadas: institucional sin precio, producto muestra precio normal, oferta muestra tachado + oferta en amber-300
 - Cross-fade transition entre slides (opacity 500ms ease-in-out)
 - Botón de pausa/reproducción en carrusel de portadas
+- Desktop portada: producto/oferta con fondo bokeh (blur) + gradiente left-to-right + imagen nítida izquierda + detalles derecha; institucional mantiene full-bleed sin blur
 - Footer: sin cambios
 - Typecheck PASS. Build PASS.
 
