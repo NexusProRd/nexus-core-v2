@@ -17,9 +17,9 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Sprint UX-VITRINA-01: portada prices, cross-fade, nav buttons, auto-slide mobile |
+| Último commit | Sprint PORTA-PERSONALIZADO + marco celular preview |
 
-| Última verificación | 2026-06-16 — Sprint UX-VITRINA-01: build PASS |
+| Última verificación | 2026-06-16 — Sprint PORTA-PERSONALIZADO: build PASS |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -96,15 +96,17 @@
 - Footer: sin cambios
 - Typecheck PASS. Build PASS.
 
-**Sprint PORTA-PERSONALIZADO Completado.** Nuevo tipo de portada Personalizado + CTA configurable:
+**Sprint PORTA-PERSONALIZADO Completado.** Nuevo tipo de portada Personalizado + CTA configurable + marco de celular en preview:
 - Nuevo tipo `personalizado` en tipos, DB, API y formulario
 - Botón configurable: texto editable + 4 acciones (ir a pestaña, producto, categoría, URL externa)
 - Acción "ir a categoría" redirige a Productos con filtro de categoría aplicado
 - Check "Colocar botón" que despliega toda la configuración cuando está activo
 - Vista previa contextual: replica el catálogo móvil con StoreHeader, Hero, productos y bottom nav
+- Marco de celular en preview móvil: `rounded-[2.5rem]` con borde 3px, Dynamic Island, Home Indicator
 - Toggle Móvil/Escritorio en vista previa
 - DB migration 068: columnas `cta_url`, `cta_pestana`, `cta_categoria` + CHECK constraints actualizados
 - API GET no selecciona columnas nuevas (migración no aplicada aún)
+- Commits: `96239c0` (personalizado), `a4f41f0` (contextual preview), `07febd1` (marco celular)
 - Typecheck PASS. Build PASS.
 
 **P3-C Completado.** Subsistema B (tickets/pedidos.is_gift) eliminado. Toda la lógica de regalos unificada en gift_experiences. Tickets migrados con backfill, creación de gifts redirigida a gift_experiences, enlaces legacy redirigen a /canje. Stock management, aprobación y canje permanecen inalterados.
