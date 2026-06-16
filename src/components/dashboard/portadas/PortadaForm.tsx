@@ -58,6 +58,9 @@ export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Pro
   const [ctaPestana, setCtaPestana] = useState(portada?.cta_pestana || 'menu')
   const [ctaCategoria, setCtaCategoria] = useState(portada?.cta_categoria || '')
   const [ctaUrl, setCtaUrl] = useState(portada?.cta_url || '')
+  const [previewMode, setPreviewMode] = useState<'movil' | 'escritorio'>('movil')
+  const [storeName, setStoreName] = useState('')
+  const [storeLogo, setStoreLogo] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const categoriasDisponibles = useMemo(() => {
@@ -65,6 +68,16 @@ export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Pro
     products.forEach(p => { if (p.categoria) cats.add(p.categoria) })
     return Array.from(cats).sort()
   }, [products])
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.from('perfil_tienda').select('nombre_tienda, logo_url').eq('id_tienda', idTienda).maybeSingle().then(({ data }) => {
+      if (data) {
+        setStoreName(data.nombre_tienda || '')
+        setStoreLogo(data.logo_url)
+      }
+    })
+  }, [idTienda])
 
   useEffect(() => {
     if (isEdit && portada?.id_producto) {
@@ -505,53 +518,178 @@ export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Pro
           </form>
         </div>
 
-        <div className="w-full lg:w-[35%]">
+        <div className="w-full lg:w-[380px] xl:w-[420px] shrink-0">
           <div className="lg:sticky lg:top-24 space-y-3">
-            <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Vista previa</p>
-            <div className="flex justify-center">
-              <div className="relative w-full max-w-[220px] aspect-[9/16] rounded-[2rem] border-[3px] border-slate-700 dark:border-slate-500 overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-xl shadow-slate-300/30 dark:shadow-slate-900/50">
-                {imagenPreview ? (
-                  <img src={imagenPreview} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-300 dark:text-slate-600">
-                    <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <span className="text-[10px] font-medium">Vista previa</span>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Vista previa</p>
+              <div className="flex rounded-lg border border-slate-200 dark:border-slate-600 overflow-hidden">
+                <button type="button" onClick={() => setPreviewMode('movil')}
+                  className={`px-2.5 py-1 text-[10px] font-semibold transition-colors ${previewMode === 'movil' ? 'bg-[var(--primary)] text-white' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
+                  Móvil
+                </button>
+                <button type="button" onClick={() => setPreviewMode('escritorio')}
+                  className={`px-2.5 py-1 text-[10px] font-semibold transition-colors ${previewMode === 'escritorio' ? 'bg-[var(--primary)] text-white' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
+                  Escritorio
+                </button>
+              </div>
+            </div>
+
+            <div className={`${previewMode === 'movil' ? 'max-w-[380px]' : 'w-full'} mx-auto bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden`}>
+              {/* StoreHeader */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {storeLogo ? (
+                    <img src={storeLogo} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[var(--primary)] to-blue-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                      {storeName.charAt(0) || 'T'}
+                    </div>
+                  )}
+                  <span className="text-sm font-bold text-slate-900 dark:text-white truncate">{storeName || 'Mi Tienda'}</span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* Hero / Portada — réplica exacta del storefront */}
+              <section className="relative overflow-hidden">
+                <div className="relative min-h-[280px] sm:min-h-[320px]">
+                  {imagenPreview ? (
+                    <div className="absolute inset-0">
+                      <img src={imagenPreview} alt="" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/40 to-black/20" />
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
+                      <span className="text-white/40 text-xs">Sin imagen</span>
+                    </div>
+                  )}
+
+                  {/* Nav arrows */}
+                  <div className="absolute inset-x-3 top-1/2 -translate-y-1/2 flex items-center justify-between z-10 pointer-events-none">
+                    <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center pointer-events-auto">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                    </div>
+                    <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center pointer-events-auto">
+                      <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    </div>
                   </div>
-                )}
-                <div className="absolute inset-x-0 top-3 flex justify-center">
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${tipo === 'institucional' ? 'bg-blue-500/80 text-white' : tipo === 'producto' ? 'bg-purple-500/80 text-white' : tipo === 'oferta' ? 'bg-emerald-500/80 text-white' : 'bg-amber-500/80 text-white'}`}>
-                    {tipoOptions.find(t => t.value === tipo)?.label || tipo}
-                  </span>
+
+                  {/* Content overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 z-10">
+                    {titulo && <h2 className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg">{titulo}</h2>}
+                    {descripcion && <p className="text-sm text-white/80 mt-1 drop-shadow-md line-clamp-2">{descripcion}</p>}
+                    {previewProduct && tipo !== 'personalizado' && tipo !== 'institucional' && (
+                      <div className="mt-2 flex items-baseline gap-2">
+                        {tipo === 'oferta' && previewProduct.precio_oferta ? (
+                          <>
+                            <span className="text-sm text-white/60 line-through">${previewProduct.precio}</span>
+                            <span className="text-lg font-bold text-amber-300">${previewProduct.precio_oferta}</span>
+                          </>
+                        ) : (
+                          <span className="text-lg font-bold text-white">${previewProduct.precio}</span>
+                        )}
+                      </div>
+                    )}
+                    {tipo !== 'personalizado' ? (
+                      <div className="mt-3 inline-block px-5 py-2 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-semibold">
+                        {tipo === 'institucional' ? 'Ver productos' : tipo === 'oferta' ? 'Aprovechar Oferta' : 'Ver detalle'}
+                      </div>
+                    ) : ctaActivo && ctaTexto.trim() ? (
+                      <div className="mt-3 inline-block px-5 py-2 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-semibold">{ctaTexto}</div>
+                    ) : null}
+                  </div>
+
+                  {/* Dots + pause */}
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+                    <div className="w-2 h-2 rounded-full bg-white scale-100" />
+                    <div className="w-2 h-2 rounded-full bg-white/40 scale-75" />
+                    <div className="w-2 h-2 rounded-full bg-white/40 scale-75" />
+                    <button type="button" className="ml-2 w-5 h-5 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                      <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" /></svg>
+                    </button>
+                  </div>
                 </div>
-                <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-12">
-                  {titulo && (
-                    <p className="text-white font-bold text-xs leading-tight line-clamp-2">{titulo}</p>
-                  )}
-                  {descripcion && (
-                    <p className="text-white/70 text-[10px] mt-1 leading-tight line-clamp-2">{descripcion}</p>
-                  )}
-                  {previewProduct && tipo !== 'personalizado' && (
-                    <div className="mt-1.5 flex items-center gap-1.5">
-                      {previewProduct.precio_oferta ? (
-                        <>
-                          <span className="text-white font-bold text-xs">${previewProduct.precio_oferta}</span>
-                          <span className="text-white/50 text-[10px] line-through">${previewProduct.precio}</span>
-                        </>
+              </section>
+
+              {/* Productos debajo */}
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-1 h-4 rounded-full bg-gradient-to-b from-amber-400 to-rose-400" />
+                  <h3 className="text-sm font-extrabold text-slate-900 dark:text-slate-100">Productos destacados</h3>
+                  <span className="ml-auto text-amber-500 text-[10px]">🔥 Destacados</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {products.slice(0, 4).map(p => (
+                    <div key={p.id} className="rounded-xl border border-slate-100 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-800/50">
+                      {p.imagen_url ? (
+                        <img src={p.imagen_url} alt="" className="w-full aspect-square object-cover" />
                       ) : (
-                        <span className="text-white font-bold text-xs">${previewProduct.precio}</span>
+                        <div className="w-full aspect-square bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+                          <svg className="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                        </div>
                       )}
+                      <div className="p-2">
+                        <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">{p.nombre}</p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          {[1, 2, 3, 4].map(i => (
+                            <svg key={i} className="w-2.5 h-2.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                          ))}
+                          <svg className="w-2.5 h-2.5 text-slate-200 dark:text-slate-600" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                          <span className="text-[9px] text-slate-400">(12)</span>
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          {p.precio_oferta && <span className="text-[9px] font-medium text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-1 rounded">Oferta</span>}
+                          {p.precio_oferta ? (
+                            <>
+                              <span className="text-[10px] text-slate-400 line-through">${p.precio}</span>
+                              <span className="text-xs font-bold text-slate-900 dark:text-white">${p.precio_oferta}</span>
+                            </>
+                          ) : (
+                            <span className="text-xs font-bold text-slate-900 dark:text-white">${p.precio}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 mt-2">
+                          <div className="flex items-center border border-slate-200 dark:border-slate-600 rounded-md">
+                            <span className="w-6 h-6 flex items-center justify-center text-slate-400 text-[10px]">−</span>
+                            <span className="w-6 h-6 flex items-center justify-center text-[10px] font-semibold text-slate-900 dark:text-white border-x border-slate-200 dark:border-slate-600">1</span>
+                            <span className="w-6 h-6 flex items-center justify-center text-slate-400 text-[10px]">+</span>
+                          </div>
+                          <div className="flex-1 h-6 rounded-md bg-[var(--primary)] text-white text-[9px] font-bold flex items-center justify-center gap-1">
+                            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
+                            Comprar
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                  {tipo === 'personalizado' && ctaActivo && ctaTexto.trim() && (
-                    <div className="mt-2 px-3 py-1.5 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 inline-block">
-                      <span className="text-white text-[10px] font-semibold">{ctaTexto}</span>
-                    </div>
+                  ))}
+                  {products.length === 0 && (
+                    <p className="col-span-2 text-xs text-slate-400 text-center py-8">Crea productos para ver la vista previa</p>
                   )}
                 </div>
-                <div className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-black/30 dark:bg-white/30" />
-                <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full bg-slate-500/50" />
+              </div>
+
+              {/* Bottom Nav */}
+              <div className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2">
+                <div className="flex items-center justify-around">
+                  {[
+                    { icon: '🏠', label: 'Inicio', active: true },
+                    { icon: '📦', label: 'Productos', active: false },
+                    { icon: '📋', label: 'Rastrear', active: false },
+                    { icon: '🎁', label: 'Regalos', active: false },
+                  ].map(item => (
+                    <div key={item.label} className={`flex flex-col items-center gap-0.5 ${item.active ? 'text-[var(--primary)]' : 'text-slate-400'}`}>
+                      <span className="text-base">{item.icon}</span>
+                      <span className={`text-[9px] font-semibold ${item.active ? 'text-[var(--primary)]' : 'text-slate-400'}`}>{item.label}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

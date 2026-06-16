@@ -101,7 +101,8 @@
 - Botón configurable: texto editable + 4 acciones (ir a pestaña, producto, categoría, URL externa)
 - Acción "ir a categoría" redirige a Productos con filtro de categoría aplicado
 - Check "Colocar botón" que despliega toda la configuración cuando está activo
-- Preview en formulario actualizado con badge ambar para personalizado
+- Vista previa contextual: replica el catálogo móvil con StoreHeader, Hero, productos y bottom nav
+- Toggle Móvil/Escritorio en vista previa
 - DB migration 068: columnas `cta_url`, `cta_pestana`, `cta_categoria` + CHECK constraints actualizados
 - API GET no selecciona columnas nuevas (migración no aplicada aún)
 - Typecheck PASS. Build PASS.
