@@ -83,6 +83,7 @@
 
 **Sprint UX-VITRINA-01 Completado.** Hero + Header + Portada + Destacados visual cleanup:
 - Hero simplificado: portada carrusel con imágenes del dashboard, sin logo/nombre/contactar duplicados
+- Hero oculto si no hay portadas configuradas ni bannerUrl (sin gradient vacío)
 - StoreHeader ya existente en CatalogContent maneja logo + nombre + WhatsApp
 - Benefits bar movida debajo de todos los productos (no entre Hero y Destacados)
 - Destacados: mobile single-card full-width con scroll-snap + auto-slide cada 4s (pausa al tocar, desactivado en tablet+); desktop grid 3 columnas sin cambios

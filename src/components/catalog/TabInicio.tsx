@@ -116,6 +116,7 @@ export default function TabInicio({
   return (
     <>
       {/* STOREFRONT EXPERIENCE PASS: Hero */}
+      {(hasPortadas && portadas.some(p => p.imagen_url)) || bannerUrl ? (
       <section className="relative overflow-hidden">
         <div className="relative min-h-[300px] sm:min-h-[340px]">
           {hasPortadas && slide ? (
@@ -154,6 +155,7 @@ export default function TabInicio({
           </div>
         )}
       </section>
+      ) : null}
 
       {/* STOREFRONT EXPERIENCE PASS: Productos destacados (Premium) */}
       {masVendidos.length > 0 && (
