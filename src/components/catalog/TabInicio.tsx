@@ -67,6 +67,7 @@ export default function TabInicio({
   const destacadosRef = useRef<HTMLDivElement>(null)
 
   const [currentSlide, setCurrentSlide] = useState(0)
+  const [portadaPaused, setPortadaPaused] = useState(false)
   const hasPortadas = portadas.length > 0
 
   const touchStartX = useRef(0)
@@ -84,10 +85,10 @@ export default function TabInicio({
   }, [hasPortadas, portadas.length])
 
   useEffect(() => {
-    if (!hasPortadas || portadas.length <= 1) return
+    if (!hasPortadas || portadas.length <= 1 || portadaPaused) return
     const timer = setInterval(goNext, 5000)
     return () => clearInterval(timer)
-  }, [hasPortadas, goNext, portadas.length])
+  }, [hasPortadas, goNext, portadas.length, portadaPaused])
 
   const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; touchEndX.current = e.touches[0].clientX }
   const handleTouchMove = (e: React.TouchEvent) => { touchEndX.current = e.touches[0].clientX }
@@ -201,6 +202,19 @@ export default function TabInicio({
                 <button key={i} onClick={() => setCurrentSlide(i)}
                   className={`w-2 h-2 rounded-full transition-all duration-300 ${i === currentSlide ? 'bg-white scale-100' : 'bg-white/40 scale-75 hover:bg-white/60'}`} />
               ))}
+              <button onClick={() => setPortadaPaused(prev => !prev)}
+                className="ml-2 w-6 h-6 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all shrink-0"
+                aria-label={portadaPaused ? 'Reanudar' : 'Pausar'}>
+                {portadaPaused ? (
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                ) : (
+                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" />
+                  </svg>
+                )}
+              </button>
             </div>
           </>
         )}

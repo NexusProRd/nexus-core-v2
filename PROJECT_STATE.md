@@ -91,6 +91,7 @@
 - Nav buttons (prev/next) restaurados en Hero carrusel
 - Precios en portadas: institucional sin precio, producto muestra precio normal, oferta muestra tachado + oferta en amber-300
 - Cross-fade transition entre slides (opacity 500ms ease-in-out)
+- Botón de pausa/reproducción en carrusel de portadas
 - Footer: sin cambios
 - Typecheck PASS. Build PASS.
 
