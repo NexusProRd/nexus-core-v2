@@ -30,6 +30,8 @@ interface Props {
   mapsUrl?: string | null
   onVerProductos?: () => void
   onOpenProduct?: (productId: string) => void
+  onNavigateToTab?: (tab: string) => void
+  onNavigateToCategory?: (category: string) => void
 }
 
 export default function TabInicio({
@@ -53,6 +55,8 @@ export default function TabInicio({
   mapsUrl,
   onVerProductos,
   onOpenProduct,
+  onNavigateToTab,
+  onNavigateToCategory,
 }: Props) {
   const config = useConfig()
   const { addToCart } = useCart()
@@ -167,15 +171,21 @@ export default function TabInicio({
                             )}
                           </div>
                         )}
-                        {(p.cta_accion === 'ver_productos' || (p.cta_accion === 'ver_producto' && p.id_producto)) && (
-                          <button onClick={(e) => {
-                            e.stopPropagation()
-                            if (p.cta_accion === 'ver_productos') {
-                              onVerProductos?.()
-                            } else if (p.cta_accion === 'ver_producto' && p.id_producto) {
-                              onOpenProduct?.(p.id_producto)
-                            }
-                          }}
+                          {(p.cta_accion === 'ver_productos' || (p.cta_accion === 'ver_producto' && p.id_producto) || (p.cta_accion === 'ir_a_pestana' && p.cta_pestana) || (p.cta_accion === 'ir_a_categoria' && p.cta_categoria) || (p.cta_accion === 'url_externa' && p.cta_url)) && (
+                            <button onClick={(e) => {
+                              e.stopPropagation()
+                              if (p.cta_accion === 'ver_productos') {
+                                onVerProductos?.()
+                              } else if (p.cta_accion === 'ver_producto' && p.id_producto) {
+                                onOpenProduct?.(p.id_producto)
+                              } else if (p.cta_accion === 'ir_a_pestana' && p.cta_pestana) {
+                                onNavigateToTab?.(p.cta_pestana)
+                              } else if (p.cta_accion === 'url_externa' && p.cta_url) {
+                                window.open(p.cta_url, '_blank', 'noopener,noreferrer')
+                              } else if (p.cta_accion === 'ir_a_categoria' && p.cta_categoria) {
+                                onNavigateToCategory?.(p.cta_categoria)
+                              }
+                            }}
                             className="mt-3 inline-block px-5 py-2 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-semibold hover:bg-white/30 transition-all">
                             {p.cta_texto || (p.tipo === 'institucional' ? 'Ver productos' : p.tipo === 'oferta' ? 'Aprovechar Oferta' : 'Ver detalle')}
                           </button>
@@ -210,13 +220,17 @@ export default function TabInicio({
                               )}
                             </div>
                           )}
-                          {(p.cta_accion === 'ver_productos' || (p.cta_accion === 'ver_producto' && p.id_producto)) && (
+                        {(p.cta_accion === 'ver_productos' || (p.cta_accion === 'ver_producto' && p.id_producto) || (p.cta_accion === 'ir_a_pestana' && p.cta_pestana) || (p.cta_accion === 'ir_a_categoria' && p.cta_categoria) || (p.cta_accion === 'url_externa' && p.cta_url)) && (
                             <button onClick={(e) => {
                               e.stopPropagation()
                               if (p.cta_accion === 'ver_productos') {
                                 onVerProductos?.()
                               } else if (p.cta_accion === 'ver_producto' && p.id_producto) {
                                 onOpenProduct?.(p.id_producto)
+                              } else if (p.cta_accion === 'ir_a_pestana' && p.cta_pestana) {
+                                onNavigateToTab?.(p.cta_pestana)
+                              } else if (p.cta_accion === 'url_externa' && p.cta_url) {
+                                window.open(p.cta_url, '_blank', 'noopener,noreferrer')
                               }
                             }}
                               className="mt-4 self-start px-6 py-2.5 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-semibold hover:bg-white/30 transition-all">

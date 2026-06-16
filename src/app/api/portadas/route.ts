@@ -41,9 +41,9 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json()
-  const { tipo, imagen_url, titulo, descripcion, id_producto, cta_texto, cta_accion, duracion_ms } = body
+  const { tipo, imagen_url, titulo, descripcion, id_producto, cta_texto, cta_accion, cta_url, cta_pestana, cta_categoria, duracion_ms } = body
 
-  if (!tipo || !['institucional', 'producto', 'oferta'].includes(tipo)) {
+  if (!tipo || !['institucional', 'producto', 'oferta', 'personalizado'].includes(tipo)) {
     return NextResponse.json({ error: 'Tipo de portada inválido' }, { status: 400 })
   }
 
@@ -85,6 +85,9 @@ export async function POST(req: Request) {
       id_producto: id_producto || null,
       cta_texto: cta_texto || null,
       cta_accion: cta_accion || 'ver_productos',
+      cta_url: cta_url || null,
+      cta_pestana: cta_pestana || null,
+      cta_categoria: cta_categoria || null,
       duracion_ms: duracion_ms || 5000,
       activo: true,
       orden: nextOrden,

@@ -229,6 +229,8 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
             mapsUrl={mapsUrl}
             onVerProductos={() => setActiveTab('menu')}
             onOpenProduct={handleOpenProduct}
+            onNavigateToTab={(tab) => setActiveTab(tab as TabId)}
+            onNavigateToCategory={(category) => { setSelectedCategory(category); setActiveTab('menu') }}
           />
         )}
 

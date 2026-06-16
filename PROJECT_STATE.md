@@ -96,6 +96,16 @@
 - Footer: sin cambios
 - Typecheck PASS. Build PASS.
 
+**Sprint PORTA-PERSONALIZADO Completado.** Nuevo tipo de portada Personalizado + CTA configurable:
+- Nuevo tipo `personalizado` en tipos, DB, API y formulario
+- Botón configurable: texto editable + 4 acciones (ir a pestaña, producto, categoría, URL externa)
+- Acción "ir a categoría" redirige a Productos con filtro de categoría aplicado
+- Check "Colocar botón" que despliega toda la configuración cuando está activo
+- Preview en formulario actualizado con badge ambar para personalizado
+- DB migration 068: columnas `cta_url`, `cta_pestana`, `cta_categoria` + CHECK constraints actualizados
+- API GET no selecciona columnas nuevas (migración no aplicada aún)
+- Typecheck PASS. Build PASS.
+
 **P3-C Completado.** Subsistema B (tickets/pedidos.is_gift) eliminado. Toda la lógica de regalos unificada en gift_experiences. Tickets migrados con backfill, creación de gifts redirigida a gift_experiences, enlaces legacy redirigen a /canje. Stock management, aprobación y canje permanecen inalterados.
 
 **Production Readiness Audit completado:** Verdict — LISTO PARA PRODUCCIÓN con 75% confianza. Sin bloqueadores P0. Riesgos aceptados: middleware ausente (corrección: `middleware.ts` SÍ existe en raíz del proyecto, protege /pcc, /dashboard, /login), AUTH_SECRET débil, quick-buy stock failures no mostrados al usuario. Recomendación: lanzar hoy con monitoreo activo.

@@ -12,6 +12,7 @@ interface ProductoSimple {
   descripcion: string | null
   precio: number
   precio_oferta: number | null
+  categoria: string | null
 }
 
 interface Props {
@@ -25,6 +26,7 @@ const tipoOptions: { value: TipoPortada; label: string; desc: string }[] = [
   { value: 'institucional', label: 'Institucional', desc: 'Imagen + título + descripción personalizados' },
   { value: 'producto', label: 'Producto', desc: 'Destaca un producto existente' },
   { value: 'oferta', label: 'Oferta', desc: 'Muestra un producto con descuento' },
+  { value: 'personalizado', label: 'Personalizado', desc: 'Slide con botón configurable' },
 ]
 
 export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Props) {
@@ -41,7 +43,28 @@ export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Pro
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [optimizing, setOptimizing] = useState(false)
+  const [ctaTexto, setCtaTexto] = useState(portada?.cta_texto || '')
+  const [ctaActivo, setCtaActivo] = useState(() => {
+    if (!portada || tipo !== 'personalizado') return false
+    return !!(portada.cta_texto || portada.cta_pestana || portada.cta_url || portada.id_producto)
+  })
+  const [ctaTipo, setCtaTipo] = useState<'pestana' | 'producto' | 'categoria' | 'url'>(() => {
+    if (!portada) return 'pestana'
+    if (portada.cta_pestana) return 'pestana'
+    if (portada.id_producto) return 'producto'
+    if (portada.cta_url) return 'url'
+    return 'pestana'
+  })
+  const [ctaPestana, setCtaPestana] = useState(portada?.cta_pestana || 'menu')
+  const [ctaCategoria, setCtaCategoria] = useState(portada?.cta_categoria || '')
+  const [ctaUrl, setCtaUrl] = useState(portada?.cta_url || '')
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const categoriasDisponibles = useMemo(() => {
+    const cats = new Set<string>()
+    products.forEach(p => { if (p.categoria) cats.add(p.categoria) })
+    return Array.from(cats).sort()
+  }, [products])
 
   useEffect(() => {
     if (isEdit && portada?.id_producto) {
@@ -57,7 +80,7 @@ export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Pro
     const supabase = createClient()
     const { data } = await supabase
       .from('productos')
-      .select('id, nombre, imagen_url, descripcion, precio, precio_oferta')
+      .select('id, nombre, imagen_url, descripcion, precio, precio_oferta, categoria')
       .eq('id_tienda', idTienda)
       .order('nombre', { ascending: true })
     if (data) setProducts(data)
@@ -78,6 +101,15 @@ export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Pro
     if (newTipo === 'institucional') {
       setSelectedProduct(null)
       setProductoSearch('')
+    } else if (newTipo === 'personalizado') {
+      setSelectedProduct(null)
+      setProductoSearch('')
+      setCtaActivo(false)
+      setCtaTexto('')
+      setCtaTipo('pestana')
+      setCtaPestana('menu')
+      setCtaCategoria('')
+      setCtaUrl('')
     }
   }
 
@@ -124,13 +156,18 @@ export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Pro
     e.preventDefault()
     setError(null)
 
-    if (!titulo.trim() && tipo !== 'institucional') {
+    if (!titulo.trim() && tipo !== 'institucional' && tipo !== 'personalizado') {
       setError('El título es obligatorio')
       return
     }
 
-    if (tipo !== 'institucional' && !selectedProduct) {
+    if (tipo !== 'institucional' && tipo !== 'personalizado' && !selectedProduct) {
       setError('Selecciona un producto')
+      return
+    }
+
+    if (tipo === 'personalizado' && ctaActivo && !ctaTexto.trim()) {
+      setError('Escribe el texto del botón')
       return
     }
 
@@ -159,8 +196,34 @@ export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Pro
           .getPublicUrl(filePath)
 
         imagenUrl = urlData.publicUrl
-      } else if (tipo !== 'institucional' && selectedProduct?.imagen_url) {
+      } else if (tipo !== 'institucional' && tipo !== 'personalizado' && selectedProduct?.imagen_url) {
         imagenUrl = selectedProduct.imagen_url
+      }
+
+      let finalCtaAccion = 'ver_productos'
+      let finalCtaUrl: string | null = null
+      let finalCtaPestana: string | null = null
+      let finalCtaCategoria: string | null = null
+      let finalIdProducto: string | null = selectedProduct?.id || portada?.id_producto || null
+
+      if (tipo === 'personalizado') {
+        if (ctaActivo && ctaTexto.trim()) {
+          if (ctaTipo === 'pestana') {
+            finalCtaAccion = 'ir_a_pestana'
+            finalCtaPestana = ctaPestana
+          } else if (ctaTipo === 'producto') {
+            finalCtaAccion = 'ver_producto'
+            finalIdProducto = selectedProduct?.id || null
+          } else if (ctaTipo === 'categoria') {
+            finalCtaAccion = 'ir_a_categoria'
+            finalCtaCategoria = ctaCategoria || null
+          } else if (ctaTipo === 'url') {
+            finalCtaAccion = 'url_externa'
+            finalCtaUrl = ctaUrl || null
+          }
+        }
+      } else {
+        finalCtaAccion = tipo === 'institucional' ? 'ver_productos' : 'ver_producto'
       }
 
       const payload: Record<string, unknown> = {
@@ -168,8 +231,12 @@ export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Pro
         imagen_url: imagenUrl,
         titulo: titulo.trim() || null,
         descripcion: descripcion.trim() || null,
-        id_producto: selectedProduct?.id || portada?.id_producto || null,
-        cta_accion: tipo === 'institucional' ? 'ver_productos' : 'ver_producto',
+        id_producto: finalIdProducto,
+        cta_texto: tipo === 'personalizado' ? (ctaTexto.trim() || null) : null,
+        cta_accion: finalCtaAccion,
+        cta_url: finalCtaUrl,
+        cta_pestana: finalCtaPestana,
+        cta_categoria: finalCtaCategoria,
         duracion_ms: 5000,
       }
 
@@ -234,7 +301,7 @@ export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Pro
               </div>
             )}
 
-            {(tipo === 'institucional' || isEdit) && (
+            {(tipo === 'institucional' || tipo === 'personalizado' || isEdit) && (
               <div>
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 block">Imagen</label>
                 {imagenPreview ? (
@@ -265,7 +332,7 @@ export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Pro
               </div>
             )}
 
-            {tipo !== 'institucional' && (
+            {tipo !== 'institucional' && tipo !== 'personalizado' && (
               <div>
                 <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 block">
                   {tipo === 'oferta' ? 'Producto con oferta' : 'Producto'}
@@ -300,6 +367,111 @@ export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Pro
                     <p className="text-[11px] text-slate-400 mt-1">No se encontraron productos</p>
                   )}
                 </div>
+              </div>
+            )}
+
+            {tipo === 'personalizado' && (
+              <div className="space-y-4 p-4 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-800/50">
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block">Configurar Botón</label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={ctaActivo} onChange={e => setCtaActivo(e.target.checked)}
+                    className="rounded border-slate-300 dark:border-slate-600 text-[var(--primary)] focus:ring-[var(--primary)]/30" />
+                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Colocar botón</span>
+                </label>
+
+                {ctaActivo && (
+                  <div className="space-y-3 pl-5 border-l-2 border-[var(--primary)]/30">
+                    <div>
+                      <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1 block">Texto del botón</label>
+                      <input type="text" value={ctaTexto} onChange={e => setCtaTexto(e.target.value)}
+                        placeholder="Ej: Ver más, Comprar ahora..."
+                        className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30 focus:border-[var(--primary)]" />
+                    </div>
+
+                    <div className="space-y-2">
+                      {[
+                        { value: 'pestana', label: 'Ir a una pestaña', desc: 'Navega a una sección de la tienda' },
+                        { value: 'producto', label: 'Ir a un producto', desc: 'Abre un producto específico' },
+                        { value: 'categoria', label: 'Ir a una categoría', desc: 'Filtra productos por categoría' },
+                        { value: 'url', label: 'Ir a URL externa', desc: 'Abre un enlace externo' },
+                      ].map(opt => (
+                        <label key={opt.value} className={`flex items-start gap-2 p-2.5 rounded-lg cursor-pointer transition-colors ${ctaTipo === opt.value ? 'bg-[var(--primary)]/5 ring-1 ring-[var(--primary)]/30' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
+                          <input type="radio" name="ctaTipo" value={opt.value} checked={ctaTipo === opt.value}
+                            onChange={() => setCtaTipo(opt.value as typeof ctaTipo)}
+                            className="mt-0.5 text-[var(--primary)] focus:ring-[var(--primary)]/30" />
+                          <div>
+                            <p className="text-xs font-medium text-slate-900 dark:text-white">{opt.label}</p>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400">{opt.desc}</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+
+                    {ctaTipo === 'pestana' && (
+                      <div>
+                        <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1 block">Seleccionar pestaña</label>
+                        <select value={ctaPestana} onChange={e => setCtaPestana(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30 focus:border-[var(--primary)]">
+                          <option value="menu">Productos</option>
+                          <option value="pedidos">Rastrear</option>
+                          <option value="regalos">Regalos</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {ctaTipo === 'producto' && (
+                      <div>
+                        <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1 block">Seleccionar producto</label>
+                        <div className="relative">
+                          <input type="text" value={productoSearch} onChange={e => { setProductoSearch(e.target.value); setSelectedProduct(null) }}
+                            placeholder="Buscar producto..."
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30 focus:border-[var(--primary)]" />
+                          {productoSearch && !selectedProduct && filteredProducts.length > 0 && (
+                            <div className="absolute top-full left-0 right-0 mt-1 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-lg max-h-40 overflow-y-auto z-10">
+                              {filteredProducts.map(p => (
+                                <button key={p.id} type="button" onClick={() => { selectProduct(p); setCtaTipo('producto') }}
+                                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+                                  {p.imagen_url ? (
+                                    <img src={p.imagen_url} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                                  ) : (
+                                    <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 shrink-0" />
+                                  )}
+                                  <div className="min-w-0 flex-1">
+                                    <p className="font-medium text-slate-900 dark:text-white truncate">{p.nombre}</p>
+                                    <p className="text-[10px] text-slate-400">${p.precio_oferta || p.precio}</p>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {ctaTipo === 'categoria' && (
+                      <div>
+                        <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1 block">Seleccionar categoría</label>
+                        <select value={ctaCategoria} onChange={e => setCtaCategoria(e.target.value)}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30 focus:border-[var(--primary)]">
+                          <option value="">Seleccionar categoría...</option>
+                          {categoriasDisponibles.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    {ctaTipo === 'url' && (
+                      <div>
+                        <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1 block">URL externa</label>
+                        <input type="url" value={ctaUrl} onChange={e => setCtaUrl(e.target.value)}
+                          placeholder="https://ejemplo.com"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30 focus:border-[var(--primary)]" />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -349,7 +521,7 @@ export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Pro
                   </div>
                 )}
                 <div className="absolute inset-x-0 top-3 flex justify-center">
-                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${tipo === 'institucional' ? 'bg-blue-500/80 text-white' : tipo === 'producto' ? 'bg-purple-500/80 text-white' : 'bg-emerald-500/80 text-white'}`}>
+                  <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${tipo === 'institucional' ? 'bg-blue-500/80 text-white' : tipo === 'producto' ? 'bg-purple-500/80 text-white' : tipo === 'oferta' ? 'bg-emerald-500/80 text-white' : 'bg-amber-500/80 text-white'}`}>
                     {tipoOptions.find(t => t.value === tipo)?.label || tipo}
                   </span>
                 </div>
@@ -360,7 +532,7 @@ export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Pro
                   {descripcion && (
                     <p className="text-white/70 text-[10px] mt-1 leading-tight line-clamp-2">{descripcion}</p>
                   )}
-                  {previewProduct && (
+                  {previewProduct && tipo !== 'personalizado' && (
                     <div className="mt-1.5 flex items-center gap-1.5">
                       {previewProduct.precio_oferta ? (
                         <>
@@ -370,6 +542,11 @@ export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Pro
                       ) : (
                         <span className="text-white font-bold text-xs">${previewProduct.precio}</span>
                       )}
+                    </div>
+                  )}
+                  {tipo === 'personalizado' && ctaActivo && ctaTexto.trim() && (
+                    <div className="mt-2 px-3 py-1.5 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 inline-block">
+                      <span className="text-white text-[10px] font-semibold">{ctaTexto}</span>
                     </div>
                   )}
                 </div>

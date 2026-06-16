@@ -1,6 +1,6 @@
-export type TipoPortada = 'institucional' | 'producto' | 'oferta'
+export type TipoPortada = 'institucional' | 'producto' | 'oferta' | 'personalizado'
 
-export type CtaAccion = 'ver_productos' | 'ver_producto'
+export type CtaAccion = 'ver_productos' | 'ver_producto' | 'ir_a_pestana' | 'ir_a_categoria' | 'url_externa'
 
 export interface Portada {
   id: string
@@ -11,6 +11,9 @@ export interface Portada {
   id_producto: string | null
   cta_texto: string | null
   cta_accion: CtaAccion
+  cta_url: string | null
+  cta_pestana: string | null
+  cta_categoria: string | null
   duracion_ms: number
 }
 

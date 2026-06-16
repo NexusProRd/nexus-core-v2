@@ -27,9 +27,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
 
   const body = await req.json()
-  const { tipo, imagen_url, titulo, descripcion, id_producto, cta_texto, cta_accion, duracion_ms, activo, orden } = body
+  const { tipo, imagen_url, titulo, descripcion, id_producto, cta_texto, cta_accion, cta_url, cta_pestana, cta_categoria, duracion_ms, activo, orden } = body
 
-  if (tipo && !['institucional', 'producto', 'oferta'].includes(tipo)) {
+  if (tipo && !['institucional', 'producto', 'oferta', 'personalizado'].includes(tipo)) {
     return NextResponse.json({ error: 'Tipo de portada inválido' }, { status: 400 })
   }
 
@@ -57,6 +57,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (id_producto !== undefined) updateData.id_producto = id_producto
   if (cta_texto !== undefined) updateData.cta_texto = cta_texto
   if (cta_accion !== undefined) updateData.cta_accion = cta_accion
+  if (cta_url !== undefined) updateData.cta_url = cta_url
+  if (cta_pestana !== undefined) updateData.cta_pestana = cta_pestana
+  if (cta_categoria !== undefined) updateData.cta_categoria = cta_categoria
   if (duracion_ms !== undefined) updateData.duracion_ms = duracion_ms
   if (activo !== undefined) updateData.activo = activo
   if (orden !== undefined) updateData.orden = orden
