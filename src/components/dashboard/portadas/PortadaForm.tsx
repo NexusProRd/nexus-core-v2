@@ -534,8 +534,18 @@ export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Pro
               </div>
             </div>
 
-            <div className={`${previewMode === 'movil' ? 'max-w-[380px]' : 'w-full'} mx-auto bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden`}>
-              {/* StoreHeader */}
+            <div className={`${previewMode === 'movil' ? 'max-w-[380px]' : 'w-full'} mx-auto`}>
+              <div className={`${previewMode === 'movil' ? 'rounded-[2.5rem] border-[3px] border-slate-700 dark:border-slate-500 overflow-hidden shadow-xl shadow-slate-300/30 dark:shadow-slate-900/50' : 'rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg'} bg-white dark:bg-slate-900`}>
+                {previewMode === 'movil' && (
+                  <div className="flex items-center justify-center pt-2 pb-1 bg-white dark:bg-slate-900">
+                    <div className="w-20 h-5 bg-slate-900 dark:bg-slate-700 rounded-full flex items-center justify-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+                      <div className="w-6 h-1.5 rounded-full bg-slate-600" />
+                    </div>
+                  </div>
+                )}
+                <div className={`${previewMode === 'movil' ? 'px-0' : ''}`}>
+                  {/* StoreHeader */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2.5 min-w-0">
                   {storeLogo ? (
@@ -693,8 +703,15 @@ export default function PortadaForm({ portada, idTienda, onClose, onSaved }: Pro
               </div>
             </div>
           </div>
+          {previewMode === 'movil' && (
+            <div className="flex items-center justify-center py-2 bg-white dark:bg-slate-900 rounded-b-[2.5rem]">
+              <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+            </div>
+          )}
         </div>
       </div>
     </div>
-  )
+    </div>
+  </div>
+)
 }
