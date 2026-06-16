@@ -11,6 +11,7 @@ import type { Portada } from '@/types/portada'
 
 interface Props {
   portadas?: Portada[]
+  productos?: Producto[]
   logoUrl: string | null
   bannerUrl: string | null
   slogan: string
@@ -33,6 +34,7 @@ interface Props {
 
 export default function TabInicio({
   portadas = [],
+  productos = [],
   logoUrl,
   bannerUrl,
   slogan,
@@ -66,7 +68,6 @@ export default function TabInicio({
 
   const [currentSlide, setCurrentSlide] = useState(0)
   const hasPortadas = portadas.length > 0
-  const slide = hasPortadas ? portadas[currentSlide] : null
 
   const touchStartX = useRef(0)
   const touchEndX = useRef(0)
@@ -117,26 +118,61 @@ export default function TabInicio({
     <>
       {/* STOREFRONT EXPERIENCE PASS: Hero */}
       {(hasPortadas && portadas.some(p => p.imagen_url)) || bannerUrl ? (
-      <section className="relative overflow-hidden">
+      <div className="max-w-6xl mx-auto mt-4 sm:mt-6 px-4 sm:px-6">
+      <section className="relative overflow-hidden rounded-2xl">
         <div className="relative min-h-[300px] sm:min-h-[340px]">
-          {hasPortadas && slide ? (
-            <div className="absolute inset-0" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-              {slide.imagen_url ? (
-                <Image src={slide.imagen_url} alt="" fill className="object-cover" priority sizes="100vw" />
+          {hasPortadas ? portadas.map((p, i) => {
+            const pData = p.id_producto ? productos.find(pr => pr.id === p.id_producto) : null
+            return (
+            <div key={i} className="absolute inset-0"
+              style={{
+                opacity: i === currentSlide ? 1 : 0,
+                zIndex: i === currentSlide ? 10 : 0,
+                pointerEvents: i === currentSlide ? 'auto' : 'none',
+                transition: 'opacity 500ms ease-in-out'
+              }}
+              onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+              {p.imagen_url ? (
+                <Image src={p.imagen_url} alt="" fill className="object-cover" priority sizes="100vw" />
               ) : (
                 <div className="w-full h-full bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
                   <span className="text-white/40 text-sm">Sin imagen</span>
                 </div>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/40 to-black/20" />
-              {slide.titulo && (
+              {p.titulo && (
                 <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10">
-                  <h2 className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg">{slide.titulo}</h2>
-                  {slide.descripcion && <p className="text-sm text-white/80 mt-1 drop-shadow-md">{slide.descripcion}</p>}
+                  <h2 className="text-xl sm:text-2xl font-bold text-white drop-shadow-lg">{p.titulo}</h2>
+                  {p.descripcion && <p className="text-sm text-white/80 mt-1 drop-shadow-md">{p.descripcion}</p>}
+                  {pData && p.tipo !== 'institucional' && (
+                    <div className="mt-2 flex items-baseline gap-2">
+                      {p.tipo === 'oferta' && pData.precio_oferta ? (
+                        <>
+                          <span className="text-sm text-white/60 line-through">{formatCurrency(pData.precio, currencyCode)}</span>
+                          <span className="text-lg font-bold text-amber-300">{formatCurrency(pData.precio_oferta, currencyCode)}</span>
+                        </>
+                      ) : (
+                        <span className="text-lg font-bold text-white">{formatCurrency(pData.precio, currencyCode)}</span>
+                      )}
+                    </div>
+                  )}
+                  {(p.cta_accion === 'ver_productos' || (p.cta_accion === 'ver_producto' && p.id_producto)) && (
+                    <button onClick={(e) => {
+                      e.stopPropagation()
+                      if (p.cta_accion === 'ver_productos') {
+                        onVerProductos?.()
+                      } else if (p.cta_accion === 'ver_producto' && p.id_producto) {
+                        onOpenProduct?.(p.id_producto)
+                      }
+                    }}
+                      className="mt-3 inline-block px-5 py-2 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 text-white text-sm font-semibold hover:bg-white/30 transition-all">
+                      {p.cta_texto || (p.tipo === 'institucional' ? 'Ver productos' : p.tipo === 'oferta' ? 'Aprovechar Oferta' : 'Ver detalle')}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
-          ) : bannerUrl ? (
+          )}) : bannerUrl ? (
             <div className="absolute inset-0">
               <Image src={bannerUrl} alt="" fill className="object-cover" priority sizes="100vw" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/40 to-black/20" />
@@ -147,14 +183,29 @@ export default function TabInicio({
         </div>
 
         {hasPortadas && portadas.length > 1 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
-            {portadas.map((_, i) => (
-              <button key={i} onClick={() => setCurrentSlide(i)}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${i === currentSlide ? 'bg-white scale-100' : 'bg-white/40 scale-75 hover:bg-white/60'}`} />
-            ))}
-          </div>
+          <>
+            <button onClick={goPrev}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all z-10">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button onClick={goNext}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all z-10">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
+              {portadas.map((_, i) => (
+                <button key={i} onClick={() => setCurrentSlide(i)}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${i === currentSlide ? 'bg-white scale-100' : 'bg-white/40 scale-75 hover:bg-white/60'}`} />
+              ))}
+            </div>
+          </>
         )}
       </section>
+      </div>
       ) : null}
 
       {/* STOREFRONT EXPERIENCE PASS: Productos destacados (Premium) */}

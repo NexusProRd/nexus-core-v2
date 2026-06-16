@@ -17,9 +17,9 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Sprint QA-WA-02: WhatsApp Quick Wins (QW1-QW5) |
-| Última verificación | 2026-06-13 — Sprint QA-WA-02: build PASS |
+| Último commit | Sprint UX-VITRINA-01: portada prices, cross-fade, nav buttons, auto-slide mobile |
 
+| Última verificación | 2026-06-16 — Sprint UX-VITRINA-01: build PASS |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -77,7 +77,7 @@
 **Sprint Moneda 0.3C — PCC pages, vitrina files, dashboard/pedidos/page.tsx migrados; audit final**
 **Sprint Comercial 1A — Centro de Suscripción (`/dashboard/suscripcion`) + PCC Métodos de Cobro en Configuración Comercial**
 **Sprint QA-WA-02 — WhatsApp Quick Wins (QW1-QW5): CTAs sin contexto, share sin número, URLs inconsistentes**
-**Sprint UX-VITRINA-01 — Hero + Header + Portada cleanup, Destacados auto-slide mobile**
+**Sprint UX-VITRINA-01 — Hero + Header + Portada cleanup, Destacados auto-slide mobile, precios portadas, cross-fade**
 
 ### Estado
 
@@ -88,6 +88,9 @@
 - Benefits bar movida debajo de todos los productos (no entre Hero y Destacados)
 - Destacados: mobile single-card full-width con scroll-snap + auto-slide cada 4s (pausa al tocar, desactivado en tablet+); desktop grid 3 columnas sin cambios
 - Novedades: horizontal compact, Ofertas: con "Aprovechar Oferta"
+- Nav buttons (prev/next) restaurados en Hero carrusel
+- Precios en portadas: institucional sin precio, producto muestra precio normal, oferta muestra tachado + oferta en amber-300
+- Cross-fade transition entre slides (opacity 500ms ease-in-out)
 - Footer: sin cambios
 - Typecheck PASS. Build PASS.
 

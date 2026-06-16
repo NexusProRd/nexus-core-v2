@@ -210,6 +210,7 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
         {activeTab === 'inicio' && (
           <TabInicio
             portadas={portadas}
+            productos={productos}
             logoUrl={logoUrl}
             bannerUrl={bannerUrl}
             slogan={slogan}
