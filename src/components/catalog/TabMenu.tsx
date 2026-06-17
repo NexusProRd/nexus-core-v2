@@ -154,34 +154,34 @@ export default function TabMenu({
           <h2 className="text-base sm:text-lg font-bold text-slate-900">
             {searchQuery || selectedCategory ? 'Resultados' : 'Todos los productos'}
           </h2>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400">{sortedFiltered.length} producto{sortedFiltered.length !== 1 ? 's' : ''}</span>
-            <div className="flex rounded-lg border border-slate-200 overflow-hidden">
-              <button
-                onClick={() => setViewMode('list')}
-                className={`px-2.5 py-1.5 text-xs font-semibold transition-colors ${viewMode === 'list' ? 'bg-[var(--primary)] text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
-                title="Vista lista"
-              >
-                ☰
-              </button>
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`px-2.5 py-1.5 text-xs font-semibold transition-colors ${viewMode === 'grid' ? 'bg-[var(--primary)] text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
-                title="Vista cuadrícula"
-              >
-                ▦
-              </button>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400">{sortedFiltered.length} producto{sortedFiltered.length !== 1 ? 's' : ''}</span>
+              <div className="md:hidden flex rounded-lg border border-slate-200 overflow-hidden">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`px-2.5 py-1.5 text-xs font-semibold transition-colors ${viewMode === 'list' ? 'bg-[var(--primary)] text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
+                  title="Vista lista"
+                >
+                  ☰
+                </button>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`px-2.5 py-1.5 text-xs font-semibold transition-colors ${viewMode === 'grid' ? 'bg-[var(--primary)] text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}
+                  title="Vista cuadrícula"
+                >
+                  ▦
+                </button>
+              </div>
             </div>
-          </div>
         </div>
         {sortedFiltered.length > 0 ? (
           <div className={`grid gap-3 sm:gap-5 ${
             viewMode === 'list'
-              ? 'grid-cols-1'
+              ? 'max-sm:grid-cols-1 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
               : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
           }`}>
             {sortedFiltered.map((p, idx) => (
-              <ProductCard key={p.id} producto={p} giftMode={giftMode} trendingIds={trendingIds} onQuickView={onQuickView} index={idx} layout={viewMode} />
+              <ProductCard key={p.id} producto={p} giftMode={giftMode} trendingIds={trendingIds} onQuickView={onQuickView} index={idx} layout={viewMode === 'list' ? 'list' : 'grid'} />
             ))}
           </div>
         ) : (
