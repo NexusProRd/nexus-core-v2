@@ -52,6 +52,14 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
   const [quickViewProduct, setQuickViewProduct] = useState<Producto | null>(null)
   const [showRegalosMsg, setShowRegalosMsg] = useState(false)
 
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('nexus-view-mode')
+      if (stored === 'grid' || stored === 'list') return stored
+    }
+    return 'list'
+  })
+
   const [portadas, setPortadas] = useState<Portada[]>([])
 
   useEffect(() => {
@@ -246,6 +254,8 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
             trendingIds={trendingIds}
             onQuickView={setQuickViewProduct}
             tipoNegocio={tipoNegocio}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
           />
         )}
 

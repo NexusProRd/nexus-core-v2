@@ -58,9 +58,10 @@ interface Props {
   trendingIds: Set<string>
   onQuickView?: (p: Producto) => void
   index?: number
+  layout?: 'grid' | 'list'
 }
 
-export default function ProductCard({ producto, giftMode, compact, trendingIds, onQuickView, index }: Props) {
+export default function ProductCard({ producto, giftMode, compact, trendingIds, onQuickView, index, layout = 'grid' }: Props) {
   const router = useRouter()
   const { addToCart } = useCart()
   const { idTienda, whatsappNumber, nombreTienda, tipoNegocio, currencyCode } = useConfig()
@@ -214,12 +215,121 @@ export default function ProductCard({ producto, giftMode, compact, trendingIds, 
 
   return (
     <>
-      <div
-        onClick={() => { if (!outOfStock) setShowQuickView(true) }}
-        className={`group bg-white rounded-2xl border border-slate-100 overflow-hidden card-press elevation-1 ${
-          !outOfStock ? 'cursor-pointer' : 'opacity-50'
-        } ${compact ? 'min-w-[170px] w-[170px] sm:min-w-[210px] sm:w-[210px]' : ''}`}
-      >
+      {layout === 'list' ? (
+        <div
+          onClick={() => { if (!outOfStock) setShowQuickView(true) }}
+          className={`flex flex-row gap-3 p-3 bg-white rounded-2xl border border-slate-100 ${!outOfStock ? 'cursor-pointer' : 'opacity-50'}`}
+        >
+          {/* Image */}
+          <div className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 self-center rounded-lg overflow-hidden bg-slate-50">
+            {badge && (
+              <span className={`absolute top-1 left-1 z-10 ${badgeStyles[badge.type]} text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm`}>
+                {badge.label}
+              </span>
+            )}
+            <div className="absolute top-1 right-1 z-10">
+              <button onClick={e => { e.stopPropagation(); setShowShareModal(true) }}
+                className="w-6 h-6 rounded-full bg-white/90 backdrop-blur-sm border border-white/50 flex items-center justify-center text-slate-400 hover:text-[var(--primary)] active:scale-90" title="Compartir">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+              </button>
+            </div>
+            {outOfStock && (
+              <div className="absolute inset-0 bg-black/30 z-10 flex items-center justify-center backdrop-blur-[1px]">
+                <span className="bg-white/95 text-slate-700 text-[9px] font-semibold px-2 py-1 rounded-full shadow-lg">Agotado</span>
+              </div>
+            )}
+            {producto.imagen_url ? (
+              <Image src={producto.imagen_url} alt={producto.nombre} fill className="object-cover" sizes="100px" />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <svg className="w-6 h-6 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              </div>
+            )}
+          </div>
+
+          {/* Info */}
+          <div className="flex-1 min-w-0 flex flex-col gap-1">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="text-sm font-bold text-slate-900 line-clamp-2 leading-snug">{producto.nombre}</h3>
+              <div className="flex items-center gap-0.5 shrink-0">
+                <svg className="w-3 h-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>
+                <span className="text-[10px] font-semibold text-slate-400">{rating.toFixed(1)}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center flex-wrap gap-x-1.5 gap-y-0.5">
+              {selectedPrecioVariant != null ? (
+                <span className="text-sm font-bold text-[var(--primary)]">{formatCurrency(mostrarConImpuesto(selectedPrecioVariant).mostrar, currencyCode)}</span>
+              ) : producto.precio_oferta ? (
+                <>
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700">Oferta</span>
+                  <span className="text-xs text-slate-400 line-through">{formatCurrency(mostrarConImpuesto(producto.precio).mostrar, currencyCode)}</span>
+                  <span className="text-sm font-bold text-rose-600">{formatCurrency(mostrarConImpuesto(producto.precio_oferta).mostrar, currencyCode)}</span>
+                </>
+              ) : desdeMenor ? (
+                <span className="text-sm font-bold text-[var(--primary)]">Desde {formatCurrency(mostrarConImpuesto(precioMinimoVariantes).mostrar, currencyCode)}</span>
+              ) : (
+                <span className="text-sm font-bold text-slate-900">{formatCurrency(mostrarConImpuesto(producto.precio).mostrar, currencyCode)}</span>
+              )}
+              {tieneImpuesto && <span className="text-[10px] font-medium text-slate-400">+Impuestos incl.</span>}
+              {producto.unidad_medida === 'libra' && <span className="text-[10px] text-slate-400">/lb</span>}
+            </div>
+
+            <span className={`text-[11px] font-medium ${!outOfStock ? 'text-emerald-600' : 'text-slate-400'}`}>
+              {!outOfStock ? `Stock: ${producto.stock}` : 'Agotado'}
+            </span>
+
+            {tipoNegocio === 'ropa' && producto.tallas && producto.tallas.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {producto.tallas.slice(0, 5).map(t => {
+                  const tallaStr = typeof t === 'string' ? t : t.talla
+                  return <span key={tallaStr} className="px-1.5 py-0.5 text-[8px] font-medium rounded border bg-slate-100 text-slate-600 border-slate-200">{tallaStr}</span>
+                })}
+                {producto.tallas.length > 5 && <span className="px-1.5 py-0.5 text-[8px] font-medium text-slate-400">+{producto.tallas.length - 5}</span>}
+              </div>
+            )}
+
+            {!outOfStock ? (
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <div className="flex items-center gap-1">
+                  <button onClick={e => { e.stopPropagation(); setQuantity(Math.max(1, quantity - 1)) }} className="w-6 h-6 rounded-md bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold hover:bg-slate-200 transition-all native-press">−</button>
+                  <span className="w-5 text-center text-xs font-bold text-slate-900">{quantity}</span>
+                  <button onClick={e => { e.stopPropagation(); setQuantity(quantity + 1) }} className="w-6 h-6 rounded-md bg-slate-100 text-slate-500 flex items-center justify-center text-xs font-bold hover:bg-slate-200 transition-all native-press">+</button>
+                </div>
+                <button onClick={handleCart} className="w-8 h-8 rounded-lg border-2 border-[var(--primary)]/40 text-[var(--primary)] flex items-center justify-center hover:bg-[var(--primary)]/5 hover:border-[var(--primary)] transition-all native-press" title="Agregar al carrito">
+                  {feedback === 'cart' ? (
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                  )}
+                </button>
+                <button onClick={e => {
+                  e.stopPropagation();
+                  if (tipoNegocio === 'ropa' && producto.tallas && producto.tallas.length > 0) {
+                    setPendingAction('quickbuy')
+                    setShowSizeModal(true)
+                  } else {
+                    setShowQuickBuyModal(true)
+                  }
+                }} className="flex-1 h-8 rounded-lg bg-[var(--primary)] text-white font-semibold text-[10px] hover:brightness-110 transition-all native-press flex items-center justify-center gap-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
+                  Comprar
+                </button>
+              </div>
+            ) : (
+              <button disabled className="w-full bg-slate-100 text-slate-400 font-semibold rounded-lg py-1.5 text-[10px] cursor-not-allowed mt-1">Agotado</button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div
+          onClick={() => { if (!outOfStock) setShowQuickView(true) }}
+          className={`group bg-white rounded-2xl border border-slate-100 overflow-hidden card-press elevation-1 ${
+            !outOfStock ? 'cursor-pointer' : 'opacity-50'
+          } ${compact ? 'min-w-[170px] w-[170px] sm:min-w-[210px] sm:w-[210px]' : ''}`}
+        >
         <div className={`relative ${compact ? 'h-28 sm:h-36' : 'h-32 sm:h-48'} bg-slate-50 overflow-hidden`}>
           {badge && (
             <span className={`absolute top-2 left-2 z-10 ${badgeStyles[badge.type]} text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full shadow-sm tracking-wide`}>
@@ -330,6 +440,7 @@ export default function ProductCard({ producto, giftMode, compact, trendingIds, 
           )}
         </div>
       </div>
+      )}
 
       {/* Modal de Compra Rápida Directa */}
       {/* MOTION SYSTEM PASS: Modal entrance with scale-in */}
