@@ -13,7 +13,7 @@ interface StockResult {
 export async function gestionarStock(
   supabase: any,
   items: StockItem[],
-  accion: 'deduct' | 'restore'
+  accion: 'deduct' | 'restore' | 'reserve' | 'unreserve'
 ): Promise<StockResult> {
   const errors: string[] = []
   const multiplicador = accion === 'deduct' ? -1 : 1
@@ -25,7 +25,7 @@ export async function gestionarStock(
     try {
       const { data: prod } = await supabase
         .from('productos')
-        .select('id, tallas, stock')
+        .select('id, tallas, stock, stock_reservado')
         .eq('id', pid)
         .single()
 
@@ -38,15 +38,55 @@ export async function gestionarStock(
         Array.isArray(prod.tallas) &&
         prod.tallas.some((t: any) => typeof t === 'object' && t.talla === item.variante_seleccionada)
 
+      // ── reserve / unreserve (Regalos V2: no variantes) ──
+      if (accion === 'reserve' || accion === 'unreserve') {
+        if (tieneVariante) {
+          errors.push(`${item.nombre} tiene variantes y no puede procesarse como regalo V2.`)
+          continue
+        }
+
+        const delta = accion === 'reserve' ? item.cantidad : -item.cantidad
+        const nuevoReservado = (prod.stock_reservado || 0) + delta
+
+        if (nuevoReservado < 0) {
+          errors.push(`Stock reservado insuficiente para ${item.nombre}.`)
+          continue
+        }
+
+        if (accion === 'reserve') {
+          const disponible = (prod.stock || 0) - (prod.stock_reservado || 0)
+          if (disponible < item.cantidad) {
+            errors.push(`Stock insuficiente para ${item.nombre}. Disponible: ${Math.max(0, disponible)}`)
+            continue
+          }
+        }
+
+        const { data: updated } = await supabase
+          .from('productos')
+          .update({ stock_reservado: Math.max(0, nuevoReservado) })
+          .eq('id', pid)
+          .eq('stock_reservado', prod.stock_reservado || 0)
+          .select()
+
+        if (!updated || updated.length === 0) {
+          errors.push(`Conflicto de concurrencia al ${accion === 'reserve' ? 'reservar' : 'liberar'} stock de ${item.nombre}. Intenta de nuevo.`)
+        }
+        continue
+      }
+
+      // ── deduct / restore (existente, con stock_reservado en validación) ──
       if (tieneVariante) {
         const varianteActual = prod.tallas.find(
           (t: any) => typeof t === 'object' && t.talla === item.variante_seleccionada
         )
         const nuevoStockVariante = (varianteActual?.stock || 0) + multiplicador * item.cantidad
 
-        if (accion === 'deduct' && nuevoStockVariante < 0) {
-          errors.push(`Stock insuficiente para variante ${item.variante_seleccionada} de ${item.nombre}. Disponible: ${varianteActual?.stock || 0}`)
-          continue
+        if (accion === 'deduct') {
+          const disponible = (varianteActual?.stock || 0) - (prod.stock_reservado || 0)
+          if (nuevoStockVariante < 0 || disponible < item.cantidad) {
+            errors.push(`Stock insuficiente para variante ${item.variante_seleccionada} de ${item.nombre}. Disponible: ${Math.max(0, disponible)}`)
+            continue
+          }
         }
 
         const tallasActualizadas = prod.tallas.map((t: any) => {
@@ -61,11 +101,13 @@ export async function gestionarStock(
         }, 0)
 
         const stockAntes = prod.stock
+        const reservadoAntes = prod.stock_reservado || 0
         const { data: updatedV } = await supabase
           .from('productos')
           .update({ tallas: tallasActualizadas, stock: stockSum, in_stock: stockSum > 0 })
           .eq('id', pid)
           .eq('stock', stockAntes)
+          .eq('stock_reservado', reservadoAntes)
           .select()
 
         if (!updatedV || updatedV.length === 0) {
@@ -74,9 +116,12 @@ export async function gestionarStock(
       } else {
         const nuevoStock = (prod.stock || 0) + multiplicador * item.cantidad
 
-        if (accion === 'deduct' && nuevoStock < 0) {
-          errors.push(`Stock insuficiente para ${item.nombre}. Disponible: ${prod.stock || 0}`)
-          continue
+        if (accion === 'deduct') {
+          const disponible = (prod.stock || 0) - (prod.stock_reservado || 0)
+          if (nuevoStock < 0 || disponible < item.cantidad) {
+            errors.push(`Stock insuficiente para ${item.nombre}. Disponible: ${Math.max(0, disponible)}`)
+            continue
+          }
         }
 
         const sanitized = Math.max(0, nuevoStock)
@@ -85,6 +130,7 @@ export async function gestionarStock(
           .update({ stock: sanitized, in_stock: sanitized > 0 })
           .eq('id', pid)
           .eq('stock', prod.stock)
+          .eq('stock_reservado', prod.stock_reservado || 0)
           .select()
 
         if (!updatedS || updatedS.length === 0) {
@@ -92,8 +138,12 @@ export async function gestionarStock(
         }
       }
     } catch (e: any) {
+      const accionLabel =
+        accion === 'reserve' ? 'reservar' :
+        accion === 'unreserve' ? 'liberar' :
+        accion === 'deduct' ? 'descontar' : 'restaurar'
       errors.push(
-        `Error al ${accion === 'deduct' ? 'descontar' : 'restaurar'} stock de ${item.nombre}: ${e.message}`
+        `Error al ${accionLabel} stock de ${item.nombre}: ${e.message}`
       )
     }
   }

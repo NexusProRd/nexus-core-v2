@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (allProductIds.length > 0) {
     const { data: prods } = await supabase!
       .from('productos')
-      .select('id, tallas, stock, in_stock, precio, precio_oferta, costo_compra, aplica_impuesto, porcentaje_impuesto')
+      .select('id, tallas, stock, stock_reservado, in_stock, precio, precio_oferta, costo_compra, aplica_impuesto, porcentaje_impuesto')
       .in('id', allProductIds)
 
     if (prods) {
@@ -58,17 +58,23 @@ export async function POST(req: NextRequest) {
       const variant = prod.tallas.find((t: any) =>
         typeof t === 'object' && t.talla === item.variante_seleccionada
       )
-      if (variant && variant.stock < item.cantidad) {
+      if (variant) {
+        const disponible = (variant.stock || 0) - (prod.stock_reservado || 0)
+        if (disponible < item.cantidad) {
+          return NextResponse.json({
+            error: `Lo sentimos, la talla (${item.variante_seleccionada}) se agotó mientras procesabas tu compra`,
+            item: item.nombre,
+          }, { status: 409 })
+        }
+      }
+    } else if (!item.variante_seleccionada) {
+      const disponible = (prod.stock || 0) - (prod.stock_reservado || 0)
+      if (disponible < item.cantidad) {
         return NextResponse.json({
-          error: `Lo sentimos, la talla (${item.variante_seleccionada}) se agotó mientras procesabas tu compra`,
+          error: `Lo sentimos, "${item.nombre}" se agotó mientras procesabas tu compra`,
           item: item.nombre,
         }, { status: 409 })
       }
-    } else if (!item.variante_seleccionada && (prod.stock || 0) < item.cantidad) {
-      return NextResponse.json({
-        error: `Lo sentimos, "${item.nombre}" se agotó mientras procesabas tu compra`,
-        item: item.nombre,
-      }, { status: 409 })
     }
   }
 
