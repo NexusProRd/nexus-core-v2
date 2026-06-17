@@ -218,10 +218,12 @@ export default function ProductCard({ producto, giftMode, compact, trendingIds, 
       {layout === 'list' ? (
         <div
           onClick={() => { if (!outOfStock) setShowQuickView(true) }}
-          className={`flex flex-row gap-3 p-3 bg-white rounded-2xl border border-slate-100 ${!outOfStock ? 'cursor-pointer' : 'opacity-50'}`}
+          className={`flex flex-row sm:flex-col gap-3 p-3 sm:p-0 bg-white rounded-2xl border border-slate-100 sm:overflow-hidden ${
+            !outOfStock ? 'cursor-pointer' : 'opacity-50'
+          } sm:card-press sm:elevation-1`}
         >
           {/* Image */}
-          <div className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 self-center rounded-lg overflow-hidden bg-slate-50">
+          <div className="relative w-24 h-24 sm:w-full sm:h-48 shrink-0 self-center sm:self-auto rounded-lg sm:rounded-none overflow-hidden bg-slate-50">
             {badge && (
               <span className={`absolute top-1 left-1 z-10 ${badgeStyles[badge.type]} text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shadow-sm`}>
                 {badge.label}
@@ -250,7 +252,7 @@ export default function ProductCard({ producto, giftMode, compact, trendingIds, 
           </div>
 
           {/* Info */}
-          <div className="flex-1 min-w-0 flex flex-col gap-1">
+          <div className="flex-1 min-w-0 flex flex-col gap-1 sm:p-4">
             <div className="flex items-start justify-between gap-2">
               <h3 className="text-sm font-bold text-slate-900 line-clamp-2 leading-snug">{producto.nombre}</h3>
               <div className="flex items-center gap-0.5 shrink-0">

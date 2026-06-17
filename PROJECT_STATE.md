@@ -17,7 +17,7 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Vista Lista en productos — toggle grid/list, default lista, localStorage |
+| Último commit | Vista Lista solo mobile — desktop siempre grid |
 
 | Última verificación | 2026-06-16 — Vista Lista productos: build PASS |
 ### Módulos
@@ -111,12 +111,14 @@
 
 **Sprint PRODUCTS-LIST-VIEW Completado.** Nueva vista Lista en pestaña Productos:
 - Toggle ☰/▦ entre vista Lista y Grid, persistido en `localStorage('nexus-view-mode')`
-- Vista Lista es default (mobile-first: 1 columna siempre)
-- Card horizontal: imagen 96-112px izquierda + info (nombre, rating, precio, oferta, impuestos, stock, tallas) + quantity selector + carrito + comprar
+- Vista Lista es default en mobile (1 columna, card horizontal con imagen + info)
+- Vista Lista solo visible en mobile — en desktop (md+) siempre grid multi-columna
+- Toggle oculto en desktop (`md:hidden`)
+- Card en list mode usa `sm:flex-col` para verse idéntica al grid en desktop
 - Vista Grid existente intacta: `grid-cols-2 sm:3 lg:4`
 - 0 cambios en lógica de negocio — todos los handlers, estados y modales compartidos
-- Archivos: CatalogContent.tsx, TabMenu.tsx, ProductCard.tsx (3 files, +157/-10)
-- Build PASS. Commit `1054a89`.
+- Archivos: CatalogContent.tsx, TabMenu.tsx, ProductCard.tsx (3 files)
+- Build PASS. Commits: `1054a89`, `96322d9`.
 
 **P3-C Completado.** Subsistema B (tickets/pedidos.is_gift) eliminado. Toda la lógica de regalos unificada en gift_experiences. Tickets migrados con backfill, creación de gifts redirigida a gift_experiences, enlaces legacy redirigen a /canje. Stock management, aprobación y canje permanecen inalterados.
 
