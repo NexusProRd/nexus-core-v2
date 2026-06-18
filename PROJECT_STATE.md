@@ -17,9 +17,9 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Vista Lista solo mobile — desktop siempre grid |
+| Último commit | Regalos V2 Sprint 1 — Integración completa + ProductQuickView + Focus Bug Fix |
 
-| Última verificación | 2026-06-16 — Vista Lista productos: build PASS |
+| Última verificación | 2026-06-18 — Regalos V2: build PASS, typecheck PASS |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -44,6 +44,8 @@
 ## Current Focus
 
 ### Sprints completados
+
+**Sprint REGALOS-V2-01 — Regalos V2 Sprint 1: Flujo público + Dashboard + integración catálogo**
 
 **Sprint P3-C — Migración Subsistema B → A** + **Production Readiness Audit**
 **Sprint 3 — Commercial Infrastructure Foundation**
@@ -80,6 +82,16 @@
 **Sprint UX-VITRINA-01 — Hero + Header + Portada cleanup, Destacados auto-slide mobile, precios portadas, cross-fade**
 
 ### Estado
+
+**Sprint REGALOS-V2-01 Completado.** Regalos V2 Sprint 1 — Flujo público + Dashboard + integración catálogo:
+- Migración 069: `stock_reservado`, `claimed_at`, CHECK RESERVED/CLAIMED, RPC `reclamar_regalo_v2` (FOR UPDATE)
+- FASE A: API gift-purchase pública (sin auth, status=pending, sin reserve, sin giftLink)
+- FASE B: GiftPurchaseForm success screen (código + pending, sin WhatsApp ni giftLink)
+- FASE C: Dashboard pending V2 — diferenciación V1/V2 por `sender_phone`, aprobar→RESERVED+reserve+giftLink, columna Enlace con botón Copiar
+- FASE D: ProductQuickView botón "🎁 Comprar como Regalo" → GiftPurchaseForm pre-poblado
+- FASE E: Validaciones — pending rechazado en canje page y GiftRedemption
+- Fix focus loss: stopPropagation en overlays de GiftPurchaseForm
+- Build PASS. Typecheck PASS. 7 files modificados, 88 rutas generadas.
 
 **Sprint UX-VITRINA-01 Completado.** Hero + Header + Portada + Destacados visual cleanup:
 - Hero simplificado: portada carrusel con imágenes del dashboard, sin logo/nombre/contactar duplicados

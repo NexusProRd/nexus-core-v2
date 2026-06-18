@@ -26,16 +26,17 @@ const generateGiftCode = () => {
   return code
 }
 
-export default function GiftPurchaseForm({ idTienda, whatsappNumber }: { idTienda: string; whatsappNumber: string }) {
-  const [open, setOpen] = useState(false)
+export default function GiftPurchaseForm({ idTienda, whatsappNumber, defaultProduct, autoOpen }: { idTienda: string; whatsappNumber: string; defaultProduct?: Producto; autoOpen?: boolean }) {
+  const [open, setOpen] = useState(autoOpen || false)
   const [productos, setProductos] = useState<Producto[]>([])
   const [search, setSearch] = useState('')
-  const [selected, setSelected] = useState<Producto[]>([])
+  const [selected, setSelected] = useState<Producto[]>(defaultProduct ? [defaultProduct] : [])
   const [sender, setSender] = useState('')
   const [senderPhone, setSenderPhone] = useState('')
   const [receiver, setReceiver] = useState('')
   const [message, setMessage] = useState('')
   const [success, setSuccess] = useState(false)
+  const [giftCodeResult, setGiftCodeResult] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { currencyCode } = useConfig()
@@ -118,8 +119,8 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber }: { idTiend
         return
       }
 
-      const { whatsappUrl } = await res.json()
-      window.open(whatsappUrl, '_blank')
+      const data = await res.json()
+      setGiftCodeResult(data.giftCode || giftCode)
 
       setSuccess(true)
       setSender('')
@@ -145,7 +146,7 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber }: { idTiend
       </button>
 
       {open && !success && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={e => e.stopPropagation()}>
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-5 sm:p-6 flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between mb-4 flex-shrink-0">
               <h3 className="text-lg font-bold text-slate-900">🎁 Regalo</h3>
@@ -267,9 +268,9 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber }: { idTiend
 
             <div className="flex-shrink-0 mt-4">
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-                <p className="text-xs font-bold text-amber-800">¡Importante! Debes canjear este regalo en menos de <span className="text-amber-900 underline decoration-amber-400 decoration-2">72 horas</span> después de ser aprobado.</p>
-                <p className="text-[11px] text-amber-600 mt-1">Pasado este tiempo, el cupón expirará automáticamente para liberar el inventario y no habrá reembolsos.</p>
-                <p className="text-[11px] text-slate-500 mt-1.5 pt-1.5 border-t border-amber-200/50">El costo de envío no está incluido y se cotizará según la zona al realizar el pedido.</p>
+                <p className="text-xs font-bold text-amber-800">Pago contra entrega</p>
+                <p className="text-[11px] text-amber-600 mt-0.5">El socio te contactará para coordinar el pago y el envío.</p>
+                <p className="text-[11px] text-slate-500 mt-1.5 pt-1.5 border-t border-amber-200/50">El costo de envío no está incluido y se cotizará según la zona.</p>
               </div>
 
               {error && (
@@ -288,16 +289,27 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber }: { idTiend
       )}
 
       {success && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={e => e.stopPropagation()}>
           <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-100 flex items-center justify-center">
+              <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">¡Pedido enviado por WhatsApp!</h3>
-            <p className="text-sm text-slate-500 mb-4">Gracias por tu compra. Te contactaremos pronto.</p>
-            <button onClick={() => { setOpen(false); setSuccess(false); setSender(''); setSenderPhone(''); setReceiver(''); setMessage(''); setSelected([]); setSearch('') }}
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Solicitud registrada</h3>
+            <div className="bg-slate-50 rounded-xl p-3 mb-4">
+              <p className="text-xs text-slate-500 mb-1">Código de regalo</p>
+              <p className="text-lg font-bold font-mono text-slate-900 tracking-wider">{giftCodeResult}</p>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-left">
+              <p className="text-xs font-semibold text-amber-800 mb-1">Estado: Pendiente de confirmación</p>
+              <p className="text-[11px] text-amber-700 leading-relaxed">
+                Completa el pago con la tienda para activar tu regalo. Una vez confirmado recibirás el enlace para compartirlo.
+              </p>
+            </div>
+            <button onClick={() => { setOpen(false); setSuccess(false); setGiftCodeResult(''); setSender(''); setSenderPhone(''); setReceiver(''); setMessage(''); setSelected([]); setSearch('') }}
               className="w-full py-2.5 bg-[var(--primary)] text-white font-medium rounded-xl hover:brightness-110 transition-colors text-sm">
-              Cerrar
+              Entendido
             </button>
           </div>
         </div>

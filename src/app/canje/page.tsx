@@ -98,6 +98,12 @@ function CanjeContent() {
         setLoading(false)
         return
       }
+      if (data.status === 'pending') {
+        setDebugMsg('Este regalo está pendiente de pago.')
+        setError(true)
+        setLoading(false)
+        return
+      }
       if (data.status !== 'approved' && data.status !== 'RESERVED') {
         setDebugMsg(`El regalo existe pero su estado es: ${data.status}`)
         setError(true)

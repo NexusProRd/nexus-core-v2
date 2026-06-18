@@ -59,6 +59,12 @@ export default function GiftRedemption({ idTienda, defaultCode, onOpen }: { idTi
       return
     }
 
+    if (giftData.status === 'pending') {
+      setError('Este regalo está pendiente de pago. No puede canjearse aún.')
+      setLoading(false)
+      return
+    }
+
     const isV2 = giftData.status === 'RESERVED'
     const rpcName = isV2 ? 'reclamar_regalo_v2' : 'procesar_canje_regalo'
     const { data: rpcData, error: rpcError } = await supabase.rpc(rpcName, {

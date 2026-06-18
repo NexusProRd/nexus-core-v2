@@ -8,6 +8,7 @@ interface Gift {
   id: string
   store_id: string
   sender_name: string
+  sender_phone: string | null
   receiver_name: string
   personal_message: string | null
   gift_code: string
@@ -15,6 +16,10 @@ interface Gift {
   status: 'pending' | 'approved' | 'rejected' | 'expired' | 'RESERVED' | 'CLAIMED' | 'cancelled'
   created_at: string
   items_list: { product_id: string; nombre: string; precio: number; imagen_url: string | null }[]
+}
+
+function copyToClipboard(text: string) {
+  navigator.clipboard.writeText(text).catch(() => {})
 }
 
 const statusConfig: Record<string, { label: string; bg: string; text: string }> = {
@@ -94,46 +99,67 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
       setUpdatingId(gift.id)
       const supabase = createClient()
 
+      const isV2 = !!(gift.sender_phone && gift.sender_phone.trim())
+
       if (newStatus === 'approved' && gift.items_list?.length > 0) {
-        const productIds = gift.items_list.map(i => i.product_id)
-        const { data: products } = await supabase
-          .from('productos')
-          .select('id, stock, in_stock')
-          .in('id', productIds)
-
-        const insufficient: string[] = []
-        for (const item of gift.items_list) {
-          const prod = products?.find(p => p.id === item.product_id)
-          if (!prod || !prod.in_stock || prod.stock <= 0) {
-            insufficient.push(item.nombre)
+        if (isV2) {
+          const stockResult = await gestionarStock(
+            supabase,
+            gift.items_list.map(i => ({
+              id_producto: i.product_id,
+              nombre: i.nombre,
+              cantidad: 1,
+              variante_seleccionada: null,
+            })),
+            'reserve'
+          )
+          if (!stockResult.ok) {
+            console.error('[GiftDashboard] reserve errors:', stockResult.errors)
+            setUpdatingId(null)
+            return
           }
-        }
+        } else {
+          const productIds = gift.items_list.map(i => i.product_id)
+          const { data: products } = await supabase
+            .from('productos')
+            .select('id, stock, in_stock')
+            .in('id', productIds)
 
-        if (insufficient.length > 0) {
-          console.error('[GiftDashboard] Stock insuficiente para:', insufficient.join(', '))
-          setUpdatingId(null)
-          return
-        }
+          const insufficient: string[] = []
+          for (const item of gift.items_list) {
+            const prod = products?.find(p => p.id === item.product_id)
+            if (!prod || !prod.in_stock || prod.stock <= 0) {
+              insufficient.push(item.nombre)
+            }
+          }
 
-        const stockResult = await gestionarStock(
-          supabase,
-          gift.items_list.map(i => ({
-            id_producto: i.product_id,
-            nombre: i.nombre,
-            cantidad: 1,
-            variante_seleccionada: null,
-          })),
-          'deduct'
-        )
-        if (!stockResult.ok) {
-          console.error('[GiftDashboard] stock decrement errors:', stockResult.errors)
-          setUpdatingId(null)
-          return
+          if (insufficient.length > 0) {
+            console.error('[GiftDashboard] Stock insuficiente para:', insufficient.join(', '))
+            setUpdatingId(null)
+            return
+          }
+
+          const stockResult = await gestionarStock(
+            supabase,
+            gift.items_list.map(i => ({
+              id_producto: i.product_id,
+              nombre: i.nombre,
+              cantidad: 1,
+              variante_seleccionada: null,
+            })),
+            'deduct'
+          )
+          if (!stockResult.ok) {
+            console.error('[GiftDashboard] stock decrement errors:', stockResult.errors)
+            setUpdatingId(null)
+            return
+          }
         }
       }
 
-      const updates: any = { status: newStatus }
-      if (newStatus === 'approved') updates.approved_at = new Date().toISOString()
+      const targetStatus = isV2 && newStatus === 'approved' ? 'RESERVED' : newStatus === 'approved' && !isV2 ? 'approved' : newStatus
+      const updates: any = { status: targetStatus }
+      if (!isV2 && newStatus === 'approved') updates.approved_at = new Date().toISOString()
       const { error } = await supabase
         .from('gift_experiences')
         .update(updates)
@@ -213,6 +239,7 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
                 <th className="text-left py-3 px-4 font-medium text-slate-500">De</th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500">Para</th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500">Código</th>
+                <th className="text-left py-3 px-4 font-medium text-slate-500">Enlace</th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500">Estado</th>
                 <th className="text-right py-3 px-4 font-medium text-slate-500">Acción</th>
               </tr>
@@ -226,6 +253,17 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
                     <code className="bg-slate-100 px-2 py-1 rounded text-xs font-mono text-slate-700">
                       {gift.gift_code}
                     </code>
+                  </td>
+                  <td className="py-3 px-4">
+                    {(gift.status === 'RESERVED' || gift.status === 'CLAIMED') && (
+                      <button
+                        onClick={() => copyToClipboard(`${window.location.origin}/canje?gift=${gift.gift_code}&id=${gift.store_id}`)}
+                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium rounded-lg transition-colors"
+                        title="Copiar enlace"
+                      >
+                        Copiar
+                      </button>
+                    )}
                   </td>
                   <td className="py-3 px-4">
                     <span

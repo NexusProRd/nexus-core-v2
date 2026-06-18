@@ -9,6 +9,7 @@ import { calcularPrecioConImpuesto } from '@/lib/precios'
 import ModalSeleccionarTalla from './ModalSeleccionarTalla'
 import BotonWhatsApp from './BotonWhatsApp'
 import ModalCompartirProducto from './ModalCompartirProducto'
+import GiftPurchaseForm from '@/components/store/GiftPurchaseForm'
 // import ModalSeleccionPeso from './ModalSeleccionPeso' // Fase 2 — colmado
 import type { Producto } from './ProductCard'
 
@@ -36,6 +37,7 @@ export default function ProductQuickView({ producto, onClose }: Props) {
   // const [showPesoModal, setShowPesoModal] = useState(false) // Fase 2 — colmado
   // const [selectedPeso, setSelectedPeso] = useState<number | undefined>(undefined)
   const [showBuyForm, setShowBuyForm] = useState(false)
+  const [showGiftForm, setShowGiftForm] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
   const [buyName, setBuyName] = useState('')
   const [buyPhone, setBuyPhone] = useState('')
@@ -310,6 +312,17 @@ export default function ProductQuickView({ producto, onClose }: Props) {
             </button>
           </div>
 
+          {/* Gift button */}
+          {producto.in_stock && (
+            <button
+              onClick={() => setShowGiftForm(true)}
+              className="w-full py-2.5 rounded-full border border-amber-300 text-amber-700 font-semibold text-sm hover:bg-amber-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+            >
+              <span>🎁</span>
+              Comprar como Regalo
+            </button>
+          )}
+
           {showBuyForm && (
             <div className="space-y-3 pt-2 border-t border-slate-100 animate-in slide-in-from-bottom-2 fade-in duration-200">
               <p className="text-sm font-semibold text-slate-700">Tus datos</p>
@@ -373,6 +386,22 @@ export default function ProductQuickView({ producto, onClose }: Props) {
           productoSlug={producto.slug || producto.id}
           whatsappNumber={whatsappNumber}
           onClose={() => setShowShareModal(false)}
+        />
+      )}
+
+      {showGiftForm && (
+        <GiftPurchaseForm
+          idTienda={idTienda}
+          whatsappNumber={numLimpio}
+          autoOpen
+          defaultProduct={{
+            id: producto.id,
+            nombre: producto.nombre,
+            precio: producto.precio_oferta ?? producto.precio,
+            stock: producto.stock,
+            in_stock: producto.in_stock,
+            imagen_url: producto.imagen_url,
+          }}
         />
       )}
     </div>
