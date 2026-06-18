@@ -284,19 +284,19 @@ export default function TabPedidos({ id_tienda }: Props) {
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSearch()}
               placeholder="Ej: 3B1B06F8 o código del pedido"
-              className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] placeholder:text-slate-400"
+              className="w-full sm:flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[var(--primary)] placeholder:text-slate-400"
             />
             <button
               onClick={handleSearch}
               disabled={searching || !searchQuery.trim()}
-              className="px-5 py-2.5 bg-[var(--primary)] text-white font-medium rounded-xl hover:brightness-110 transition-all disabled:opacity-50 text-sm shadow-sm whitespace-nowrap"
+              className="w-full sm:w-auto px-5 py-2.5 bg-[var(--primary)] text-white font-medium rounded-xl hover:brightness-110 transition-all disabled:opacity-50 text-sm shadow-sm whitespace-nowrap"
             >
               {searching ? (
                 <span className="flex items-center gap-1.5">
