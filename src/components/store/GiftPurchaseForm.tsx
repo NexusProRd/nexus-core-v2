@@ -39,6 +39,9 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber, defaultProd
   const [giftCodeResult, setGiftCodeResult] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hasLocation, setHasLocation] = useState(false)
+  const [deliveryAddress, setDeliveryAddress] = useState('')
+  const [deliveryLink, setDeliveryLink] = useState('')
   const { currencyCode } = useConfig()
 
   useEffect(() => {
@@ -109,6 +112,8 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber, defaultProd
           items: itemsPayload,
           giftCode,
           whatsappNumber,
+          delivery_address: hasLocation ? deliveryAddress.trim() : null,
+          delivery_location_link: hasLocation ? deliveryLink.trim() || null : null,
         }),
       })
 
@@ -129,6 +134,9 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber, defaultProd
       setMessage('')
       setSelected([])
       setSearch('')
+      setHasLocation(false)
+      setDeliveryAddress('')
+      setDeliveryLink('')
     } catch (err: any) {
       console.error('Error submitting gift purchase:', err)
       setError(err.message || 'Error al procesar el regalo. Por favor intente nuevamente.')
@@ -264,6 +272,28 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber, defaultProd
                 <textarea value={message} onChange={e => setMessage(e.target.value)} rows={3}
                   className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:ring-2 focus:ring-[var(--primary)] outline-none resize-none" placeholder="Escribe tu mensaje..." />
               </div>
+
+              {/* Delivery location */}
+              <label className="flex items-start gap-2 cursor-pointer pt-1">
+                <input type="checkbox" checked={hasLocation} onChange={e => { setHasLocation(e.target.checked); if (!e.target.checked) { setDeliveryAddress(''); setDeliveryLink('') } }}
+                  className="mt-0.5 w-4 h-4 rounded border-slate-300 text-[var(--primary)] focus:ring-[var(--primary)]" />
+                <span className="text-sm text-slate-600 leading-relaxed">Tengo la ubicación donde se entregará el regalo</span>
+              </label>
+
+              {hasLocation && (
+                <div className="space-y-3 pl-1 border-l-2 border-[var(--primary)]/20 pl-3">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Dirección de entrega</label>
+                    <textarea value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} rows={2}
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:ring-2 focus:ring-[var(--primary)] outline-none resize-none" placeholder="Calle, número, sector, ciudad, referencias..." />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Google Maps link <span className="text-xs text-slate-400">(opcional)</span></label>
+                    <input type="url" value={deliveryLink} onChange={e => setDeliveryLink(e.target.value)}
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:ring-2 focus:ring-[var(--primary)] outline-none" placeholder="https://maps.app.goo.gl/..." />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex-shrink-0 mt-4">
@@ -307,7 +337,7 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber, defaultProd
                 Completa el pago con la tienda para activar tu regalo. Una vez confirmado recibirás el enlace para compartirlo.
               </p>
             </div>
-            <button onClick={() => { setOpen(false); setSuccess(false); setGiftCodeResult(''); setSender(''); setSenderPhone(''); setReceiver(''); setMessage(''); setSelected([]); setSearch('') }}
+            <button onClick={() => { setOpen(false); setSuccess(false); setGiftCodeResult(''); setSender(''); setSenderPhone(''); setReceiver(''); setMessage(''); setSelected([]); setSearch(''); setHasLocation(false); setDeliveryAddress(''); setDeliveryLink('') }}
               className="w-full py-2.5 bg-[var(--primary)] text-white font-medium rounded-xl hover:brightness-110 transition-colors text-sm">
               Entendido
             </button>

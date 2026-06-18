@@ -17,9 +17,9 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Regalos V2 Sprint 1 — Integración completa + ProductQuickView + Focus Bug Fix |
+| Último commit | Regalos V2 Sprint 2 — Delivery + Ubicación + Inventario definitivo + QA |
 
-| Última verificación | 2026-06-18 — Regalos V2: build PASS, typecheck PASS |
+| Última verificación | 2026-06-18 — Regalos V2 Sprint 2: build PASS, typecheck PASS, QA aprobado |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -44,6 +44,8 @@
 ## Current Focus
 
 ### Sprints completados
+
+**Sprint REGALOS-V2-02 — Regalos V2 Sprint 2: Delivery + Ubicación + Inventario definitivo**
 
 **Sprint REGALOS-V2-01 — Regalos V2 Sprint 1: Flujo público + Dashboard + integración catálogo**
 
@@ -82,6 +84,16 @@
 **Sprint UX-VITRINA-01 — Hero + Header + Portada cleanup, Destacados auto-slide mobile, precios portadas, cross-fade**
 
 ### Estado
+
+**Sprint REGALOS-V2-02 Completado.** Regalos V2 Sprint 2 — Delivery, ubicación e inventario definitivo:
+- Migración 070: columnas delivery (`delivery_address`, `delivery_location_link`, `shipping_cost`, `delivered_at`, `location_requested_at`), CHECK actualizado con DELIVERED
+- RPC `entregar_regalo_v2`: atómico (FOR UPDATE) — status→DELIVERED + stock-- + stock_reservado--. Valida stock≥1, stock_reservado≥1. RAISE EXCEPTION si insuficiente.
+- RPC `revertir_entrega_regalo_v2`: DELIVERED→CLAIMED + stock++ + stock_reservado++
+- GiftPurchaseForm: checkbox "Tengo la ubicación" + campos dirección/Maps link
+- API gift-purchase: persiste `delivery_address`, `delivery_location_link`
+- Dashboard: columna Entrega (🔴/🟢/✅), acciones 📍 Solicitar ubicación y 🚚 Marcar entregado
+- QA técnico: 10 escenarios auditados, 0 bugs P0/P1, 2 hallazgos P2 pre-existentes
+- Build PASS. Typecheck PASS.
 
 **Sprint REGALOS-V2-01 Completado.** Regalos V2 Sprint 1 — Flujo público + Dashboard + integración catálogo:
 - Migración 069: `stock_reservado`, `claimed_at`, CHECK RESERVED/CLAIMED, RPC `reclamar_regalo_v2` (FOR UPDATE)

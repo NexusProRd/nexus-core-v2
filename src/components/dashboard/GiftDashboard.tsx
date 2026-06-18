@@ -13,9 +13,13 @@ interface Gift {
   personal_message: string | null
   gift_code: string
   is_redeemed: boolean
-  status: 'pending' | 'approved' | 'rejected' | 'expired' | 'RESERVED' | 'CLAIMED' | 'cancelled'
+  status: 'pending' | 'approved' | 'rejected' | 'expired' | 'RESERVED' | 'CLAIMED' | 'DELIVERED' | 'cancelled'
   created_at: string
   items_list: { product_id: string; nombre: string; precio: number; imagen_url: string | null }[]
+  delivery_address: string | null
+  delivery_location_link: string | null
+  location_requested_at: string | null
+  delivered_at: string | null
 }
 
 function copyToClipboard(text: string) {
@@ -29,6 +33,7 @@ const statusConfig: Record<string, { label: string; bg: string; text: string }> 
   expired: { label: 'Vencido', bg: 'bg-slate-100', text: 'text-slate-500' },
   RESERVED: { label: 'Reservado', bg: 'bg-blue-100', text: 'text-blue-800' },
   CLAIMED: { label: 'Reclamado', bg: 'bg-emerald-100', text: 'text-emerald-800' },
+  DELIVERED: { label: 'Entregado', bg: 'bg-slate-100', text: 'text-slate-600' },
   cancelled: { label: 'Cancelado', bg: 'bg-slate-100', text: 'text-slate-500' },
 }
 
@@ -173,6 +178,31 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
     []
   )
 
+  const requestLocation = useCallback(async (gift: Gift) => {
+    setUpdatingId(gift.id)
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('gift_experiences')
+      .update({ location_requested_at: new Date().toISOString() })
+      .eq('id', gift.id)
+    if (error) {
+      console.error('[GiftDashboard] Error al solicitar ubicación:', error)
+    }
+    setUpdatingId(null)
+  }, [])
+
+  const markDelivered = useCallback(async (gift: Gift) => {
+    setUpdatingId(gift.id)
+    const supabase = createClient()
+    const { data, error } = await supabase.rpc('entregar_regalo_v2', { p_gift_id: gift.id })
+    if (error) {
+      console.error('[GiftDashboard] Error al marcar entregado:', error)
+    } else if (!data?.success) {
+      console.error('[GiftDashboard] entregar_regalo_v2:', data?.error)
+    }
+    setUpdatingId(null)
+  }, [])
+
   const cancelGift = useCallback(async (gift: Gift) => {
     if (gift.status !== 'RESERVED' && gift.status !== 'CLAIMED') return
     setUpdatingId(gift.id)
@@ -240,6 +270,7 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
                 <th className="text-left py-3 px-4 font-medium text-slate-500">Para</th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500">Código</th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500">Enlace</th>
+                <th className="text-left py-3 px-4 font-medium text-slate-500">Entrega</th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500">Estado</th>
                 <th className="text-right py-3 px-4 font-medium text-slate-500">Acción</th>
               </tr>
@@ -255,7 +286,7 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
                     </code>
                   </td>
                   <td className="py-3 px-4">
-                    {(gift.status === 'RESERVED' || gift.status === 'CLAIMED') && (
+                    {(gift.status === 'RESERVED' || gift.status === 'CLAIMED' || gift.status === 'DELIVERED') && (
                       <button
                         onClick={() => copyToClipboard(`${window.location.origin}/canje?gift=${gift.gift_code}&id=${gift.store_id}`)}
                         className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium rounded-lg transition-colors"
@@ -263,6 +294,23 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
                       >
                         Copiar
                       </button>
+                    )}
+                  </td>
+                  <td className="py-3 px-4">
+                    {gift.status === 'CLAIMED' && !gift.delivery_address && (
+                      <span className="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 whitespace-nowrap">
+                        🔴 Pendiente ubicación
+                      </span>
+                    )}
+                    {gift.status === 'CLAIMED' && gift.delivery_address && (
+                      <span className="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 whitespace-nowrap">
+                        🟢 Listo para entregar
+                      </span>
+                    )}
+                    {gift.status === 'DELIVERED' && (
+                      <span className="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500 whitespace-nowrap">
+                        ✅ Entregado
+                      </span>
                     )}
                   </td>
                   <td className="py-3 px-4">
@@ -292,7 +340,7 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
                           Rechazar
                         </button>
                       </div>
-                    ) : gift.status === 'RESERVED' || gift.status === 'CLAIMED' ? (
+                    ) : gift.status === 'RESERVED' ? (
                       <button
                         onClick={() => cancelGift(gift)}
                         disabled={updatingId === gift.id}
@@ -300,9 +348,37 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
                       >
                         {updatingId === gift.id ? 'Cancelando...' : 'Cancelar'}
                       </button>
+                    ) : gift.status === 'CLAIMED' ? (
+                      <div className="flex gap-2 justify-end flex-wrap">
+                        {!gift.delivery_address && (
+                          <button
+                            onClick={() => requestLocation(gift)}
+                            disabled={updatingId === gift.id}
+                            className="px-3 py-1.5 bg-amber-500 text-white text-xs font-medium rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                          >
+                            {updatingId === gift.id ? '...' : '📍 Solicitar ubicación'}
+                          </button>
+                        )}
+                        {gift.delivery_address && (
+                          <button
+                            onClick={() => markDelivered(gift)}
+                            disabled={updatingId === gift.id}
+                            className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                          >
+                            {updatingId === gift.id ? '...' : '🚚 Marcar entregado'}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => cancelGift(gift)}
+                          disabled={updatingId === gift.id}
+                          className="px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
+                        >
+                          {updatingId === gift.id ? 'Cancelando...' : 'Cancelar'}
+                        </button>
+                      </div>
                     ) : (
                       <span className="text-xs text-slate-400 italic">
-                        {gift.status === 'approved' ? 'Aprobado' : gift.status === 'expired' ? 'Vencido' : gift.status === 'cancelled' ? 'Cancelado' : 'Rechazado'}
+                        {gift.status === 'DELIVERED' ? 'Entregado' : gift.status === 'approved' ? 'Aprobado' : gift.status === 'expired' ? 'Vencido' : gift.status === 'cancelled' ? 'Cancelado' : 'Rechazado'}
                       </span>
                     )}
                   </td>
