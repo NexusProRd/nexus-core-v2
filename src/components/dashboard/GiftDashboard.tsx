@@ -12,7 +12,7 @@ interface Gift {
   personal_message: string | null
   gift_code: string
   is_redeemed: boolean
-  status: 'pending' | 'approved' | 'rejected' | 'expired'
+  status: 'pending' | 'approved' | 'rejected' | 'expired' | 'RESERVED' | 'CLAIMED' | 'cancelled'
   created_at: string
   items_list: { product_id: string; nombre: string; precio: number; imagen_url: string | null }[]
 }
@@ -22,6 +22,9 @@ const statusConfig: Record<string, { label: string; bg: string; text: string }> 
   approved: { label: 'Aprobado', bg: 'bg-green-100', text: 'text-green-800' },
   rejected: { label: 'Rechazado', bg: 'bg-red-100', text: 'text-red-800' },
   expired: { label: 'Vencido', bg: 'bg-slate-100', text: 'text-slate-500' },
+  RESERVED: { label: 'Reservado', bg: 'bg-blue-100', text: 'text-blue-800' },
+  CLAIMED: { label: 'Reclamado', bg: 'bg-emerald-100', text: 'text-emerald-800' },
+  cancelled: { label: 'Cancelado', bg: 'bg-slate-100', text: 'text-slate-500' },
 }
 
 export default function GiftDashboard({ storeId }: { storeId: string }) {
@@ -144,6 +147,42 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
     []
   )
 
+  const cancelGift = useCallback(async (gift: Gift) => {
+    if (gift.status !== 'RESERVED' && gift.status !== 'CLAIMED') return
+    setUpdatingId(gift.id)
+    const supabase = createClient()
+
+    const hasItems = gift.items_list?.length > 0
+
+    if (hasItems) {
+      const stockResult = await gestionarStock(
+        supabase,
+        gift.items_list.map(i => ({
+          id_producto: i.product_id,
+          nombre: i.nombre,
+          cantidad: 1,
+          variante_seleccionada: null,
+        })),
+        'unreserve'
+      )
+      if (!stockResult.ok) {
+        console.error('[GiftDashboard] Error al liberar stock:', stockResult.errors)
+        setUpdatingId(null)
+        return
+      }
+    }
+
+    const { error } = await supabase
+      .from('gift_experiences')
+      .update({ status: 'cancelled' })
+      .eq('id', gift.id)
+
+    if (error) {
+      console.error('[GiftDashboard] Error al cancelar regalo:', error)
+    }
+    setUpdatingId(null)
+  }, [])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -215,9 +254,17 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
                           Rechazar
                         </button>
                       </div>
+                    ) : gift.status === 'RESERVED' || gift.status === 'CLAIMED' ? (
+                      <button
+                        onClick={() => cancelGift(gift)}
+                        disabled={updatingId === gift.id}
+                        className="px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
+                      >
+                        {updatingId === gift.id ? 'Cancelando...' : 'Cancelar'}
+                      </button>
                     ) : (
                       <span className="text-xs text-slate-400 italic">
-                        {gift.status === 'approved' ? 'Aprobado' : gift.status === 'expired' ? 'Vencido' : 'Rechazado'}
+                        {gift.status === 'approved' ? 'Aprobado' : gift.status === 'expired' ? 'Vencido' : gift.status === 'cancelled' ? 'Cancelado' : 'Rechazado'}
                       </span>
                     )}
                   </td>

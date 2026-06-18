@@ -10,9 +10,10 @@ interface RedeemButtonProps {
   items: { product_id: string; nombre: string; precio: number; imagen_url: string | null }[]
   storeId: string
   giftCode: string
+  isV2?: boolean
 }
 
-export default function RedeemButton({ giftId, items, storeId, giftCode }: RedeemButtonProps) {
+export default function RedeemButton({ giftId, items, storeId, giftCode, isV2 }: RedeemButtonProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const { addMultipleToCart } = useCart()
@@ -23,7 +24,8 @@ export default function RedeemButton({ giftId, items, storeId, giftCode }: Redee
     setError('')
     const supabase = createClient()
 
-    const { data: rpcData, error: rpcError } = await supabase.rpc('procesar_canje_regalo', {
+    const rpcName = isV2 ? 'reclamar_regalo_v2' : 'procesar_canje_regalo'
+    const { data: rpcData, error: rpcError } = await supabase.rpc(rpcName, {
       p_gift_code: giftCode,
       p_store_id: storeId
     })

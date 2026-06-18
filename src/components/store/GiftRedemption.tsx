@@ -36,12 +36,32 @@ export default function GiftRedemption({ idTienda, defaultCode, onOpen }: { idTi
 
     const { data: giftData } = await supabase
       .from('gift_experiences')
-      .select('sender_name, receiver_name, personal_message')
+      .select('sender_name, receiver_name, personal_message, status')
       .eq('store_id', idTienda)
       .eq('gift_code', code.trim().toUpperCase())
       .maybeSingle()
 
-    const { data: rpcData, error: rpcError } = await supabase.rpc('procesar_canje_regalo', {
+    if (!giftData) {
+      setError('Código de regalo no encontrado.')
+      setLoading(false)
+      return
+    }
+
+    if (giftData.status === 'CLAIMED') {
+      setError('Este regalo ya fue canjeado previamente.')
+      setLoading(false)
+      return
+    }
+
+    if (giftData.status === 'cancelled') {
+      setError('Este regalo fue cancelado y ya no está disponible.')
+      setLoading(false)
+      return
+    }
+
+    const isV2 = giftData.status === 'RESERVED'
+    const rpcName = isV2 ? 'reclamar_regalo_v2' : 'procesar_canje_regalo'
+    const { data: rpcData, error: rpcError } = await supabase.rpc(rpcName, {
       p_gift_code: code.trim().toUpperCase(),
       p_store_id: idTienda
     })

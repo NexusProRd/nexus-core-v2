@@ -25,6 +25,7 @@ function CanjeContent() {
   const [revealed, setRevealed] = useState(false)
   const [error, setError] = useState(false)
   const [isRedeemed, setIsRedeemed] = useState(false)
+  const [isV2, setIsV2] = useState(false)
   const [debugMsg, setDebugMsg] = useState('')
   const fetched = useRef(false)
 
@@ -77,12 +78,33 @@ function CanjeContent() {
         setLoading(false)
         return
       }
-      if (data.status !== 'approved') {
+      if (data.status === 'CLAIMED') {
+        setIsRedeemed(true)
+        setGift({
+          id: data.id,
+          sender_name: data.sender_name,
+          receiver_name: data.receiver_name || '',
+          personal_message: data.personal_message,
+          gift_code: data.gift_code,
+          store_id: data.store_id,
+          items: (data.items_list as GiftData['items']) || [],
+        })
+        setLoading(false)
+        return
+      }
+      if (data.status === 'cancelled') {
+        setDebugMsg('Este regalo fue cancelado.')
+        setError(true)
+        setLoading(false)
+        return
+      }
+      if (data.status !== 'approved' && data.status !== 'RESERVED') {
         setDebugMsg(`El regalo existe pero su estado es: ${data.status}`)
         setError(true)
         setLoading(false)
         return
       }
+      if (data.status === 'RESERVED') setIsV2(true)
       setGift({
         id: data.id,
         sender_name: data.sender_name,
@@ -258,12 +280,14 @@ function CanjeContent() {
                 </div>
               )}
             </div>
-            <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-3">
-              <p className="text-xs font-bold text-amber-800">¡Importante! Debes canjear este regalo en menos de <span className="text-amber-900 underline decoration-amber-400 decoration-2">72 horas</span> después de ser aprobado.</p>
-              <p className="text-[11px] text-amber-600 mt-1">Pasado este tiempo, el cupón expirará automáticamente para liberar el inventario y no habrá reembolsos.</p>
-              <p className="text-[11px] text-slate-500 mt-1.5 pt-1.5 border-t border-amber-200/50">El costo de envío no está incluido y se cotizará según la zona al realizar el pedido.</p>
-            </div>
-            <RedeemButton giftId={gift.id} items={gift.items} storeId={gift.store_id} giftCode={gift.gift_code} />
+            {!isV2 && (
+              <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                <p className="text-xs font-bold text-amber-800">¡Importante! Debes canjear este regalo en menos de <span className="text-amber-900 underline decoration-amber-400 decoration-2">72 horas</span> después de ser aprobado.</p>
+                <p className="text-[11px] text-amber-600 mt-1">Pasado este tiempo, el cupón expirará automáticamente para liberar el inventario y no habrá reembolsos.</p>
+                <p className="text-[11px] text-slate-500 mt-1.5 pt-1.5 border-t border-amber-200/50">El costo de envío no está incluido y se cotizará según la zona al realizar el pedido.</p>
+              </div>
+            )}
+            <RedeemButton giftId={gift.id} items={gift.items} storeId={gift.store_id} giftCode={gift.gift_code} isV2={isV2} />
           </div>
         )}
       </div>

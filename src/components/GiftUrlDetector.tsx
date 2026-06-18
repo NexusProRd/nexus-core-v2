@@ -22,14 +22,15 @@ export default function GiftUrlDetector() {
       const supabase = createClient()
       const query = supabase
         .from('gift_experiences')
-        .select('items_list')
+        .select('items_list, status, is_redeemed')
         .eq('gift_code', code.trim().toUpperCase())
-        .eq('status', 'approved')
-        .eq('is_redeemed', false)
       if (storeId) query.eq('store_id', storeId)
       const { data: gift } = await query.maybeSingle()
 
       if (!gift) return
+
+      if (gift.status === 'approved' && gift.is_redeemed) return
+      if (gift.status !== 'approved' && gift.status !== 'CLAIMED') return
 
       const items = (gift.items_list as { product_id: string; nombre: string; precio: number; imagen_url: string | null }[]) || []
       if (items.length > 0) {
