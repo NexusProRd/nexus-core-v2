@@ -17,9 +17,9 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Regalos V2 Sprint 3G — Expiración automática RESERVED |
+| Último commit | Regalos V2 Sprint 3G — Expiración automática RESERVED (SQL 075-078 ejecutados en Supabase) |
 
-| Última verificación | 2026-06-19 — Regalos V2 Sprint 3G: build PASS, typecheck PASS |
+| Última verificación | 2026-06-19 — Regalos V2 Sprint 3G: build PASS, typecheck PASS. SQL migrations 075-078 ejecutados en Supabase. |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
