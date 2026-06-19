@@ -43,6 +43,12 @@ export default function RedeemButton({ giftId, items, storeId, giftCode, isV2 }:
       return
     }
 
+    fetch('/api/push/gift-notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idTienda: storeId, event: 'claimed', giftCode }),
+    }).catch(() => {})
+
     const itemsList = res.items || items
     const giftCartItems = itemsList.map((item: any) => ({
       id: item.product_id || item.id,

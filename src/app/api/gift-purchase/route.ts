@@ -1,12 +1,13 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextRequest, NextResponse } from 'next/server'
+import { sendPushToTienda } from '@/lib/push'
 
 export async function POST(req: NextRequest) {
   const { supabase, error } = createAdminClient()
   if (error) return NextResponse.json({ error }, { status: 500 })
 
   const body = await req.json()
-  const { idTienda, sender, senderPhone, receiver, message, items, giftCode, delivery_address, delivery_location_link } = body
+  const { idTienda, sender, senderPhone, receiver, receiverPhone, message, items, giftCode, delivery_address, delivery_location_link } = body
 
   if (!idTienda || !sender?.trim() || !senderPhone?.trim() || !receiver?.trim() || !items?.length) {
     return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 })
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
       sender_name: sender.trim(),
       sender_phone: senderPhone.trim(),
       receiver_name: receiver.trim(),
+      receiver_phone: receiverPhone?.trim() || null,
       personal_message: message?.trim() || null,
       gift_code: giftCode,
       status: 'pending',
@@ -59,6 +61,12 @@ export async function POST(req: NextRequest) {
   if (insertError) {
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
+
+  sendPushToTienda(idTienda, {
+    title: '🎁 Nuevo regalo pendiente',
+    body: `${sender.trim()} te ha enviado un regalo para ${receiver.trim()}. Código: ${giftCode}`,
+    data: { url: '/dashboard/regalos', giftCode },
+  }).catch((e) => console.error('[gift-purchase] push error:', e))
 
   return NextResponse.json({ success: true, giftId: newGift.id, giftCode, status: 'pending' })
 }

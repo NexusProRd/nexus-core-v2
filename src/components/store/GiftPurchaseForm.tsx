@@ -34,6 +34,7 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber, defaultProd
   const [sender, setSender] = useState('')
   const [senderPhone, setSenderPhone] = useState('')
   const [receiver, setReceiver] = useState('')
+  const [receiverPhone, setReceiverPhone] = useState('')
   const [message, setMessage] = useState('')
   const [success, setSuccess] = useState(false)
   const [giftCodeResult, setGiftCodeResult] = useState('')
@@ -108,6 +109,7 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber, defaultProd
           sender: sender.trim(),
           senderPhone: senderPhone.trim(),
           receiver: receiver.trim(),
+          receiverPhone: receiverPhone.trim() || null,
           message: message.trim() || null,
           items: itemsPayload,
           giftCode,
@@ -131,6 +133,7 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber, defaultProd
       setSender('')
       setSenderPhone('')
       setReceiver('')
+      setReceiverPhone('')
       setMessage('')
       setSelected([])
       setSearch('')
@@ -258,6 +261,16 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber, defaultProd
               </div>
 
               <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">WhatsApp del destinatario <span className="text-xs text-slate-400">(opcional)</span></label>
+                <div className="flex gap-2">
+                  <span className="inline-flex items-center px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-500 bg-slate-50 font-medium">+1</span>
+                  <input type="tel" value={receiverPhone} onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); setReceiverPhone(v) }}
+                    className="flex-1 px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-900 focus:ring-2 focus:ring-[var(--primary)] outline-none" placeholder="809 123 4567" />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-0.5">Para notificar al destinatario cuando el regalo esté listo.</p>
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Tu WhatsApp</label>
                 <div className="flex gap-2">
                   <span className="inline-flex items-center px-3 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-500 bg-slate-50 font-medium">+1</span>
@@ -337,7 +350,7 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber, defaultProd
                 Completa el pago con la tienda para activar tu regalo. Una vez confirmado recibirás el enlace para compartirlo.
               </p>
             </div>
-            <button onClick={() => { setOpen(false); setSuccess(false); setGiftCodeResult(''); setSender(''); setSenderPhone(''); setReceiver(''); setMessage(''); setSelected([]); setSearch(''); setHasLocation(false); setDeliveryAddress(''); setDeliveryLink('') }}
+            <button onClick={() => { setOpen(false); setSuccess(false); setGiftCodeResult(''); setSender(''); setSenderPhone(''); setReceiver(''); setReceiverPhone(''); setMessage(''); setSelected([]); setSearch(''); setHasLocation(false); setDeliveryAddress(''); setDeliveryLink('') }}
               className="w-full py-2.5 bg-[var(--primary)] text-white font-medium rounded-xl hover:brightness-110 transition-colors text-sm">
               Entendido
             </button>

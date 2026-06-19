@@ -85,6 +85,12 @@ export default function GiftRedemption({ idTienda, defaultCode, onOpen }: { idTi
       return
     }
 
+    fetch('/api/push/gift-notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idTienda, event: 'claimed', giftCode: code.trim().toUpperCase(), receiverName: giftData?.receiver_name }),
+    }).catch(() => {})
+
     const items = (res.items || []) as { product_id: string; nombre: string; precio: number; imagen_url: string | null }[]
     for (const item of items) {
       addToCart({ id: item.product_id, nombre: item.nombre, precio: 0, imagen_url: item.imagen_url, isGift: true })

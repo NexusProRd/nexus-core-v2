@@ -27,6 +27,14 @@ function copyToClipboard(text: string) {
   navigator.clipboard.writeText(text).catch(() => {})
 }
 
+function sendGiftPush(storeId: string, event: string, giftCode: string, senderName?: string, receiverName?: string) {
+  fetch('/api/push/gift-notify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idTienda: storeId, event, giftCode, senderName, receiverName }),
+  }).catch(() => {})
+}
+
 const statusConfig: Record<string, { label: string; bg: string; text: string }> = {
   pending: { label: 'Pendiente', bg: 'bg-yellow-100', text: 'text-yellow-800' },
   approved: { label: 'Aprobado', bg: 'bg-green-100', text: 'text-green-800' },
@@ -124,6 +132,8 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
         console.error('[GiftDashboard] Error al aprobar:', error)
       } else if (!data?.success) {
         console.error('[GiftDashboard] aprobar_regalo_v2:', data?.error)
+      } else {
+        sendGiftPush(storeId, 'approved', gift.gift_code)
       }
       setUpdatingId(null)
     },
@@ -151,6 +161,8 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
       console.error('[GiftDashboard] Error al marcar entregado:', error)
     } else if (!data?.success) {
       console.error('[GiftDashboard] entregar_regalo_v2:', data?.error)
+    } else {
+      sendGiftPush(storeId, 'delivered', gift.gift_code)
     }
     setUpdatingId(null)
   }, [])
@@ -174,12 +186,14 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
     setShowConvertConfirm(null)
     const result = await convertGiftToGiftCard(giftId)
     if (result.success) {
+      const gift = gifts.find(g => g.id === giftId)
       setConvertResult({ code: result.giftCard.code, value: result.value, expiresAt: result.expiresAt })
       setGifts((prev) =>
         prev.map((g) =>
           g.id === giftId ? { ...g, converted_to_giftcard_at: new Date().toISOString() } : g
         )
       )
+      sendGiftPush(storeId, 'converted', gift?.gift_code || result.giftCard.code)
     } else {
       console.error('[GiftDashboard] Error al convertir:', result.error)
     }
