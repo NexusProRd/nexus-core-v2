@@ -196,6 +196,7 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
         onShowRegalos={() => setShowRegalosMsg(true)}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        storeId={id_tienda}
       />
 
       {/* MOBILE EXPERIENCE PASS: Theme toggle with better position above nav */}

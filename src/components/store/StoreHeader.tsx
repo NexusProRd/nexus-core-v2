@@ -1,6 +1,7 @@
 'use client'
 
 import { useCart } from '@/context/CartContext'
+import Link from 'next/link'
 
 export type TabId = 'inicio' | 'menu' | 'pedidos'
 
@@ -15,6 +16,7 @@ interface Props {
   onShowRegalos: () => void
   searchQuery: string
   onSearchChange: (q: string) => void
+  storeId: string
 }
 
 const navItems: { id: TabId; label: string }[] = [
@@ -34,6 +36,7 @@ export default function StoreHeader({
   onShowRegalos,
   searchQuery,
   onSearchChange,
+  storeId,
 }: Props) {
   const { totalItems, setIsOpen } = useCart()
   const numeroLimpio = whatsappNumber?.replace(/\D/g, '') || ''
@@ -60,6 +63,11 @@ export default function StoreHeader({
           <span className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate">{nombreTienda}</span>
         </div>
         <div className="flex items-center gap-1">
+          <Link href={`/${storeId}/gift-card`}
+            className="w-9 h-9 rounded-lg text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 flex items-center justify-center transition-all active:scale-90 touch-target"
+            aria-label="Consultar Gift Card">
+            💳
+          </Link>
           <button onClick={() => onTabChange('menu')}
             className="w-9 h-9 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-all active:scale-90 touch-target"
             aria-label="Buscar productos">
@@ -109,6 +117,10 @@ export default function StoreHeader({
               Regalos
               <span className="ml-1.5 text-[9px] text-amber-500 font-semibold">Próx</span>
             </button>
+            <Link href={`/${storeId}/gift-card`}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition-all">
+              💳 Gift Card
+            </Link>
           </nav>
         </div>
 

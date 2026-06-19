@@ -11,15 +11,15 @@
 | Atributo | Valor |
 |----------|-------|
 | Stack | Next.js 16.2.6, React 19.2.4, Supabase, Tailwind v4 |
-| Base de datos | Supabase PostgreSQL (72 migraciones, hasta 072) |
+| Base de datos | Supabase PostgreSQL (78 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
+| Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H) |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Regalos V2 Sprint 3G — Expiración automática RESERVED (SQL 075-078 ejecutados en Supabase) |
+| Último commit | Regalos V2 Sprint 3H — Consulta pública Gift Cards (API + /[slug]/gift-card + link catálogo) |
 
-| Última verificación | 2026-06-19 — Regalos V2 Sprint 3G: build PASS, typecheck PASS. SQL migrations 075-078 ejecutados en Supabase. |
+| Última verificación | 2026-06-19 — Regalos V2 Sprint 3H: build PASS, typecheck PASS. 3 archivos creados, 2 modificados. |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -44,6 +44,12 @@
 ## Current Focus
 
 ### Sprints completados
+
+**Sprint REGALOS-V2-03H — Regalos V2 Sprint 3H: Consulta pública Gift Cards**
+- API `POST /api/gift-card/consulta` con rate limiting, validación trim/uppercase/regex
+- Página `/{slug}/gift-card` con formulario, badges de estado, resultados
+- Enlace 💳 Gift Card en nav del catálogo público (desktop + mobile)
+- 0 migraciones, solo lectura, no expone datos sensibles
 
 **Sprint REGALOS-V2-02 — Regalos V2 Sprint 2: Delivery + Ubicación + Inventario definitivo**
 
@@ -84,6 +90,35 @@
 **Sprint UX-VITRINA-01 — Hero + Header + Portada cleanup, Destacados auto-slide mobile, precios portadas, cross-fade**
 
 ### Estado
+
+**Sprint REGALOS-V2-03H Completado.** Consulta pública de Gift Cards:
+
+**FASE A — API POST /api/gift-card/consulta:**
+- Input: `{ code }` — validación trim/uppercase/regex `^GC[A-Z0-9]{10}$`
+- Rate limiting: `gc-consulta-` prefix, 10/min window, 30min block
+- Admin client bypass RLS, SELECT solo: code, balance, initial_value, status, expires_at
+- Response: `{ code, balance, initial_value, status, expires_at, usable }`
+- NO expone: store_id, original_gift_id, recipient_name, recipient_phone, transactions, internal IDs
+
+**FASE B — Página /[slug]/gift-card:**
+- Server component: lookup tienda por slug → UUID (fallback), metadata dinámica
+- Client component: input font-mono, botón, loading/error/result states
+- StatusBadge: Activa (green), Canjeada (blue), Expirada (amber), Cancelada (red)
+- Cancelled: oculta initial_value, muestra "Gift Card cancelada"
+- Links: volver al catálogo + WhatsApp contacto
+
+**FASE C — Enlace visible desde catálogo:**
+- Desktop nav: "💳 Gift Card" junto a Regalos
+- Mobile header: 💳 icon button
+- storeId (UUID) como path segment
+
+**Decisiones:**
+- 0 migraciones — sin cambios en DB
+- API rate-limit independente del login (`gc-consulta-` prefix)
+- `usable: true` solo para status='active'
+- Backlink compatible con catálogo UUID routing
+
+Build PASS. Typecheck PASS.
 
 **Sprint REGALOS-V2-03G Completado.** Expiración automática de regalos RESERVED:
 
@@ -1748,13 +1783,14 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 | PWA QA completo | P2 | ⬜ |
 | Realtime reconnection | P2 | ⬜ |
 | E2E tests Playwright | P2 | ⬜ |
+| Consulta pública Gift Cards (Sprint 3H) | P3 | ✅ |
 | Cupones — auditoría | P3 | ⬜ |
 | Marketing — auditoría | P3 | ⬜ |
 | B7 — Gift quantity > 1 | P3 | ⬜ |
 | Gift Cards en checkout | P3 | ⬜ |
-| Dashboard Gift Cards | P3 | ⬜ |
-| Conversión manual Gift → Gift Card desde UI | P3 | ⬜ |
-| Expiración automática (cron jobs) | P3 | ⬜ |
+| Dashboard Gift Cards | P3 | ✅ |
+| Conversión manual Gift → Gift Card desde UI | P3 | ✅ |
+| Expiración automática (cron jobs) | P3 | ✅ Infraestructura lista |
 | Reportes Gift Cards | P4 | ⬜ |
 | Drop `pedidos.is_gift` column (cleanup) | P4 | ⬜ |
 
@@ -2092,6 +2128,35 @@ async function diag() {
 ---
 
 ## Changelog
+
+### 2026-06-19 — Sprint REGALOS-V2-03H — Consulta pública Gift Cards
+
+##### Cambios
+
+- **API `POST /api/gift-card/consulta`** — Nuevo endpoint público para consultar saldo de Gift Cards. Validación: trim, uppercase, regex `^GC[A-Z0-9]{10}$`. Rate limiting independiente del login (`gc-consulta-` prefix, 10/min, 30min block). Admin client bypass RLS. Response limitado a: `code, balance, initial_value, status, expires_at, usable`. NO expone store_id, original_gift_id, recipient, transactions, internal IDs.
+- **Página `/{slug}/gift-card`** — Server component busca tienda por slug o UUID; client component con formulario font-mono, loading/error/result states. StatusBadge semántico (Activa/Canjeada/Expirada/Cancelada). Cancelled oculta initial_value y muestra "Gift Card cancelada". Links: volver al catálogo + WhatsApp contacto.
+- **Enlace en catálogo público** — Desktop nav: "💳 Gift Card". Mobile header: 💳 icon button. StoreHeader acepta `storeId` prop.
+- **0 migraciones** — Sin cambios en base de datos.
+
+##### Archivos creados
+
+```
+src/app/api/gift-card/consulta/route.ts           | +144 (API endpoint)
+src/app/[slug]/gift-card/page.tsx                  |  +80 (server component + metadata)
+src/app/[slug]/gift-card/consulta-client.tsx       | +186 (client component UI)
+```
+
+##### Archivos modificados
+
+```
+src/components/store/StoreHeader.tsx               |  +18 / -1  (storeId prop, link desktop/mobile)
+src/components/store/CatalogContent.tsx            |   +1 / -0  (pasa storeId a StoreHeader)
+```
+
+##### Verificación
+
+- Typecheck PASS ✅
+- Build PASS ✅ (91 rutas generadas)
 
 ### 2026-06-09 — Sprint Impuestos 0.3B — Tax display in catalog + JSONB consumption fix
 
