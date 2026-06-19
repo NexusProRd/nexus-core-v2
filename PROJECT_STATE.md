@@ -17,9 +17,9 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Regalos V2 Sprint 3G-Prep — Hardening: RPCs atómicas + RLS gift_cards (Ejecutado SQL 073 + 074 en Supabase) |
+| Último commit | Regalos V2 Sprint 3G — Expiración automática RESERVED |
 
-| Última verificación | 2026-06-19 — Regalos V2 Sprint 3G-Prep: build PASS, typecheck PASS. SQL migrations 073 + 074 ejecutados en Supabase. |
+| Última verificación | 2026-06-19 — Regalos V2 Sprint 3G: build PASS, typecheck PASS |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -84,6 +84,36 @@
 **Sprint UX-VITRINA-01 — Hero + Header + Portada cleanup, Destacados auto-slide mobile, precios portadas, cross-fade**
 
 ### Estado
+
+**Sprint REGALOS-V2-03G Completado.** Expiración automática de regalos RESERVED:
+
+**FASE A (075) — reserved_expires_at:**
+- Nueva columna TIMESTAMPTZ en gift_experiences
+- Partial index `(status, reserved_expires_at) WHERE status = 'RESERVED'`
+- Backfill: todos los gifts existentes con status='RESERVED' desde created_at + gift_config
+
+**FASE B (076) — aprobar_regalo_v2 actualizado:**
+- Al aprobar V2: setea `reserved_expires_at = NOW() + reserved_expires_days`
+- Lee desde `tiendas.gift_config` (default 7)
+- V1 no afectado (no expira)
+
+**FASE C (077) — Fix convertir_regalo_a_giftcard_v2:**
+- CORREGIDO stock leak: ahora libera stock_reservado si status IN ('RESERVED','CLAIMED')
+- Cambia status → 'expired' al convertir
+- Mantiene compatibilidad con conversión manual
+
+**FASE D (078) — procesar_expiracion_reservados_v2():**
+- Batch RPC con FOR UPDATE SKIP LOCKED, LIMIT 50
+- Reutiliza convertir_regalo_a_giftcard_v2() internamente
+- Infraestructura cron lista (comando documentado para activación manual)
+
+**Decisiones:**
+- ✅ RESERVED expira automáticamente
+- ❌ CLAIMED NO expira (solo soft limit futuro)
+- Cron cada 6h recomendado
+- Sin cambios en TypeScript
+
+Build PASS. Typecheck PASS.
 
 **Sprint REGALOS-V2-03G-PREP Completado.** Hardening pre-Sprint 3G — RPCs atómicas, RLS gift_cards, API endpoint:
 
