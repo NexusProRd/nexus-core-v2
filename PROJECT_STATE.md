@@ -17,9 +17,9 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Regalos V2 Sprint 3E — Conversión manual Gift → Gift Card desde Dashboard |
+| Último commit | Regalos V2 Sprint 3F — Dashboard Gift Cards con tabs en /dashboard/regalos |
 
-| Última verificación | 2026-06-19 — Regalos V2 Sprint 3E: build PASS, typecheck PASS |
+| Última verificación | 2026-06-19 — Regalos V2 Sprint 3F: build PASS, typecheck PASS |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -84,6 +84,16 @@
 **Sprint UX-VITRINA-01 — Hero + Header + Portada cleanup, Destacados auto-slide mobile, precios portadas, cross-fade**
 
 ### Estado
+
+**Sprint REGALOS-V2-03F Completado.** Regalos V2 Sprint 3F — Dashboard Gift Cards con tabs:
+- Nuevo componente `GiftCardsDashboard.tsx`: tabla con código, destinatario, valor, saldo, estado, expiración, gift origen
+- Stats cards: Total Gift Cards, Activas, Valor activo
+- Filtros: búsqueda por código/destinatario + dropdown por estado
+- Realtime: INSERT/UPDATE en `gift_cards` vía `postgres_changes`
+- Responsive: tabla desktop, cards mobile
+- Tab bar en `/dashboard/regalos`: [Regalos] [Gift Cards] — sin nueva ruta
+- Solo lectura + Copiar código. Sin acciones de escritura.
+- Build PASS. Typecheck PASS.
 
 **Sprint REGALOS-V2-03E Completado.** Regalos V2 Sprint 3E — Conversión manual Gift → Gift Card desde Dashboard:
 - GiftDashboard.tsx: botón "🎁 Convertir" para estados RESERVED, CLAIMED, expired

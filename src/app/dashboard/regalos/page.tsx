@@ -2,12 +2,19 @@
 
 import { useState, useEffect } from 'react'
 import GiftDashboard from '@/components/dashboard/GiftDashboard'
+import GiftCardsDashboard from '@/components/dashboard/GiftCardsDashboard'
 
 export const dynamic = 'force-dynamic'
+
+const tabs = [
+  { id: 'gifts', label: 'Regalos' },
+  { id: 'gift-cards', label: 'Gift Cards' },
+]
 
 export default function RegalosPage() {
   const [storeId, setStoreId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('gifts')
 
   useEffect(() => {
     async function loadStoreId() {
@@ -49,14 +56,36 @@ export default function RegalosPage() {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-white">Regalos</h1>
-              <p className="text-sm text-white/70 mt-0.5">Gestión de regalos V2</p>
+              <p className="text-sm text-white/70 mt-0.5">Gestión de regalos V2 y Gift Cards</p>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto py-4 sm:py-6 px-3 sm:px-6 lg:px-8">
-        <GiftDashboard storeId={storeId} />
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex gap-1 -mt-4 mb-4">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-5 py-2.5 text-sm font-medium rounded-t-xl transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-white text-violet-700 shadow-sm border border-slate-200 border-b-white'
+                  : 'bg-white/60 text-white/80 hover:text-white hover:bg-white/20'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <main className="max-w-7xl mx-auto pb-6 px-3 sm:px-6 lg:px-8">
+        {activeTab === 'gifts' ? (
+          <GiftDashboard storeId={storeId} />
+        ) : (
+          <GiftCardsDashboard storeId={storeId} />
+        )}
       </main>
     </div>
   )
