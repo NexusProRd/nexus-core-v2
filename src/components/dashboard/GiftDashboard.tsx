@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase'
-import { gestionarStock } from '@/lib/stock'
 import { convertGiftToGiftCard } from '@/lib/gift-cards'
 
 interface Gift {
@@ -110,74 +109,21 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
       setUpdatingId(gift.id)
       const supabase = createClient()
 
-      const isV2 = !!(gift.sender_phone && gift.sender_phone.trim())
-
-      if (newStatus === 'approved' && gift.items_list?.length > 0) {
-        if (isV2) {
-          const stockResult = await gestionarStock(
-            supabase,
-            gift.items_list.map(i => ({
-              id_producto: i.product_id,
-              nombre: i.nombre,
-              cantidad: 1,
-              variante_seleccionada: null,
-            })),
-            'reserve'
-          )
-          if (!stockResult.ok) {
-            console.error('[GiftDashboard] reserve errors:', stockResult.errors)
-            setUpdatingId(null)
-            return
-          }
-        } else {
-          const productIds = gift.items_list.map(i => i.product_id)
-          const { data: products } = await supabase
-            .from('productos')
-            .select('id, stock, in_stock')
-            .in('id', productIds)
-
-          const insufficient: string[] = []
-          for (const item of gift.items_list) {
-            const prod = products?.find(p => p.id === item.product_id)
-            if (!prod || !prod.in_stock || prod.stock <= 0) {
-              insufficient.push(item.nombre)
-            }
-          }
-
-          if (insufficient.length > 0) {
-            console.error('[GiftDashboard] Stock insuficiente para:', insufficient.join(', '))
-            setUpdatingId(null)
-            return
-          }
-
-          const stockResult = await gestionarStock(
-            supabase,
-            gift.items_list.map(i => ({
-              id_producto: i.product_id,
-              nombre: i.nombre,
-              cantidad: 1,
-              variante_seleccionada: null,
-            })),
-            'deduct'
-          )
-          if (!stockResult.ok) {
-            console.error('[GiftDashboard] stock decrement errors:', stockResult.errors)
-            setUpdatingId(null)
-            return
-          }
-        }
+      if (newStatus === 'rejected') {
+        const { error } = await supabase
+          .from('gift_experiences')
+          .update({ status: 'rejected' })
+          .eq('id', gift.id)
+        if (error) console.error('[GiftDashboard] Error al rechazar:', error)
+        setUpdatingId(null)
+        return
       }
 
-      const targetStatus = isV2 && newStatus === 'approved' ? 'RESERVED' : newStatus === 'approved' && !isV2 ? 'approved' : newStatus
-      const updates: any = { status: targetStatus }
-      if (!isV2 && newStatus === 'approved') updates.approved_at = new Date().toISOString()
-      const { error } = await supabase
-        .from('gift_experiences')
-        .update(updates)
-        .eq('id', gift.id)
-
+      const { data, error } = await supabase.rpc('aprobar_regalo_v2', { p_gift_id: gift.id })
       if (error) {
-        console.error('Error updating gift status:', error)
+        console.error('[GiftDashboard] Error al aprobar:', error)
+      } else if (!data?.success) {
+        console.error('[GiftDashboard] aprobar_regalo_v2:', data?.error)
       }
       setUpdatingId(null)
     },
@@ -214,33 +160,11 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
     setUpdatingId(gift.id)
     const supabase = createClient()
 
-    const hasItems = gift.items_list?.length > 0
-
-    if (hasItems) {
-      const stockResult = await gestionarStock(
-        supabase,
-        gift.items_list.map(i => ({
-          id_producto: i.product_id,
-          nombre: i.nombre,
-          cantidad: 1,
-          variante_seleccionada: null,
-        })),
-        'unreserve'
-      )
-      if (!stockResult.ok) {
-        console.error('[GiftDashboard] Error al liberar stock:', stockResult.errors)
-        setUpdatingId(null)
-        return
-      }
-    }
-
-    const { error } = await supabase
-      .from('gift_experiences')
-      .update({ status: 'cancelled' })
-      .eq('id', gift.id)
-
+    const { data, error } = await supabase.rpc('cancelar_regalo_v2', { p_gift_id: gift.id })
     if (error) {
-      console.error('[GiftDashboard] Error al cancelar regalo:', error)
+      console.error('[GiftDashboard] Error al cancelar:', error)
+    } else if (!data?.success) {
+      console.error('[GiftDashboard] cancelar_regalo_v2:', data?.error)
     }
     setUpdatingId(null)
   }, [])

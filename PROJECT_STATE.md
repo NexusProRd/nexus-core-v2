@@ -17,9 +17,9 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Regalos V2 Sprint 3F — Dashboard Gift Cards con tabs en /dashboard/regalos |
+| Último commit | Regalos V2 Sprint 3G-Prep — Hardening: RPCs atómicas + RLS gift_cards |
 
-| Última verificación | 2026-06-19 — Regalos V2 Sprint 3F: build PASS, typecheck PASS |
+| Última verificación | 2026-06-19 — Regalos V2 Sprint 3G-Prep: build PASS, typecheck PASS |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -84,6 +84,27 @@
 **Sprint UX-VITRINA-01 — Hero + Header + Portada cleanup, Destacados auto-slide mobile, precios portadas, cross-fade**
 
 ### Estado
+
+**Sprint REGALOS-V2-03G-PREP Completado.** Hardening pre-Sprint 3G — RPCs atómicas, RLS gift_cards, API endpoint:
+
+**FASE A (H3) — Double-Approve eliminado:**
+- Nueva RPC `aprobar_regalo_v2()`: FOR UPDATE + status validation + stock handling V1/V2 en una transacción
+- `GiftDashboard.updateStatus()` migrado a RPC (eliminado dependencia `gestionarStock`)
+- Imposible doble aprobación: segundo caller ve status != 'pending' dentro del FOR UPDATE lock
+
+**FASE B (H5) — RLS gift_cards:**
+- Políticas reemplazadas: SELECT/UPDATE solo autenticado + store-scoped via `auth.uid()` → `tiendas.id_owner`
+- INSERT: permissive (RPC SECURITY DEFINER bypasses)
+- `gift_card_transactions`: mismo patrón via ownership chain
+- Nueva API `/api/gift-cards` (admin client + session auth) para el Dashboard
+- GiftCardsDashboard usa API endpoint + realtime INSERT + polling 30s
+
+**FASE C (H4) — Cancel ↔ Conversion Race eliminado:**
+- Nueva RPC `cancelar_regalo_v2()`: FOR UPDATE + valida `converted_to_giftcard_at IS NULL` + unreserve atómico
+- Comparte FOR UPDATE lock con `convertir_regalo_a_giftcard_v2` — serializados
+- `GiftDashboard.cancelGift()` migrado a RPC
+
+Build PASS. Typecheck PASS.
 
 **Sprint REGALOS-V2-03F Completado.** Regalos V2 Sprint 3F — Dashboard Gift Cards con tabs:
 - Nuevo componente `GiftCardsDashboard.tsx`: tabla con código, destinatario, valor, saldo, estado, expiración, gift origen

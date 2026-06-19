@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { createClient } from '@/lib/supabase'
 
 interface GiftCardRow {
@@ -33,35 +33,32 @@ export default function GiftCardsDashboard({ storeId }: { storeId: string }) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
 
+  const fetchAll = useCallback(async () => {
+    const r = await fetch('/api/gift-cards')
+    const d = await r.json()
+    if (d.data) setCards(d.data as GiftCardRow[])
+    setLoading(false)
+  }, [])
+
   useEffect(() => {
+    fetchAll()
+
     const supabase = createClient()
-
-    const fetchCards = async () => {
-      const { data } = await supabase!
-        .from('gift_cards')
-        .select('*, gift_experiences!original_gift_id(gift_code)')
-        .eq('store_id', storeId)
-        .order('created_at', { ascending: false })
-
-      if (data) setCards(data as GiftCardRow[])
-      setLoading(false)
-    }
-
-    fetchCards()
 
     const channel = supabase
       .channel('gift_cards_dashboard')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'gift_cards', filter: `store_id=eq.${storeId}` }, (payload) => {
         setCards((prev) => [payload.new as GiftCardRow, ...prev])
       })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'gift_cards', filter: `store_id=eq.${storeId}` }, (payload) => {
-        const updated = payload.new as GiftCardRow
-        setCards((prev) => prev.map((c) => (c.id === updated.id ? updated : c)))
-      })
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
-  }, [storeId])
+    const poll = setInterval(fetchAll, 30_000)
+
+    return () => {
+      supabase.removeChannel(channel)
+      clearInterval(poll)
+    }
+  }, [storeId, fetchAll])
 
   const filtered = useMemo(() => {
     let result = cards
