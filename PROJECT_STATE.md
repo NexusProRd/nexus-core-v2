@@ -11,15 +11,15 @@
 | Atributo | Valor |
 |----------|-------|
 | Stack | Next.js 16.2.6, React 19.2.4, Supabase, Tailwind v4 |
-| Base de datos | Supabase PostgreSQL (66 migraciones, hasta 066) |
+| Base de datos | Supabase PostgreSQL (72 migraciones, hasta 072) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Regalos V2 Sprint 2 — Delivery + Ubicación + Inventario definitivo + QA |
+| Último commit | Regalos V2 Sprint 3 Foundation — Gift Cards, RPC de conversión, gift-rules API |
 
-| Última verificación | 2026-06-18 — Regalos V2 Sprint 2: build PASS, typecheck PASS, QA aprobado |
+| Última verificación | 2026-06-19 — Regalos V2 Sprint 3 Foundation: build PASS, typecheck PASS |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -84,6 +84,17 @@
 **Sprint UX-VITRINA-01 — Hero + Header + Portada cleanup, Destacados auto-slide mobile, precios portadas, cross-fade**
 
 ### Estado
+
+**Sprint REGALOS-V2-03 Completado.** Regalos V2 Sprint 3 Foundation — Gift Cards, configuración y RPC de conversión:
+- Migración 071: `gift_config` JSONB en `tiendas`, `receiver_phone` y `converted_to_giftcard_at` en `gift_experiences`, tablas `gift_cards` y `gift_card_transactions` con RLS
+- Migración 072: RPC `convertir_regalo_a_giftcard_v2()` — transacción única con FOR UPDATE lock. Validación de estados (RESERVED/CLAIMED/expired), cómputo de valor, código GC+10chars, expiración desde gift_config (default 365d). Protección contra doble conversión atómica.
+- `src/types/gift-cards.ts`: tipos GiftRules, GiftCard, GiftCardTransaction
+- `src/lib/gift-cards/code.ts`: `generateGiftCardCode()` con prefijo GC
+- `src/lib/gift-cards/rules.ts`: `getGiftRules()` con defaults 7/30/365, `calculateGiftCardExpiration()`
+- `src/lib/gift-cards/conversion.ts`: wrapper `convertGiftToGiftCard()` → llama RPC atómico
+- `src/app/api/gift-rules/route.ts`: GET/PUT con merge de gift_config y clamping (1-90/1-365/1-1825)
+- Sin frontend, sin checkout con Gift Cards, sin expiración automática, sin automatizaciones
+- Build PASS. Typecheck PASS.
 
 **Sprint REGALOS-V2-02 Completado.** Regalos V2 Sprint 2 — Delivery, ubicación e inventario definitivo:
 - Migración 070: columnas delivery (`delivery_address`, `delivery_location_link`, `shipping_cost`, `delivered_at`, `location_requested_at`), CHECK actualizado con DELIVERED
@@ -659,6 +670,8 @@ tiendas (1) ──── tiene ──── (1) perfil_tienda
 tiendas (1) ──── tiene ──── (0-1) catalogo_modal
 tiendas (1) ──── tiene ──── (N) colaboradores
 tiendas (1) ──── tiene ──── (N) regalos (gift_experiences)
+tiendas (1) ──── tiene ──── (N) gift_cards
+gift_experiences (1) ──── puede convertirse en ──── (0-1) gift_card
 tiendas (1) ──── tiene ──── (N) cupones
 tiendas (1) ──── tiene ──── (N) disenos_biblioteca
 tiendas (1) ──── tiene ──── (N) backup_history
@@ -768,19 +781,57 @@ Empleados con acceso limitado al dashboard de la tienda.
 | `pin_hash` | text | PIN de acceso (hash scrypt) |
 | `permisos` | JSONB | `{ dashboard: bool, productos: bool, pedidos: bool }` |
 
-#### `gift_experiences` (Regalos)
-Regalos corporativos B2B.
+#### `gift_experiences` (Regalos V2)
+Regalos corporativos B2B con soporte V2 (RESERVED/CLAIMED/DELIVERED) y conversión a Gift Cards.
 
 | Campo clave | Tipo | Notas |
 |-------------|------|-------|
 | `id` | UUID | PK |
 | `store_id` | UUID | FK → tiendas.id |
 | `sender_name` | text | Quien regala |
+| `sender_phone` | text | Teléfono del comprador (bifurca V1/V2) |
 | `receiver_name` | text | Quien recibe |
+| `receiver_phone` | text | Teléfono del destinatario (Sprint 3) |
 | `gift_code` | text | Código único de canje |
-| `items_list` | JSONB | Array de `{ product_id, nombre, precio }` |
-| `status` | text | `pending` \| `approved` \| `cancelled` \| `redeemed` |
+| `items_list` | JSONB | Array de `{ product_id, nombre, precio, imagen_url }` |
+| `status` | text | `pending` \| `approved` \| `rejected` \| `expired` \| `cancelled` \| `RESERVED` \| `CLAIMED` \| `DELIVERED` |
 | `personal_message` | text | Mensaje personalizado |
+| `stock_reservado` | int | Stock reservado (V2, Sprint 1) |
+| `claimed_at` | timestamptz | Momento del canje (V2, Sprint 1) |
+| `delivery_address` | text | Dirección de entrega (Sprint 2) |
+| `delivery_location_link` | text | Enlace Maps (Sprint 2) |
+| `delivered_at` | timestamptz | Momento de entrega (Sprint 2) |
+| `converted_to_giftcard_at` | timestamptz | Momento de conversión a Gift Card (Sprint 3) |
+
+#### `gift_cards`
+Gift Cards convertidas desde gift_experiences. Tabla nueva Sprint 3.
+
+| Campo clave | Tipo | Notas |
+|-------------|------|-------|
+| `id` | UUID | PK |
+| `store_id` | UUID | FK → tiendas.id (CASCADE) |
+| `original_gift_id` | UUID | FK → gift_experiences.id (SET NULL) |
+| `code` | text | Código único (case-insensitive, índice upper) |
+| `initial_value` | numeric(10,2) | Valor original > 0 |
+| `balance` | numeric(10,2) | Saldo actual >= 0 |
+| `recipient_name` | text | Destinatario (hereda de gift_experiences) |
+| `recipient_phone` | text | Teléfono del destinatario |
+| `status` | text | `active` \| `redeemed` \| `expired` \| `cancelled` |
+| `expires_at` | timestamptz | Fecha de expiración (calculada vía gift_config) |
+| `created_at` | timestamptz | Creación |
+| `redeemed_at` | timestamptz | Redención |
+
+#### `gift_card_transactions`
+Auditoría de todas las transacciones de Gift Cards. Tabla nueva Sprint 3.
+
+| Campo clave | Tipo | Notas |
+|-------------|------|-------|
+| `id` | UUID | PK |
+| `gift_card_id` | UUID | FK → gift_cards.id (CASCADE) |
+| `order_id` | UUID | FK → pedidos.id (SET NULL, futuro checkout) |
+| `amount` | numeric(10,2) | Monto de la transacción |
+| `type` | text | `creation` \| `redemption` \| `expiration` \| `cancellation` |
+| `created_at` | timestamptz | Creación |
 
 #### `disenos_biblioteca`
 Diseños guardados de vitrina/banners.
@@ -1623,14 +1674,18 @@ Criterios para considerar Nexus Core V2 listo para lanzamiento beta público:
 | Regalos historial | P2 | ⬜ |
 | WhatsApp gift notifications (sender) | P2 | ⬜ |
 | Auto-approve gifts por tienda | P2 | ⬜ |
-| Gift expiry configurable (24h/48h/72h/7d) | P2 | ⬜ |
+| Gift expiry configurable — vía gift_config JSONB (tiendas) | P2 | ✅ Infraestructura lista |
 | PWA QA completo | P2 | ⬜ |
 | Realtime reconnection | P2 | ⬜ |
 | E2E tests Playwright | P2 | ⬜ |
 | Cupones — auditoría | P3 | ⬜ |
 | Marketing — auditoría | P3 | ⬜ |
 | B7 — Gift quantity > 1 | P3 | ⬜ |
-| Gift Cards / Wallet | P4 | ⬜ |
+| Gift Cards en checkout | P3 | ⬜ |
+| Dashboard Gift Cards | P3 | ⬜ |
+| Conversión manual Gift → Gift Card desde UI | P3 | ⬜ |
+| Expiración automática (cron jobs) | P3 | ⬜ |
+| Reportes Gift Cards | P4 | ⬜ |
 | Drop `pedidos.is_gift` column (cleanup) | P4 | ⬜ |
 
 ---
@@ -1831,6 +1886,10 @@ RECOVERY_SECRET=                    # (opcional) Secreto para recovery
 | `050_recovery_center.sql` | Centro de recuperación de datos |
 | `051_whatsapp_templates.sql` | Templates de WhatsApp |
 | `052_disenos_biblioteca.sql` | Biblioteca de diseños (vitrina) |
+| `069_gift_v2_reserved_claimed.sql` | Regalos V2 — RESERVED, CLAIMED, stock_reservado, reclamar_regalo_v2 |
+| `070_gift_v2_delivery.sql` | Regalos V2 — Delivery columns, DELIVERED, entregar_regalo_v2, revertir_entrega_regalo_v2 |
+| `071_gift_cards_foundation.sql` | Sprint 3 — gift_cards, gift_card_transactions, gift_config, receiver_phone, converted_to_giftcard_at |
+| `072_convert_gift_to_giftcard.sql` | Sprint 3 — RPC convertir_regalo_a_giftcard_v2 (atómico) |
 
 ---
 
