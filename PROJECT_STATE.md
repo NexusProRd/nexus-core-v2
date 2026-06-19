@@ -17,9 +17,9 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Regalos V2 Sprint 3G-Prep — Hardening: RPCs atómicas + RLS gift_cards |
+| Último commit | Regalos V2 Sprint 3G-Prep — Hardening: RPCs atómicas + RLS gift_cards (Ejecutado SQL 073 + 074 en Supabase) |
 
-| Última verificación | 2026-06-19 — Regalos V2 Sprint 3G-Prep: build PASS, typecheck PASS |
+| Última verificación | 2026-06-19 — Regalos V2 Sprint 3G-Prep: build PASS, typecheck PASS. SQL migrations 073 + 074 ejecutados en Supabase. |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
