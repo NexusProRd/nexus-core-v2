@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase'
 import { gestionarStock } from '@/lib/stock'
+import { convertGiftToGiftCard } from '@/lib/gift-cards'
 
 interface Gift {
   id: string
@@ -20,6 +21,7 @@ interface Gift {
   delivery_location_link: string | null
   location_requested_at: string | null
   delivered_at: string | null
+  converted_to_giftcard_at: string | null
 }
 
 function copyToClipboard(text: string) {
@@ -35,12 +37,16 @@ const statusConfig: Record<string, { label: string; bg: string; text: string }> 
   CLAIMED: { label: 'Reclamado', bg: 'bg-emerald-100', text: 'text-emerald-800' },
   DELIVERED: { label: 'Entregado', bg: 'bg-slate-100', text: 'text-slate-600' },
   cancelled: { label: 'Cancelado', bg: 'bg-slate-100', text: 'text-slate-500' },
+  converted: { label: 'Convertido a Gift Card', bg: 'bg-purple-100', text: 'text-purple-700' },
 }
 
 export default function GiftDashboard({ storeId }: { storeId: string }) {
   const [gifts, setGifts] = useState<Gift[]>([])
   const [loading, setLoading] = useState(true)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [showConvertConfirm, setShowConvertConfirm] = useState<string | null>(null)
+  const [convertingId, setConvertingId] = useState<string | null>(null)
+  const [convertResult, setConvertResult] = useState<{ code: string; value: number; expiresAt: string } | null>(null)
 
   useEffect(() => {
     const supabase = createClient()
@@ -239,6 +245,23 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
     setUpdatingId(null)
   }, [])
 
+  const handleConvertGift = useCallback(async (giftId: string) => {
+    setConvertingId(giftId)
+    setShowConvertConfirm(null)
+    const result = await convertGiftToGiftCard(giftId)
+    if (result.success) {
+      setConvertResult({ code: result.giftCard.code, value: result.value, expiresAt: result.expiresAt })
+      setGifts((prev) =>
+        prev.map((g) =>
+          g.id === giftId ? { ...g, converted_to_giftcard_at: new Date().toISOString() } : g
+        )
+      )
+    } else {
+      console.error('[GiftDashboard] Error al convertir:', result.error)
+    }
+    setConvertingId(null)
+  }, [])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -313,17 +336,24 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
                       </span>
                     )}
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 space-y-1">
                     <span
                       className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${
-                        statusConfig[gift.status].bg
-                      } ${statusConfig[gift.status].text}`}
+                        statusConfig[gift.status]?.bg || 'bg-slate-100'
+                      } ${statusConfig[gift.status]?.text || 'text-slate-500'}`}
                     >
-                      {statusConfig[gift.status].label}
+                      {statusConfig[gift.status]?.label || gift.status}
                     </span>
+                    {gift.converted_to_giftcard_at && (
+                      <div className="text-xs font-medium text-purple-700 whitespace-nowrap">
+                        🎁 Convertido a Gift Card
+                      </div>
+                    )}
                   </td>
                   <td className="py-3 px-4 text-right">
-                    {gift.status === 'pending' ? (
+                    {gift.converted_to_giftcard_at ? (
+                      <span className="text-xs font-medium text-purple-700 italic">Procesado</span>
+                    ) : gift.status === 'pending' ? (
                       <div className="flex gap-2 justify-end">
                         <button
                           onClick={() => updateStatus(gift, 'approved')}
@@ -341,19 +371,28 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
                         </button>
                       </div>
                     ) : gift.status === 'RESERVED' ? (
-                      <button
-                        onClick={() => cancelGift(gift)}
-                        disabled={updatingId === gift.id}
-                        className="px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
-                      >
-                        {updatingId === gift.id ? 'Cancelando...' : 'Cancelar'}
-                      </button>
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={() => setShowConvertConfirm(gift.id)}
+                          disabled={updatingId === gift.id || convertingId === gift.id}
+                          className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                        >
+                          🎁 Convertir
+                        </button>
+                        <button
+                          onClick={() => cancelGift(gift)}
+                          disabled={updatingId === gift.id || convertingId === gift.id}
+                          className="px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
+                        >
+                          {updatingId === gift.id ? 'Cancelando...' : 'Cancelar'}
+                        </button>
+                      </div>
                     ) : gift.status === 'CLAIMED' ? (
                       <div className="flex gap-2 justify-end flex-wrap">
                         {!gift.delivery_address && (
                           <button
                             onClick={() => requestLocation(gift)}
-                            disabled={updatingId === gift.id}
+                            disabled={updatingId === gift.id || convertingId === gift.id}
                             className="px-3 py-1.5 bg-amber-500 text-white text-xs font-medium rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors"
                           >
                             {updatingId === gift.id ? '...' : '📍 Solicitar ubicación'}
@@ -362,23 +401,38 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
                         {gift.delivery_address && (
                           <button
                             onClick={() => markDelivered(gift)}
-                            disabled={updatingId === gift.id}
+                            disabled={updatingId === gift.id || convertingId === gift.id}
                             className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors"
                           >
                             {updatingId === gift.id ? '...' : '🚚 Marcar entregado'}
                           </button>
                         )}
                         <button
+                          onClick={() => setShowConvertConfirm(gift.id)}
+                          disabled={updatingId === gift.id || convertingId === gift.id}
+                          className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                        >
+                          🎁 Convertir
+                        </button>
+                        <button
                           onClick={() => cancelGift(gift)}
-                          disabled={updatingId === gift.id}
+                          disabled={updatingId === gift.id || convertingId === gift.id}
                           className="px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
                         >
                           {updatingId === gift.id ? 'Cancelando...' : 'Cancelar'}
                         </button>
                       </div>
+                    ) : gift.status === 'expired' ? (
+                      <button
+                        onClick={() => setShowConvertConfirm(gift.id)}
+                        disabled={updatingId === gift.id || convertingId === gift.id}
+                        className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                      >
+                        🎁 Convertir
+                      </button>
                     ) : (
                       <span className="text-xs text-slate-400 italic">
-                        {gift.status === 'DELIVERED' ? 'Entregado' : gift.status === 'approved' ? 'Aprobado' : gift.status === 'expired' ? 'Vencido' : gift.status === 'cancelled' ? 'Cancelado' : 'Rechazado'}
+                        {gift.status === 'DELIVERED' ? 'Entregado' : gift.status === 'approved' ? 'Aprobado' : gift.status === 'cancelled' ? 'Cancelado' : 'Rechazado'}
                       </span>
                     )}
                   </td>
@@ -386,6 +440,80 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {showConvertConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
+            <div className="text-center mb-4">
+              <span className="text-4xl">🎁</span>
+              <h3 className="text-lg font-bold text-slate-900 mt-2">Convertir a Gift Card</h3>
+              <p className="text-sm text-slate-500 mt-2">
+                Esta acción convertirá el regalo en una Gift Card y no podrá revertirse desde la interfaz actual.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConvertConfirm(null)}
+                disabled={convertingId !== null}
+                className="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-xl hover:bg-slate-200 disabled:opacity-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleConvertGift(showConvertConfirm)}
+                disabled={convertingId !== null}
+                className="flex-1 px-4 py-2.5 bg-purple-600 text-white text-sm font-medium rounded-xl hover:bg-purple-700 disabled:opacity-50 transition-colors"
+              >
+                {convertingId !== null ? 'Convirtiendo...' : 'Convertir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {convertResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
+            <div className="text-center mb-5">
+              <span className="text-4xl">✅</span>
+              <h3 className="text-lg font-bold text-slate-900 mt-2">Gift Card creada</h3>
+            </div>
+            <div className="space-y-3 bg-slate-50 rounded-xl p-4">
+              <div>
+                <span className="text-xs text-slate-500 uppercase tracking-wide font-medium">Código</span>
+                <div className="mt-1 flex items-center gap-2">
+                  <code className="text-lg font-mono font-bold text-slate-900 bg-white px-3 py-1.5 rounded-lg border border-slate-200 flex-1 select-all">
+                    {convertResult.code}
+                  </code>
+                  <button
+                    onClick={() => copyToClipboard(convertResult.code)}
+                    className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-medium rounded-lg transition-colors"
+                    title="Copiar código"
+                  >
+                    📋 Copiar
+                  </button>
+                </div>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Valor</span>
+                <span className="font-semibold text-slate-900">RD$ {convertResult.value.toLocaleString('es-DO', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Expira</span>
+                <span className="font-semibold text-slate-900">
+                  {new Date(convertResult.expiresAt).toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setConvertResult(null)}
+              className="w-full mt-4 px-4 py-2.5 bg-slate-100 text-slate-700 text-sm font-medium rounded-xl hover:bg-slate-200 transition-colors"
+            >
+              Cerrar
+            </button>
+          </div>
         </div>
       )}
     </div>

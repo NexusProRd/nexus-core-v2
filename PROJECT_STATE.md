@@ -17,9 +17,9 @@
 | Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Regalos V2 Sprint 3 Foundation — Gift Cards, RPC de conversión, gift-rules API |
+| Último commit | Regalos V2 Sprint 3E — Conversión manual Gift → Gift Card desde Dashboard |
 
-| Última verificación | 2026-06-19 — Regalos V2 Sprint 3 Foundation: build PASS, typecheck PASS |
+| Última verificación | 2026-06-19 — Regalos V2 Sprint 3E: build PASS, typecheck PASS |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -84,6 +84,15 @@
 **Sprint UX-VITRINA-01 — Hero + Header + Portada cleanup, Destacados auto-slide mobile, precios portadas, cross-fade**
 
 ### Estado
+
+**Sprint REGALOS-V2-03E Completado.** Regalos V2 Sprint 3E — Conversión manual Gift → Gift Card desde Dashboard:
+- GiftDashboard.tsx: botón "🎁 Convertir" para estados RESERVED, CLAIMED, expired
+- Modal de confirmación: "no podrá revertirse desde la interfaz actual"
+- Resultado: código GC, valor RD$, fecha expira + botón "📋 Copiar"
+- Badge "🎁 Convertido a Gift Card" en status column + acciones deshabilitadas
+- Protección: doble conversión bloqueada (converted_to_giftcard_at check)
+- Llama `convertGiftToGiftCard()` → RPC atómico (no Supabase directo)
+- Build PASS. Typecheck PASS.
 
 **Sprint REGALOS-V2-03 Completado.** Regalos V2 Sprint 3 Foundation — Gift Cards, configuración y RPC de conversión:
 - Migración 071: `gift_config` JSONB en `tiendas`, `receiver_phone` y `converted_to_giftcard_at` en `gift_experiences`, tablas `gift_cards` y `gift_card_transactions` con RLS
