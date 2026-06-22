@@ -5,6 +5,7 @@ import { useCart, CartItem } from '@/context/CartContext'
 import { useConfig } from '@/context/ConfigProvider'
 import { formatCurrency } from '@/lib/utils'
 import GiftModal from './GiftModal'
+import ToastProvider, { useToast } from '@/components/Toast'
 
 interface CartDrawerProps {
   idTienda: string
@@ -12,7 +13,8 @@ interface CartDrawerProps {
   hideCheckout?: boolean
 }
 
-export default function CartDrawer({ idTienda, whatsappNumber, hideCheckout }: CartDrawerProps) {
+function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerProps) {
+  const { toast } = useToast()
   const { items, isOpen, setIsOpen, removeFromCart, updateQuantity, clearCart, totalPrice, totalItems, totalImpuesto, subtotalSinImpuesto } = useCart()
   const { monedaSimbolo, currencyCode } = useConfig()
   const [nombreCliente, setNombreCliente] = useState('')
@@ -68,15 +70,14 @@ export default function CartDrawer({ idTienda, whatsappNumber, hideCheckout }: C
     mensaje += `\n\nCliente: ${nombreCliente}`
     if (hasGiftItems) {
       mensaje += `\n\n*🎁 Importante:* Este pedido incluye productos canjeados con código de regalo.\n`
-      mensaje += `Por favor, contáctame para cotizar el costo de envío según mi ubicación.\n`
-      mensaje += `📍 *Mi ubicación:* [Comparte tu ubicación aquí]`
+      mensaje += `La tienda coordinará la entrega con el destinatario.\n`
     }
     if (giftSender.trim()) {
       mensaje += `\n\n*🎁 Modo Regalo Activado*\n`
       mensaje += `De: ${giftSender.trim()}\n`
       mensaje += `Para: ${giftReceiver.trim() || '—'}\n`
       if (giftMessage.trim()) mensaje += `Mensaje: ${giftMessage.trim()}\n`
-      mensaje += `\n⚠️ Ubicación y costo de envío pendientes de coordinación.`
+      mensaje += `\n📦 Entrega coordinada por la tienda.`
     }
     return mensaje
   }
@@ -88,13 +89,13 @@ export default function CartDrawer({ idTienda, whatsappNumber, hideCheckout }: C
       const itemsParaInsertar = [...items]
 
       if (itemsParaInsertar.length === 0) {
-        alert('El carrito está vacío')
+        toast('El carrito está vacío', 'warning')
         return
       }
 
       let notaEnvio: string | null = notas.trim() || null
       if (hasGiftItems) {
-        const add = '🎁 Regalo canjeado — Pendiente de cotización de envío. Contactar al cliente para coordinar.'
+        const add = '🎁 Regalo canjeado — Entrega coordinada por la tienda.'
         notaEnvio = notaEnvio ? `${notaEnvio} | ${add}` : add
       }
       if (giftSender.trim()) {
@@ -382,5 +383,13 @@ export default function CartDrawer({ idTienda, whatsappNumber, hideCheckout }: C
       />
     </div>
     </>
+  )
+}
+
+export default function CartDrawer(props: CartDrawerProps) {
+  return (
+    <ToastProvider>
+      <CartDrawerInner {...props} />
+    </ToastProvider>
   )
 }

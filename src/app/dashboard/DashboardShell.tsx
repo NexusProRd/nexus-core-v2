@@ -22,7 +22,7 @@ import PwaRegister from '@/components/PwaRegister'
 import InstallAppButton from '@/components/InstallAppButton'
 import PushSubscribeButton from '@/components/PushSubscribeButton'
 import { SessionProvider, usePermisos } from '@/context/PermisosContext'
-import ToastProvider from '@/components/Toast'
+import ToastProvider, { useToast } from '@/components/Toast'
 import { DashboardContext } from './DashboardContext'
 
 interface DetallePedido {
@@ -386,7 +386,7 @@ const BottomNav = memo(function BottomNav({ moreOpen, setMoreOpen }: any) {
   )
 })
 
-export default function DashboardLayout({
+function DashboardLayoutInner({
   children,
 }: {
   children: React.ReactNode
@@ -400,7 +400,6 @@ export default function DashboardLayout({
   const [approvedGift, setApprovedGift] = useState<GiftAlert | null>(null)
   const [silenciado, setSilenciado] = useState(false)
   const [plantillas, setPlantillas] = useState<Record<string, string>>({})
-  const [sendingMagicLink, setSendingMagicLink] = useState(false)
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [landingLogoUrl, setLandingLogoUrl] = useState('')
@@ -425,6 +424,7 @@ export default function DashboardLayout({
   const router = useRouter()
   const pathname = usePathname()
   const { theme, toggleTheme } = useTheme()
+  const { toast } = useToast()
 
   const showAlert = useCallback((pedido: Pedido) => {
     setPedidosPendientes(prev => {
@@ -706,15 +706,20 @@ export default function DashboardLayout({
       const { data, error } = await getSupabase().rpc('aprobar_regalo_v2', { p_gift_id: giftId })
       if (error) {
         console.error('[Gift] Error en RPC:', error)
-        alert('Error al aprobar el regalo. Intenta de nuevo.')
+        toast('Error al aprobar el regalo. Intenta de nuevo.', 'error')
         return
       }
       if (!data?.success) {
         console.error('[Gift] aprobar_regalo_v2:', data?.error)
-        alert(data?.error || 'No se pudo aprobar el regalo.')
+        toast(data?.error || 'No se pudo aprobar el regalo.', 'error')
         return
       }
       setApprovedGift(gift || null)
+      setGiftPendientes(prev => {
+        const updated = prev.filter(g => g.id !== giftId)
+        if (updated.length === 0) setShowGiftModal(false)
+        return updated
+      })
       return
     }
 
@@ -748,47 +753,10 @@ export default function DashboardLayout({
     }
   }
 
-  async function handleSendMagicLink(pedido: Pedido) {
-    if (!pedido.id_tienda) { alert('Falta el ID de la tienda'); return }
-    setSendingMagicLink(true)
-
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    let code = ''
-    for (let i = 0; i < 10; i++) code += chars[Math.floor(Math.random() * chars.length)]
-
-    const senderMatch = pedido.notas?.match(/De:\s*(.+?),/)
-    const receiverMatch = pedido.notas?.match(/Para:\s*(.+?)(?:,|$)/)
-    const msgMatch = pedido.notas?.match(/Msj:\s*"(.+?)"/)
-
-    const { error } = await getSupabase().from('gift_experiences').insert({
-      store_id: pedido.id_tienda,
-      sender_name: senderMatch ? senderMatch[1].trim() : '',
-      receiver_name: receiverMatch ? receiverMatch[1].trim() : '',
-      personal_message: msgMatch ? msgMatch[1].trim() : '',
-      gift_code: code,
-      is_redeemed: false,
-      status: 'approved',
-      approved_at: new Date().toISOString(),
-      sender_phone: pedido.cliente_telefono || null,
-      items_list: [],
-    })
-
-    if (error) { alert('Error al generar gift: ' + error.message); setSendingMagicLink(false); return }
-
-    const recipient = (pedido.notas?.match(/Para:\s*(.+?)(?:,|$)/) || [])[1]?.trim() || ''
-    const magicUrl = `${window.location.origin}/canje?gift=${code}&id=${pedido.id_tienda}`
-    const phone = (pedido.cliente_telefono || '').replace(/\D/g, '')
-    if (!phone) { alert('Este pedido no tiene número de teléfono.'); setSendingMagicLink(false); return }
-    const msg = encodeURIComponent(`¡Hola! Tu pedido de regalo para ${recipient} ha sido confirmado. 🎉 Aquí tienes el enlace mágico para que se lo envíes cuando quieras darle la sorpresa: ${magicUrl}`)
-    window.open(`https://wa.me/${phone}?text=${msg}`, '_blank')
-    setSendingMagicLink(false)
-  }
-
   if (loading) {
     return (
       <DashboardContext.Provider value={{ currencyCode, planTipo, planStatus, fechaVencimiento, isFounder }}>
       <OrderAlertContext.Provider value={{ showAlert }}>
-        <ToastProvider>
         <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#0a0a0d] dark:via-[#0c0c10] dark:to-[#0e0e14]">
         <header className="fixed top-0 left-0 right-0 z-40 bg-[#0c0c10]/80 backdrop-blur-2xl border-b border-white/[0.06] px-4 h-14 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -806,7 +774,6 @@ export default function DashboardLayout({
             <div className="max-w-7xl mx-auto">{children}</div>
           </main>
         </div>
-        </ToastProvider>
       </OrderAlertContext.Provider>
       </DashboardContext.Provider>
     )
@@ -860,7 +827,6 @@ export default function DashboardLayout({
     <SessionProvider>
     <DashboardContext.Provider value={{ currencyCode, planTipo, planStatus, fechaVencimiento, isFounder }}>
     <OrderAlertContext.Provider value={{ showAlert }}>
-      <ToastProvider>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#0a0a0d] dark:via-[#0c0c10] dark:to-[#0e0e14]">
         {/* MOTION SYSTEM PASS: Animations moved to globals.css — no inline style block needed */}
         <SidebarDesktop tiendaId={tiendaId ?? undefined} />
@@ -985,7 +951,7 @@ export default function DashboardLayout({
           </div>
         )}
 
-        {false && showGiftModal && giftPendientes.length > 0 && (
+        {showGiftModal && giftPendientes.length > 0 && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-backdrop-in" onClick={() => setShowGiftModal(false)}>
             <div className="bg-white/90 dark:bg-[#121216]/90 backdrop-blur-2xl rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-white/30 dark:border-white/[0.06] animate-scale-in" onClick={e => e.stopPropagation()}>
               {/* Ticket header */}
@@ -1082,6 +1048,11 @@ export default function DashboardLayout({
                   Aprobar Ticket
                 </button>
               </div>
+              <div className="px-5 pb-4">
+                <Link href="/dashboard/regalos" className="block text-center text-xs text-[var(--primary)] hover:underline font-medium" onClick={() => setShowGiftModal(false)}>
+                  Gestionar Regalo →
+                </Link>
+              </div>
             </div>
           </div>
         )}
@@ -1116,7 +1087,7 @@ export default function DashboardLayout({
                     else window.location.href = waUrl
                   } else {
                     navigator.clipboard.writeText(link).catch(() => {})
-                    alert('No se puede enviar: falta el número del comprador.\n\nEnlace copiado al portapapeles:\n' + link)
+                    toast('No se puede enviar: falta el número del comprador. Enlace copiado al portapapeles.', 'warning')
                   }
                   setApprovedGift(null)
                 }}
@@ -1195,23 +1166,7 @@ export default function DashboardLayout({
 
                     <p className="text-lg font-bold text-green-600 dark:text-green-400 mb-2">Total: {formatCurrency(pedido.total, currencyCode)}</p>
 
-                    {(pedido.notas?.includes('🎁 Modo Regalo') || pedido.is_gift) && pedido.estado === 'confirmado' ? (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleSendMagicLink(pedido)}
-                          disabled={sendingMagicLink}
-                          className="flex-1 bg-purple-600/90 backdrop-blur-sm text-white py-1.5 px-3 rounded-xl hover:bg-purple-700 disabled:opacity-50 transition-all text-sm font-medium border border-white/10"
-                        >
-                          🪄 {sendingMagicLink ? 'Enviando...' : 'Enviar Enlace Mágico'}
-                        </button>
-                        <button
-                          onClick={() => setPedidosPendientes(prev => prev.filter(p => p.id !== pedido.id))}
-                          className="flex-1 bg-white/50 dark:bg-white/[0.03] text-slate-700 dark:text-slate-300 py-1.5 px-3 rounded-xl hover:bg-white/80 dark:hover:bg-white/[0.06] transition-all text-sm font-medium border border-white/30 dark:border-white/[0.06]"
-                        >
-                          Cerrar
-                        </button>
-                      </div>
-                    ) : (pedido.notas?.includes('🎁 Modo Regalo') || pedido.is_gift) ? (
+                    {(pedido.notas?.includes('🎁 Modo Regalo') || pedido.is_gift) ? (
                       <div className="flex gap-2">
                         <button
                           onClick={() => actualizarEstado(pedido.id, 'rechazado')}
@@ -1316,15 +1271,27 @@ export default function DashboardLayout({
                 )
               })}
               </div>
+              <div className="px-4 py-3 border-t border-white/30 dark:border-white/[0.06] shrink-0">
+                <Link href="/dashboard/pedidos" className="block text-center text-xs text-[var(--primary)] hover:underline font-medium" onClick={() => setPedidosPendientes([])}>
+                  Gestionar Pedido →
+                </Link>
+              </div>
             </div>
           </div>
         )}
       </div>
-      </ToastProvider>
        <PwaRegister swUrl="/dashboard/sw.js" scope="/dashboard/" manifestUrl={tiendaId ? `/api/manifest/dashboard/${tiendaId}` : undefined} logoUrl={storeLogoUrl} />
       <InstallAppButton />
     </OrderAlertContext.Provider>
     </DashboardContext.Provider>
     </SessionProvider>
+  )
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ToastProvider>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </ToastProvider>
   )
 }

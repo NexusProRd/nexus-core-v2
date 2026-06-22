@@ -483,6 +483,40 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
         </div>
       </details>
 
+      <details className="mb-4 group">
+        <summary className="text-xs font-semibold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-600 transition-colors select-none">
+          ⚙️ Configuración
+        </summary>
+        <div className="mt-3 p-4 bg-white rounded-xl border border-slate-200 space-y-4">
+          {configLoading ? (
+            <p className="text-xs text-slate-400">Cargando configuración...</p>
+          ) : configSettings ? (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Días para expiración de reserva</label>
+                <input type="number" min={1} max={90} value={configSettings.reserved_expires_days}
+                  onChange={e => setConfigSettings(prev => prev ? { ...prev, reserved_expires_days: Math.max(1, Math.min(90, Number(e.target.value) || 1)) } : prev)}
+                  className="w-24 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-900 focus:ring-2 focus:ring-[var(--primary)] outline-none" />
+                <p className="text-[10px] text-slate-400 mt-0.5">Un regalo reservado se convierte a Gift Card si no se reclama en este plazo.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Días de vigencia de Gift Card</label>
+                <input type="number" min={1} max={1825} value={configSettings.gift_card_expires_days}
+                  onChange={e => setConfigSettings(prev => prev ? { ...prev, gift_card_expires_days: Math.max(1, Math.min(1825, Number(e.target.value) || 1)) } : prev)}
+                  className="w-24 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-900 focus:ring-2 focus:ring-[var(--primary)] outline-none" />
+                <p className="text-[10px] text-slate-400 mt-0.5">Tiempo máximo para canjear una Gift Card antes de que expire.</p>
+              </div>
+              <button onClick={saveConfig} disabled={configSaving}
+                className="px-4 py-2 bg-[var(--primary)] text-white text-xs font-medium rounded-xl hover:brightness-110 transition-colors disabled:opacity-50">
+                {configSaving ? 'Guardando...' : configSaved ? '✓ Guardado' : 'Guardar'}
+              </button>
+            </>
+          ) : (
+            <p className="text-xs text-slate-400">No se pudo cargar la configuración.</p>
+          )}
+        </div>
+      </details>
+
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <input
           type="text"
@@ -827,39 +861,6 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
         </div>
       )}
 
-      <details className="mb-4 group">
-        <summary className="text-xs font-semibold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-600 transition-colors select-none">
-          ⚙️ Configuración
-        </summary>
-        <div className="mt-3 p-4 bg-white rounded-xl border border-slate-200 space-y-4">
-          {configLoading ? (
-            <p className="text-xs text-slate-400">Cargando configuración...</p>
-          ) : configSettings ? (
-            <>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Días para expiración de reserva</label>
-                <input type="number" min={1} max={90} value={configSettings.reserved_expires_days}
-                  onChange={e => setConfigSettings(prev => prev ? { ...prev, reserved_expires_days: Math.max(1, Math.min(90, Number(e.target.value) || 1)) } : prev)}
-                  className="w-24 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-900 focus:ring-2 focus:ring-[var(--primary)] outline-none" />
-                <p className="text-[10px] text-slate-400 mt-0.5">Un regalo reservado se convierte a Gift Card si no se reclama en este plazo.</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Días de vigencia de Gift Card</label>
-                <input type="number" min={1} max={1825} value={configSettings.gift_card_expires_days}
-                  onChange={e => setConfigSettings(prev => prev ? { ...prev, gift_card_expires_days: Math.max(1, Math.min(1825, Number(e.target.value) || 1)) } : prev)}
-                  className="w-24 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-900 focus:ring-2 focus:ring-[var(--primary)] outline-none" />
-                <p className="text-[10px] text-slate-400 mt-0.5">Tiempo máximo para canjear una Gift Card antes de que expire.</p>
-              </div>
-              <button onClick={saveConfig} disabled={configSaving}
-                className="px-4 py-2 bg-[var(--primary)] text-white text-xs font-medium rounded-xl hover:brightness-110 transition-colors disabled:opacity-50">
-                {configSaving ? 'Guardando...' : configSaved ? '✓ Guardado' : 'Guardar'}
-              </button>
-            </>
-          ) : (
-            <p className="text-xs text-slate-400">No se pudo cargar la configuración.</p>
-          )}
-        </div>
-      </details>
     </div>
   )
 }

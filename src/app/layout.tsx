@@ -3,7 +3,6 @@ import { Inter, JetBrains_Mono, Playfair_Display, Orbitron, Pacifico, Quicksand,
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import { ThemeProvider } from "@/context/ThemeContext";
-import GiftUrlDetector from "@/components/GiftUrlDetector";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -95,7 +94,6 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <ThemeProvider>
           <CartProvider>
-            <GiftUrlDetector />
             {children}
           </CartProvider>
         </ThemeProvider>

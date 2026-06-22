@@ -117,49 +117,9 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
     }
   }
 
-  const [sendingLink, setSendingLink] = useState(false)
-
   const items = detalles || []
   const totalDetalles = items.reduce((s, d) => s + d.precio_unitario * d.cantidad, 0)
   const detallesStr = items.map(d => `${d.cantidad}x ${d.productos?.nombre || d.producto}`).join(', ')
-
-  const handleSendMagicLink = async () => {
-    if (!pedido.cliente_telefono) { toast('Este pedido no tiene número de teléfono', 'warning'); return }
-    if (sendingLink) return
-    setSendingLink(true)
-    const supabase = createClient()
-
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    let code = ''
-    for (let i = 0; i < 10; i++) code += chars[Math.floor(Math.random() * chars.length)]
-    const senderMatch = pedido.notas?.match(/De:\s*(.+?),/)
-    const receiverMatch = pedido.notas?.match(/Para:\s*(.+?)(?:,|$)/)
-    const msgMatch = pedido.notas?.match(/Msj:\s*"(.+?)"/)
-
-    const { error: insertError } = await supabase.from('gift_experiences').insert({
-      store_id: pedido.id_tienda || '',
-      sender_name: senderMatch ? senderMatch[1].trim() : '',
-      receiver_name: receiverMatch ? receiverMatch[1].trim() : '',
-      personal_message: msgMatch ? msgMatch[1].trim() : '',
-      gift_code: code,
-      is_redeemed: false,
-      status: 'approved',
-      approved_at: new Date().toISOString(),
-      sender_phone: pedido.cliente_telefono || null,
-      items_list: [],
-    })
-
-    if (insertError) { toast('Error al generar gift', 'error'); setSendingLink(false); return }
-
-    const recipient = receiverMatch ? receiverMatch[1].trim() : ''
-    const storeId = pedido.id_tienda
-    if (!storeId) { toast('Falta el ID de la tienda', 'error'); setSendingLink(false); return }
-    const magicUrl = `${window.location.origin}/canje?gift=${code}&id=${storeId}`
-    const msg = encodeURIComponent(`¡Hola! Tu pedido de regalo para ${recipient} ha sido confirmado. 🎉 Aquí tienes el enlace mágico para que se lo envíes cuando quieras darle la sorpresa: ${magicUrl}`)
-    window.open(`https://wa.me/${pedido.cliente_telefono.replace(/\D/g, '')}?text=${msg}`, '_blank')
-    toast('Enlace mágico enviado por WhatsApp', 'success')
-    setSendingLink(false)
-  }
 
   const ejecutarAccion = async (estado: string, waMsg?: string) => {
     setAccionando(estado)
@@ -449,16 +409,6 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
           {/* ORDERS UX PASS: Bottom actions row */}
           <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/50">
             <div className="flex items-center gap-2">
-              {/* Magic Link for confirmed gift orders */}
-              {(permisos === null || permisos.pedidos) && (pedido.notas?.includes('🎁 Modo Regalo') || pedido.is_gift) && pedido.estado === 'confirmado' && (
-                <button
-                  onClick={handleSendMagicLink}
-                  disabled={sendingLink}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-600 text-white text-xs font-semibold rounded-xl hover:bg-purple-700 disabled:opacity-50 disabled:cursor-wait transition-all press-scale-sm shadow-sm"
-                >
-                  🪄 {sendingLink ? 'Enviando...' : 'Enlace Mágico'}
-                </button>
-              )}
               {/* ORDERS UX PASS: WhatsApp contact - more prominent */}
               <a
                 href={`https://wa.me/${(pedido.cliente_telefono || '8499999999').replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${pedido.cliente_nombre}, estamos trabajando en tu pedido #${codigoReal}.`)}`}

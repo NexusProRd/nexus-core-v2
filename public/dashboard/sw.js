@@ -46,15 +46,24 @@ self.addEventListener('push', (e) => {
   console.log('[SW] push received')
   const data = e.data?.json() ?? {}
 
-  e.waitUntil(
-    self.registration.showNotification(data.title || 'Nuevo pedido', {
+  e.waitUntil((async () => {
+    const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true })
+    const dashboardOpen = clientList.some(c =>
+      c.url.includes('/dashboard') && c.visibilityState === 'visible'
+    )
+    if (dashboardOpen) {
+      console.log('[SW] dashboard already visible → suppressing push notification')
+      return
+    }
+    await self.registration.showNotification(data.title || 'Nuevo pedido', {
       body: data.body,
       icon: data.icon || '/pwa-icon-192.png',
       badge: '/pwa-icon-192.png',
       data: { url: data.url || '/dashboard/pedidos' },
       vibrate: [200, 100, 200],
-    }).then(() => console.log('[SW] notification shown'))
-  )
+    })
+    console.log('[SW] notification shown')
+  })())
 })
 
 self.addEventListener('notificationclick', (e) => {

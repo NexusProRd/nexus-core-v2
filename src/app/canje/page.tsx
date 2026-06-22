@@ -205,7 +205,7 @@ function CanjeContent() {
                 <p className="text-xs font-semibold text-rose-500 uppercase tracking-widest mb-2">
                   Recuerda las palabras de {gift.sender_name}:
                 </p>
-                <p className="text-base italic font-medium text-slate-700 leading-relaxed">
+                <p className="text-base italic font-medium text-[#334155] leading-relaxed">
                   &ldquo;{gift.personal_message}&rdquo;
                 </p>
               </div>
@@ -213,10 +213,7 @@ function CanjeContent() {
             <a href={`/catalogo/${gift.store_id}`}
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl shadow-lg shadow-emerald-200 hover:shadow-xl transition-all duration-300"
             >
-              Ver el estado de mi regalo
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
+              🏪 Explorar tienda
             </a>
           </div>
           <p className="text-[11px] text-slate-400 text-center mt-6">
@@ -232,7 +229,7 @@ function CanjeContent() {
       <main className="min-h-screen bg-slate-50 px-4 py-12">
         <div className="mx-auto max-w-xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-rose-100 text-2xl">⚠️</div>
-          <h1 className="text-2xl font-bold text-slate-900">Código no disponible</h1>
+          <h1 className="text-2xl font-bold text-[#0f172a]">Código no disponible</h1>
           <p className="mt-2 text-sm text-slate-600">Este código no existe, ya fue usado o no está disponible para canje.</p>
           <Link href="/" className="mt-6 inline-block text-sm font-medium text-violet-600 hover:underline">Volver al inicio</Link>
           {debugMsg && (
@@ -255,7 +252,7 @@ function CanjeContent() {
               <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
                 <span className="text-3xl">🎉</span>
               </div>
-              <h1 className="text-xl font-bold text-emerald-800 mb-1">¡Regalo canjeado con éxito!</h1>
+              <h1 className="text-xl font-bold text-emerald-700 mb-1">¡Regalo canjeado con éxito!</h1>
               <div className="mt-6 text-left space-y-4">
                 <div>
                   <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">De</p>
@@ -279,7 +276,7 @@ function CanjeContent() {
                               <img src={item.imagen_url} alt={item.nombre} className="w-full h-full object-cover" />
                             </div>
                           )}
-                          <span className="text-sm font-semibold text-slate-700">{item.nombre}</span>
+                          <span className="text-sm font-semibold text-slate-900">{item.nombre}</span>
                         </div>
                       ))}
                     </div>
@@ -303,20 +300,24 @@ function CanjeContent() {
                 🏠 Volver al inicio
               </a>
             </div>
-            <p className="text-[11px] text-slate-400 text-center mt-6">
-              Código: <span className="font-mono font-semibold text-slate-500">{gift.gift_code}</span>
+            <p className="text-xs text-slate-500 text-center mt-6">
+              Código: <span className="font-mono font-semibold text-slate-600">{gift.gift_code}</span>
+              <button onClick={() => navigator.clipboard.writeText(gift.gift_code)}
+                className="ml-1.5 text-[10px] text-violet-500 hover:text-violet-700 underline underline-offset-2 transition-colors">
+                📋 Copiar
+              </button>
             </p>
           </div>
         ) : !revealed ? (
           <div className="text-center">
-            <div className="animate-bounce mb-6">
-              <div className="mx-auto w-24 h-24 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 shadow-lg shadow-pink-200 flex items-center justify-center">
+            <div className="mb-6">
+              <div className="mx-auto w-24 h-24 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 shadow-lg shadow-pink-200 animate-[gentleFloat_3s_ease-in-out_infinite] flex items-center justify-center">
                 <span className="text-5xl">🎁</span>
               </div>
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">{gift.sender_name} te ha enviado un regalo</h1>
+            <h1 className="text-2xl font-bold text-[#0f172a] mb-2">{gift.sender_name} te ha enviado un regalo</h1>
             {gift.receiver_name && (
-              <p className="text-sm text-slate-500 mb-8">Para <span className="font-semibold text-slate-700">{gift.receiver_name}</span></p>
+              <p className="text-sm text-[#334155] mb-8">Para <span className="font-semibold text-[#0f172a]">{gift.receiver_name}</span></p>
             )}
             <button onClick={handleReveal}
               className="inline-flex items-center gap-2 px-8 py-3.5 bg-[var(--primary)] text-white font-bold rounded-2xl shadow-lg hover:brightness-110 transition-all duration-200 text-base">
@@ -326,13 +327,19 @@ function CanjeContent() {
               </svg>
               Abrir Regalo
             </button>
-            <p className="text-xs text-slate-400 mt-6">Código: <span className="font-mono font-semibold text-slate-500">{gift.gift_code}</span></p>
+            <p className="text-xs text-slate-500 mt-6">
+              Código: <span className="font-mono font-semibold text-slate-600">{gift.gift_code}</span>
+              <button onClick={() => navigator.clipboard.writeText(gift.gift_code)}
+                className="ml-1.5 text-[10px] text-violet-500 hover:text-violet-700 underline underline-offset-2 transition-colors">
+                📋 Copiar
+              </button>
+            </p>
           </div>
         ) : (
           <div className="animate-[fadeSlideUp_0.5s_ease-out]">
             <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm mb-6 text-center">
               <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-violet-100 flex items-center justify-center">
-                <span className="text-3xl">🎉</span>
+                <span className="text-3xl">🎁</span>
               </div>
               <h1 className="text-xl font-bold text-slate-900 mb-1">¡Sorpresa{gift.receiver_name ? `, ${gift.receiver_name}` : ''}!</h1>
               <p className="text-sm text-slate-500 mb-4">
@@ -379,6 +386,7 @@ function CanjeContent() {
       </div>
       <style jsx>{`
         @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes gentleFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
       `}</style>
     </main>
   )
