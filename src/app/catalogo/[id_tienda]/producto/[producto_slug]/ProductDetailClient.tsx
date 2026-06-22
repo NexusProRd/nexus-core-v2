@@ -143,7 +143,7 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
   }
 
   const handleBuy = (tallaParam?: string, precioParam?: number | null) => {
-    if (!numeroLimpio || buying) return
+    if (buying) return
     if (necesitaTalla && !tallaParam && !selectedTalla) {
       setPendingBuy(true)
       setShowSizeModal(true)
@@ -193,9 +193,7 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
     setBuyName('')
     setBuyPhone('')
 
-    const mensaje = `Hola! Quiero hacer el siguiente pedido:\n*Pedido #${pedido.order_id}*\n\n- ${nombreConVariante} x${quantity} = ${formatCurrency(pedido.total, currencyCode)}\n\n*💰 Total General: ${formatCurrency(pedido.total, currencyCode)}*\n\n👤 *Cliente:* ${buyName.trim()}${buyPhone.trim() ? `\n📞 *Teléfono:* ${buyPhone.trim()}` : ''}`
-    const whatsappUrl = `https://wa.me/${numeroLimpio}?text=${encodeURIComponent(mensaje)}`
-    window.open(whatsappUrl, '_blank')
+    router.push(`/catalogo/exito?pedido=${pedido.id}&tienda=${tienda.id}`)
 
     setTimeout(() => setFeedback('idle'), 2000)
   }

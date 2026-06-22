@@ -130,24 +130,6 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber, defaultProd
       const data = await res.json()
       setGiftCodeResult(data.giftCode || giftCode)
 
-      const itemsLines = selected
-        .map((p) => `- ${p.nombre} - ${formatCurrency(p.precio, currencyCode)}`)
-        .join('\n')
-      const waMessage =
-        `🎁 *Nuevo regalo recibido*` +
-        `\n\n🛍️ *Productos:*` +
-        `\n${itemsLines}` +
-        `\n*Total: ${formatCurrency(total, currencyCode)}*` +
-        `\n\n👤 *De parte de:* ${sender.trim()}` +
-        `\n📞 *WhatsApp:* ${senderPhone.trim()}` +
-        `\n🎯 *Para:* ${receiver.trim()}` +
-        `\n📞 *Destinatario:* ${receiverPhone.trim() || 'No especificado'}` +
-        (message.trim() ? `\n💬 *Mensaje:* ${message.trim()}` : '') +
-        `\n🔑 *Código:* ${data.giftCode || giftCode}` +
-        `\n\nPor favor revisa la disponibilidad para preparar este regalo.`
-      const waUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(waMessage)}`
-      window.open(waUrl, '_blank')
-
       setSuccess(true)
       setSender('')
       setSenderPhone('')

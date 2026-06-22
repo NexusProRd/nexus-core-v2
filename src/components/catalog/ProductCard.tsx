@@ -193,21 +193,8 @@ export default function ProductCard({ producto, compact, trendingIds, onQuickVie
 
     localStorage.setItem(`nexus-last-order-${idTienda}`, pedido.id)
 
-    const numeroLimpio = whatsappNumber?.replace(/\D/g, '') || ''
-    let msg = `🛍️ *¡Nuevo Pedido desde ${nombreTienda || 'el Catálogo'}!*\n\n`
-    msg += `*Orden:* ${pedido.order_id}\n`
-    msg += `*Cliente:* ${quickBuyName.trim()}\n`
-    msg += `*Contacto:* ${quickBuyPhone.trim()}\n\n`
-    msg += `*Producto(s):* ${nombreConSize} (x${quantity}) = ${formatCurrency(precioActivo, currencyCode)} c/u\n\n`
-    msg += `*Total a Cobrar: ${formatCurrency(pedido.total, currencyCode)}*\n\n`
-    msg += `Por favor, quedo atento para realizar la cotización del envío. ¡Muchas gracias!`
-
     setBuying(false)
     setShowQuickBuyModal(false)
-
-    if (numeroLimpio) {
-      window.open(`https://wa.me/${numeroLimpio}?text=${encodeURIComponent(msg)}`, '_blank')
-    }
 
     window.location.href = `/catalogo/exito?pedido=${pedido.id}&tienda=${idTienda}`
   }

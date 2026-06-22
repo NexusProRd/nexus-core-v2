@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useCart, CartItem } from '@/context/CartContext'
 import { useConfig } from '@/context/ConfigProvider'
 import { formatCurrency } from '@/lib/utils'
@@ -14,6 +15,7 @@ interface CartDrawerProps {
 }
 
 function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerProps) {
+  const router = useRouter()
   const { toast } = useToast()
   const { items, isOpen, setIsOpen, removeFromCart, updateQuantity, clearCart, totalPrice, totalItems, totalImpuesto, subtotalSinImpuesto } = useCart()
   const { monedaSimbolo, currencyCode } = useConfig()
@@ -41,46 +43,6 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
   const puedeEnviar = nombreValido && telefonoValido
 
   if (!isOpen) return null
-
-  const generarMensaje = (orderId: string) => {
-    let mensaje = `Hola! Quiero hacer el siguiente pedido:\n`
-    mensaje += `*Pedido #${orderId}*\n\n`
-
-    items.forEach(item => {
-      if (item.isGift) {
-        mensaje += `🎁 ${item.nombre} - Obsequio\n`
-      } else if (item.precio === 0) {
-        mensaje += `📅 ${item.nombre} - Reserva\n`
-      } else if (item.modo_venta === 'libra' && item.peso_libras) {
-        const subtotal = Number(item.precio) * item.peso_libras * item.cantidad
-        mensaje += `- ${item.nombre} (${item.peso_libras} lb - Equivalente a ${formatCurrency(Number(item.precio) * item.peso_libras, currencyCode)}) x${item.cantidad} = ${formatCurrency(subtotal, currencyCode)}\n`
-      } else {
-        mensaje += `- ${item.nombre} x${item.cantidad} = ${formatCurrency(Number(item.precio) * item.cantidad, currencyCode)}\n`
-      }
-    })
-
-    if (totalImpuesto > 0) {
-      mensaje += `\n*💵 Subtotal (sin impuesto): ${formatCurrency(subtotalSinImpuesto, currencyCode)}*`
-      mensaje += `\n*🧾 Impuesto: ${formatCurrency(totalImpuesto, currencyCode)}*`
-    }
-    mensaje += `\n*💰 Total General: ${formatCurrency(totalPrice + totalImpuesto, currencyCode)}*`
-    mensaje += `\n\n👤 *Cliente:* ${nombreCliente}`
-    if (telefonoCliente) mensaje += `\n📞 *Teléfono:* ${telefonoCliente}`
-    if (notas.trim()) mensaje += `\n📝 *Notas:* ${notas.trim()}`
-    mensaje += `\n\nCliente: ${nombreCliente}`
-    if (hasGiftItems) {
-      mensaje += `\n\n*🎁 Importante:* Este pedido incluye productos canjeados con código de regalo.\n`
-      mensaje += `La tienda coordinará la entrega con el destinatario.\n`
-    }
-    if (giftSender.trim()) {
-      mensaje += `\n\n*🎁 Modo Regalo Activado*\n`
-      mensaje += `De: ${giftSender.trim()}\n`
-      mensaje += `Para: ${giftReceiver.trim() || '—'}\n`
-      if (giftMessage.trim()) mensaje += `Mensaje: ${giftMessage.trim()}\n`
-      mensaje += `\n📦 Entrega coordinada por la tienda.`
-    }
-    return mensaje
-  }
 
   const handleCheckout = async () => {
     if (!nombreCliente.trim()) return
@@ -136,10 +98,7 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
       setGiftReceiver('')
       setGiftReceiverPhone('')
       setGiftMessage('')
-      const orderDisplayId = pedido.id.slice(-6).toUpperCase()
-      const mensaje = generarMensaje(orderDisplayId)
-      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(mensaje)}`
-      window.open(whatsappUrl, '_blank')
+      router.push(`/catalogo/exito?pedido=${pedido.id}&tienda=${idTienda}`)
     } catch (e) {
       console.error(e)
     } finally {

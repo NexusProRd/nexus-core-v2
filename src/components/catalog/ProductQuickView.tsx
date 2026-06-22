@@ -55,7 +55,6 @@ export default function ProductQuickView({ producto, onClose }: Props) {
     const r = calcularPrecioConImpuesto(precio, true, producto.porcentaje_impuesto!)
     return { mostrar: r.total, impuesto: r.impuesto }
   }
-  const numLimpio = whatsappNumber?.replace(/\D/g, '') || ''
   const qtyLabel = 'Cantidad'
 
   const necesitaTalla = tipoNegocio === 'ropa' && producto.tallas && producto.tallas.length > 0
@@ -88,7 +87,7 @@ export default function ProductQuickView({ producto, onClose }: Props) {
   }
 
   const handleBuy = () => {
-    if (!numLimpio || buying) return
+    if (buying) return
     if (necesitaTalla && !selectedTalla) {
       setShowSizeModal(true)
       return
@@ -153,20 +152,8 @@ export default function ProductQuickView({ producto, onClose }: Props) {
 
     localStorage.setItem(`nexus-last-order-${idTienda}`, pedido.id)
 
-    const msg = `🛍️ *¡Nuevo Pedido desde ${nombreTienda || 'el Catálogo'}!*\n\n`
-      + `*Orden:* ${pedido.order_id}\n`
-      + `*Cliente:* ${buyName.trim()}\n`
-      + `*Contacto:* ${buyPhone.trim()}\n\n`
-      + `*Producto(s):* ${nombreConVariante} (x${quantity}) = ${formatCurrency(precioActivo, currencyCode)} c/u\n\n`
-      + `*Total a Cobrar: ${formatCurrency(pedido.total, currencyCode)}*\n\n`
-      + `Por favor, quedo atento para realizar la cotización del envío. ¡Muchas gracias!`
-
     setBuying(false)
     setFeedback('buy')
-
-    if (numLimpio) {
-      window.open(`https://wa.me/${numLimpio}?text=${encodeURIComponent(msg)}`, '_blank')
-    }
 
     window.location.href = `/catalogo/exito?pedido=${pedido.id}&tienda=${idTienda}`
   }
@@ -392,7 +379,7 @@ export default function ProductQuickView({ producto, onClose }: Props) {
       {showGiftForm && (
         <GiftPurchaseForm
           idTienda={idTienda}
-          whatsappNumber={numLimpio}
+          whatsappNumber={whatsappNumber || ''}
           autoOpen
           defaultProduct={{
             id: producto.id,
