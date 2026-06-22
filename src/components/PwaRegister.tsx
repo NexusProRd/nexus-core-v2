@@ -43,7 +43,9 @@ export default function PwaRegister({ swUrl, manifestUrl, logoUrl, scope }: { sw
           }
         }
       })
-      navigator.serviceWorker.register(swUrl, scope ? { scope } : undefined).catch(() => {})
+      navigator.serviceWorker.register(swUrl, scope ? { scope } : undefined).catch((e) => {
+        console.error('[SW] register error:', swUrl, e)
+      })
     }
   }, [swUrl, scope])
 

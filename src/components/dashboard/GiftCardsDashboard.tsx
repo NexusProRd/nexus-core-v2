@@ -82,8 +82,17 @@ export default function GiftCardsDashboard({ storeId }: { storeId: string }) {
   const stats = useMemo(() => {
     const total = cards.length
     const active = cards.filter((c) => c.status === 'active').length
+    const redeemed = cards.filter((c) => c.status === 'redeemed').length
     const totalValue = cards.filter((c) => c.status === 'active').reduce((s, c) => s + Number(c.balance), 0)
-    return { total, active, totalValue }
+    return { total, active, redeemed, totalValue }
+  }, [cards])
+
+  const cardReports = useMemo(() => {
+    const expired = cards.filter((c) => c.status === 'expired').length
+    const totalIssued = cards.reduce((s, c) => s + Number(c.initial_value), 0)
+    const redeemedValue = cards.filter((c) => c.status === 'redeemed').reduce((s, c) => s + Number(c.initial_value), 0)
+    const expiredValue = cards.filter((c) => c.status === 'expired').reduce((s, c) => s + Number(c.initial_value), 0)
+    return { expired, totalIssued, redeemedValue, expiredValue }
   }, [cards])
 
   if (loading) {
@@ -96,7 +105,7 @@ export default function GiftCardsDashboard({ storeId }: { storeId: string }) {
 
   return (
     <div>
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <div className="bg-white rounded-xl border border-slate-200 p-4">
           <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Total Gift Cards</p>
           <p className="text-2xl font-bold text-slate-900 mt-1">{stats.total}</p>
@@ -106,12 +115,40 @@ export default function GiftCardsDashboard({ storeId }: { storeId: string }) {
           <p className="text-2xl font-bold text-emerald-600 mt-1">{stats.active}</p>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Canjeadas</p>
+          <p className="text-2xl font-bold text-blue-600 mt-1">{stats.redeemed}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
           <p className="text-xs text-slate-500 font-medium uppercase tracking-wide">Valor activo</p>
           <p className="text-2xl font-bold text-slate-900 mt-1">
             RD$ {stats.totalValue.toLocaleString('es-DO', { minimumFractionDigits: 0 })}
           </p>
         </div>
       </div>
+
+      <details className="mb-4 group">
+        <summary className="text-xs font-semibold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-600 transition-colors select-none">
+          Reportes {cards.length > 0 && <span className="text-slate-300">· {cards.length} Gift Cards</span>}
+        </summary>
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="bg-slate-50 rounded-lg p-2.5">
+            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Expiradas</p>
+            <p className="text-sm font-bold text-slate-600 mt-0.5">{cardReports.expired}</p>
+          </div>
+          <div className="bg-slate-50 rounded-lg p-2.5">
+            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Valor emitido</p>
+            <p className="text-sm font-bold text-slate-600 mt-0.5">RD$ {cardReports.totalIssued.toLocaleString('es-DO', { minimumFractionDigits: 0 })}</p>
+          </div>
+          <div className="bg-slate-50 rounded-lg p-2.5">
+            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Valor canjeado</p>
+            <p className="text-sm font-bold text-blue-600 mt-0.5">RD$ {cardReports.redeemedValue.toLocaleString('es-DO', { minimumFractionDigits: 0 })}</p>
+          </div>
+          <div className="bg-slate-50 rounded-lg p-2.5">
+            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Valor expirado</p>
+            <p className="text-sm font-bold text-slate-500 mt-0.5">RD$ {cardReports.expiredValue.toLocaleString('es-DO', { minimumFractionDigits: 0 })}</p>
+          </div>
+        </div>
+      </details>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <input

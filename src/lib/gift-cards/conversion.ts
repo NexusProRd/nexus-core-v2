@@ -1,31 +1,25 @@
-import { createAdminClient } from '@/lib/supabase/admin'
-
 export async function convertGiftToGiftCard(giftId: string) {
-  const { supabase } = createAdminClient()
+  const res = await fetch('/api/gift-convert', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ giftId }),
+  })
 
-  const { data, error } = await supabase!
-    .rpc('convertir_regalo_a_giftcard_v2', { p_gift_id: giftId })
-
-  if (error) {
-    return { success: false as const, error: error.message }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    return { success: false as const, error: body.error || `HTTP ${res.status}` }
   }
 
-  const result = data as {
-    success: boolean
-    error?: string
-    giftCard?: { id: string; code: string }
-    value?: number
-    expiresAt?: string
-  }
+  const data = await res.json()
 
-  if (!result.success) {
-    return { success: false as const, error: result.error || 'Error al convertir el regalo' }
+  if (!data.success) {
+    return { success: false as const, error: data.error || 'Error al convertir el regalo' }
   }
 
   return {
     success: true as const,
-    giftCard: result.giftCard!,
-    value: result.value!,
-    expiresAt: result.expiresAt!,
+    giftCard: data.giftCard,
+    value: data.value,
+    expiresAt: data.expiresAt,
   }
 }

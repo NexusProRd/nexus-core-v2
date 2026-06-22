@@ -1,24 +1,11 @@
 const CACHE = 'nexus-dashboard-v1'
-const CACHE_PREFIX = 'nexus-dashboard-'
 const SCOPE = '/dashboard'
 
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll([SCOPE, '/offline.html']))
-  )
+self.addEventListener('install', () => {
   self.skipWaiting()
 })
 
 self.addEventListener('activate', (e) => {
-  e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((k) => k.startsWith(CACHE_PREFIX) && k !== CACHE)
-          .map((k) => caches.delete(k))
-      )
-    )
-  )
   e.waitUntil(clients.claim())
 })
 

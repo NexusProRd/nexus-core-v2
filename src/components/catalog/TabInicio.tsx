@@ -21,7 +21,6 @@ interface Props {
   masVendidos: Producto[]
   nuevos: Producto[]
   ofertas: Producto[]
-  giftMode: boolean
   trendingIds: Set<string>
   onQuickView?: (p: Producto) => void
   instagramUrl?: string | null
@@ -46,7 +45,6 @@ export default function TabInicio({
   masVendidos,
   nuevos,
   ofertas,
-  giftMode,
   trendingIds,
   onQuickView,
   instagramUrl,

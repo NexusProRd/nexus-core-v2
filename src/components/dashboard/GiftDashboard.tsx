@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase'
 import { convertGiftToGiftCard } from '@/lib/gift-cards'
 
@@ -10,15 +10,17 @@ interface Gift {
   sender_name: string
   sender_phone: string | null
   receiver_name: string
+  receiver_phone: string | null
   personal_message: string | null
   gift_code: string
   is_redeemed: boolean
   status: 'pending' | 'approved' | 'rejected' | 'expired' | 'RESERVED' | 'CLAIMED' | 'DELIVERED' | 'cancelled'
+  delivery_step: string | null
   created_at: string
   items_list: { product_id: string; nombre: string; precio: number; imagen_url: string | null }[]
   delivery_address: string | null
   delivery_location_link: string | null
-  location_requested_at: string | null
+  claimed_at: string | null
   delivered_at: string | null
   converted_to_giftcard_at: string | null
 }
@@ -50,10 +52,23 @@ const statusConfig: Record<string, { label: string; bg: string; text: string }> 
 export default function GiftDashboard({ storeId }: { storeId: string }) {
   const [gifts, setGifts] = useState<Gift[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [showConvertConfirm, setShowConvertConfirm] = useState<string | null>(null)
   const [convertingId, setConvertingId] = useState<string | null>(null)
   const [convertResult, setConvertResult] = useState<{ code: string; value: number; expiresAt: string } | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editAddress, setEditAddress] = useState('')
+  const [deliveringId, setDeliveringId] = useState<string | null>(null)
+  const [storeName, setStoreName] = useState('')
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.from('perfil_tienda').select('nombre_comercial').eq('id_tienda', storeId).maybeSingle().then(({ data }) => {
+      if (data) setStoreName(data.nombre_comercial || 'Mi Tienda')
+    })
+  }, [storeId])
 
   useEffect(() => {
     const supabase = createClient()
@@ -140,19 +155,6 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
     []
   )
 
-  const requestLocation = useCallback(async (gift: Gift) => {
-    setUpdatingId(gift.id)
-    const supabase = createClient()
-    const { error } = await supabase
-      .from('gift_experiences')
-      .update({ location_requested_at: new Date().toISOString() })
-      .eq('id', gift.id)
-    if (error) {
-      console.error('[GiftDashboard] Error al solicitar ubicación:', error)
-    }
-    setUpdatingId(null)
-  }, [])
-
   const markDelivered = useCallback(async (gift: Gift) => {
     setUpdatingId(gift.id)
     const supabase = createClient()
@@ -163,8 +165,66 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
       console.error('[GiftDashboard] entregar_regalo_v2:', data?.error)
     } else {
       sendGiftPush(storeId, 'delivered', gift.gift_code)
+      if (gift.receiver_phone) {
+        const waUrl = `https://wa.me/${gift.receiver_phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+          `Hola ${gift.receiver_name} 👋\n\nEsperamos que estés disfrutando del regalo que te envió ${gift.sender_name}. 🎁\n\nGracias por recibirnos.\n\nRecuerda que puedes visitar nuevamente ${storeName}:\n${window.location.origin}/catalogo/${gift.store_id}`
+        )}`
+        window.open(waUrl, '_blank')
+      }
     }
     setUpdatingId(null)
+  }, [storeName])
+
+  const handleDeliverWithAddress = useCallback(async () => {
+    if (!editingId || !editAddress.trim()) return
+    setDeliveringId(editingId)
+    setEditingId(null)
+    const supabase = createClient()
+    await supabase.from('gift_experiences').update({ delivery_address: editAddress.trim() }).eq('id', editingId)
+    const { data, error } = await supabase.rpc('entregar_regalo_v2', { p_gift_id: editingId })
+    if (error) {
+      console.error('[GiftDashboard] Error al marcar entregado:', error)
+    } else if (!data?.success) {
+      console.error('[GiftDashboard] entregar_regalo_v2:', data?.error)
+    } else {
+      sendGiftPush(storeId, 'delivered', editingId)
+    }
+    setDeliveringId(null)
+    setEditAddress('')
+  }, [editingId, editAddress])
+
+  const handleContact = useCallback(async (gift: Gift) => {
+    if (!gift.receiver_phone) return
+    setUpdatingId(gift.id)
+    const supabase = createClient()
+    await supabase.from('gift_experiences').update({ delivery_step: 'CONTACTED' }).eq('id', gift.id)
+    const waUrl = `https://wa.me/${gift.receiver_phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+      `Hola ${gift.receiver_name} 👋\n\nTe escribimos de ${storeName}.\nTenemos listo el regalo que te envió ${gift.sender_name}.\n\nEstamos preparando el envío y pronto nos pondremos en contacto contigo para coordinar la entrega.\n\n🎁 Productos:\n${(gift.items_list || []).map(i => `- ${i.nombre}`).join('\n')}`
+    )}`
+    window.open(waUrl, '_blank')
+    setUpdatingId(null)
+  }, [storeName])
+
+  const handleNotifyShipped = useCallback(async (gift: Gift) => {
+    if (!gift.receiver_phone) return
+    setUpdatingId(gift.id)
+    const supabase = createClient()
+    await supabase.from('gift_experiences').update({ delivery_step: 'SHIPPED' }).eq('id', gift.id)
+    const waUrl = `https://wa.me/${gift.receiver_phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+      `Hola ${gift.receiver_name} 👋\n\nTu regalo ya fue despachado y va en camino.\n\nNuestro mensajero se pondrá en contacto contigo cuando esté próximo a llegar.\n\n🚚 ¡Nos vemos pronto!`
+    )}`
+    window.open(waUrl, '_blank')
+    setUpdatingId(null)
+  }, [])
+
+  const startEditing = useCallback((gift: Gift) => {
+    setEditingId(gift.id)
+    setEditAddress(gift.delivery_address || '')
+  }, [])
+
+  const cancelEdit = useCallback(() => {
+    setEditingId(null)
+    setEditAddress('')
   }, [])
 
   const cancelGift = useCallback(async (gift: Gift) => {
@@ -200,6 +260,84 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
     setConvertingId(null)
   }, [])
 
+  const filtered = useMemo(() => {
+    let result = gifts
+
+    if (statusFilter === 'converted') {
+      result = result.filter((g) => g.converted_to_giftcard_at)
+    } else if (statusFilter) {
+      result = result.filter((g) => g.status === statusFilter)
+    }
+
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      result = result.filter(
+        (g) =>
+          g.gift_code.toLowerCase().includes(q) ||
+          g.sender_name.toLowerCase().includes(q) ||
+          g.receiver_name.toLowerCase().includes(q) ||
+          (g.sender_phone || '').toLowerCase().includes(q) ||
+          (g.receiver_phone || '').toLowerCase().includes(q)
+      )
+    }
+
+    return result
+  }, [gifts, search, statusFilter])
+
+  const kpiStats = useMemo(() => {
+    const pending = gifts.filter((g) => g.status === 'pending').length
+    const reserved = gifts.filter((g) => g.status === 'RESERVED').length
+    const claimed = gifts.filter((g) => g.status === 'CLAIMED').length
+    const delivered = gifts.filter((g) => g.status === 'DELIVERED').length
+    return { pending, reserved, claimed, delivered }
+  }, [gifts])
+
+  const giftReports = useMemo(() => {
+    const total = gifts.length
+    const cancelled = gifts.filter((g) => g.status === 'cancelled').length
+    const rejected = gifts.filter((g) => g.status === 'rejected').length
+    const expired = gifts.filter((g) => g.status === 'expired').length
+    const converted = gifts.filter((g) => g.converted_to_giftcard_at).length
+
+    const deliveredWithDates = gifts.filter(
+      (g) => g.status === 'DELIVERED' && g.claimed_at && g.delivered_at
+    )
+    let avgClaimToDeliver = 0
+    if (deliveredWithDates.length > 0) {
+      const totalMs = deliveredWithDates.reduce((sum, g) => {
+        return sum + (new Date(g.delivered_at!).getTime() - new Date(g.claimed_at!).getTime())
+      }, 0)
+      avgClaimToDeliver = Math.round(totalMs / deliveredWithDates.length / (1000 * 60 * 60))
+    }
+
+    const finalized = deliveredWithDates.length + cancelled + rejected + expired
+    const deliveryRate = finalized > 0 ? Math.round((deliveredWithDates.length / finalized) * 100) : 0
+
+    return { cancelled, rejected, expired, converted, avgClaimToDeliver, deliveryRate }
+  }, [gifts])
+
+  const alerts = useMemo(() => {
+    const now = Date.now()
+    const day = 24 * 60 * 60 * 1000
+
+    const pendingAntiguos = gifts.filter(
+      (g) => g.status === 'pending' && new Date(g.created_at).getTime() < now - day
+    ).length
+
+    const claimedSinEntrega = gifts.filter(
+      (g) =>
+        g.status === 'CLAIMED' &&
+        g.delivery_address &&
+        !g.delivered_at &&
+        g.claimed_at &&
+        new Date(g.claimed_at).getTime() < now - 3 * day
+    ).length
+
+    const total = pendingAntiguos + claimedSinEntrega
+
+    return { pendingAntiguos, claimedSinEntrega, total }
+  }, [gifts])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -210,17 +348,126 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-bold text-slate-900">Regalos Únicos</h2>
         <span className="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
           {gifts.length} regalo{gifts.length !== 1 ? 's' : ''}
         </span>
       </div>
 
+      {alerts.total > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 sm:p-4 mb-5">
+          <div className="flex items-start gap-2">
+            <span className="text-lg flex-shrink-0 mt-0.5">⚠️</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-amber-800 mb-2">Atención requerida</p>
+              <ul className="space-y-1">
+                {alerts.pendingAntiguos > 0 && (
+                  <li className="text-sm text-amber-700 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                    {alerts.pendingAntiguos} regalo{alerts.pendingAntiguos !== 1 ? 's' : ''} pendiente{alerts.pendingAntiguos !== 1 ? 's' : ''} de revisión
+                  </li>
+                )}
+                {alerts.claimedSinEntrega > 0 && (
+                  <li className="text-sm text-amber-700 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                    {alerts.claimedSinEntrega} regalo{alerts.claimedSinEntrega !== 1 ? 's' : ''} pendiente{alerts.claimedSinEntrega !== 1 ? 's' : ''} de entrega
+                  </li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        <div className="bg-white rounded-xl border border-slate-200 p-3">
+          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">Pendientes</p>
+          <p className="text-xl font-bold text-yellow-600 mt-0.5">{kpiStats.pending}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-3">
+          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">Reservados</p>
+          <p className="text-xl font-bold text-blue-600 mt-0.5">{kpiStats.reserved}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-3">
+          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">Reclamados</p>
+          <p className="text-xl font-bold text-emerald-600 mt-0.5">{kpiStats.claimed}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-3">
+          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wide">Entregados</p>
+          <p className="text-xl font-bold text-slate-600 mt-0.5">{kpiStats.delivered}</p>
+        </div>
+      </div>
+
+      <details className="mb-4 group">
+        <summary className="text-xs font-semibold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-600 transition-colors select-none">
+          Reportes {gifts.length > 0 && <span className="text-slate-300">· {gifts.length} regalos</span>}
+        </summary>
+        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="bg-slate-50 rounded-lg p-2.5">
+            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Cancelados</p>
+            <p className="text-sm font-bold text-slate-600 mt-0.5">{giftReports.cancelled}</p>
+          </div>
+          <div className="bg-slate-50 rounded-lg p-2.5">
+            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Rechazados</p>
+            <p className="text-sm font-bold text-slate-600 mt-0.5">{giftReports.rejected}</p>
+          </div>
+          <div className="bg-slate-50 rounded-lg p-2.5">
+            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Vencidos</p>
+            <p className="text-sm font-bold text-slate-600 mt-0.5">{giftReports.expired}</p>
+          </div>
+          <div className="bg-slate-50 rounded-lg p-2.5">
+            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Convertidos a GC</p>
+            <p className="text-sm font-bold text-purple-600 mt-0.5">{giftReports.converted}</p>
+          </div>
+          <div className="bg-slate-50 rounded-lg p-2.5">
+            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Tasa entrega</p>
+            <p className="text-sm font-bold text-slate-600 mt-0.5">{giftReports.deliveryRate}%</p>
+          </div>
+          <div className="bg-slate-50 rounded-lg p-2.5">
+            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Tiempo canje→entrega</p>
+            <p className="text-sm font-bold text-slate-600 mt-0.5">
+              {giftReports.avgClaimToDeliver > 0 ? `${giftReports.avgClaimToDeliver}h` : '—'}
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        <input
+          type="text"
+          placeholder="Buscar por código, comprador, destinatario o teléfono..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500 transition-colors"
+        />
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-500 transition-colors"
+        >
+          <option value="">Todos</option>
+          <option value="pending">Pendientes</option>
+          <option value="RESERVED">Reservados</option>
+          <option value="CLAIMED">Reclamados</option>
+          <option value="DELIVERED">Entregados</option>
+          <option value="cancelled">Cancelados</option>
+          <option value="expired">Vencidos</option>
+          <option value="converted">Convertidos a Gift Card</option>
+        </select>
+      </div>
+
       {gifts.length === 0 ? (
         <div className="text-center py-16 bg-slate-50 rounded-2xl">
           <span className="text-5xl">🎁</span>
           <p className="mt-3 text-slate-500 text-sm">No hay regalos aún</p>
+          <p className="text-xs text-slate-400 mt-1">Los regalos que reciban tus clientes aparecerán aquí.</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16 bg-slate-50 rounded-2xl">
+          <span className="text-4xl">🔍</span>
+          <p className="mt-3 text-slate-500 text-sm">Sin resultados</p>
+          <p className="text-xs text-slate-400 mt-1">Intenta con otros términos o filtros.</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -231,13 +478,14 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
                 <th className="text-left py-3 px-4 font-medium text-slate-500">Para</th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500">Código</th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500">Enlace</th>
+                <th className="text-left py-3 px-4 font-medium text-slate-500">Productos</th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500">Entrega</th>
                 <th className="text-left py-3 px-4 font-medium text-slate-500">Estado</th>
                 <th className="text-right py-3 px-4 font-medium text-slate-500">Acción</th>
               </tr>
             </thead>
             <tbody>
-              {gifts.map((gift) => (
+              {filtered.map((gift) => (
                 <tr key={gift.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
                   <td className="py-3 px-4 text-slate-900 font-medium">{gift.sender_name}</td>
                   <td className="py-3 px-4 text-slate-700">{gift.receiver_name}</td>
@@ -257,8 +505,20 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
                       </button>
                     )}
                   </td>
-                  <td className="py-3 px-4">
-                    {gift.status === 'CLAIMED' && !gift.delivery_address && (
+                  <td className="py-3 px-4 max-w-[200px]" title={gift.items_list?.map(i => i.nombre).join('\n') || ''}>
+                    {gift.items_list && gift.items_list.length > 0 ? (
+                      <span className="text-xs text-slate-700 line-clamp-2">
+                        {gift.items_list.slice(0, 2).map(i => i.nombre).join(', ')}
+                        {gift.items_list.length > 2 && (
+                          <span className="text-slate-400"> y {gift.items_list.length - 2} más</span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-300">—</span>
+                    )}
+                  </td>
+                  <td className="py-3 px-4 min-w-[160px]">
+                    {gift.status === 'CLAIMED' && !gift.delivery_address && editingId !== gift.id && (
                       <span className="inline-block px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 whitespace-nowrap">
                         🔴 Pendiente ubicación
                       </span>
@@ -273,6 +533,55 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
                         ✅ Entregado
                       </span>
                     )}
+                    {editingId === gift.id ? (
+                      <div className="flex flex-col gap-1.5 mt-2">
+                        <textarea
+                          value={editAddress}
+                          onChange={(e) => setEditAddress(e.target.value)}
+                          rows={2}
+                          className="w-full px-2 py-1.5 border border-slate-200 rounded-lg text-xs text-slate-900 focus:ring-2 focus:ring-violet-500/30 outline-none resize-none"
+                          placeholder="Calle, número, sector, ciudad..."
+                        />
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={handleDeliverWithAddress}
+                            disabled={deliveringId === gift.id || !editAddress.trim()}
+                            className="flex-1 px-2 py-1.5 bg-emerald-600 text-white text-[11px] font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                          >
+                            {deliveringId === gift.id ? '...' : '✅ Entregar'}
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            disabled={deliveringId === gift.id}
+                            className="px-2 py-1.5 bg-slate-100 text-slate-600 text-[11px] font-medium rounded-lg hover:bg-slate-200 disabled:opacity-50 transition-colors"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    ) : gift.delivery_address ? (
+                      <div className="flex items-center gap-1 mt-1.5 group">
+                        <span className="text-[11px] text-slate-600 truncate max-w-[140px] leading-tight" title={gift.delivery_address}>
+                          {gift.delivery_address}
+                        </span>
+                        {gift.status === 'CLAIMED' && (
+                          <button
+                            onClick={() => startEditing(gift)}
+                            className="text-slate-400 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                            title="Editar dirección"
+                          >
+                            ✏️
+                          </button>
+                        )}
+                      </div>
+                    ) : gift.status === 'CLAIMED' ? (
+                      <button
+                        onClick={() => startEditing(gift)}
+                        className="text-[11px] text-violet-600 hover:text-violet-800 mt-1.5 font-medium"
+                      >
+                        + Agregar dirección
+                      </button>
+                    ) : null}
                   </td>
                   <td className="py-3 px-4 space-y-1">
                     <span
@@ -282,6 +591,16 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
                     >
                       {statusConfig[gift.status]?.label || gift.status}
                     </span>
+                    {gift.status === 'CLAIMED' && gift.delivery_step === 'CONTACTED' && (
+                      <div className="text-xs font-medium text-teal-600 whitespace-nowrap">
+                        📞 Contactado
+                      </div>
+                    )}
+                    {gift.status === 'CLAIMED' && gift.delivery_step === 'SHIPPED' && (
+                      <div className="text-xs font-medium text-sky-600 whitespace-nowrap">
+                        🚚 En camino
+                      </div>
+                    )}
                     {gift.converted_to_giftcard_at && (
                       <div className="text-xs font-medium text-purple-700 whitespace-nowrap">
                         🎁 Convertido a Gift Card
@@ -326,39 +645,42 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
                         </button>
                       </div>
                     ) : gift.status === 'CLAIMED' ? (
-                      <div className="flex gap-2 justify-end flex-wrap">
-                        {!gift.delivery_address && (
-                          <button
-                            onClick={() => requestLocation(gift)}
-                            disabled={updatingId === gift.id || convertingId === gift.id}
-                            className="px-3 py-1.5 bg-amber-500 text-white text-xs font-medium rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors"
+                      <div className="flex flex-col items-end gap-1.5">
+                        {!gift.delivery_step && gift.receiver_phone && (
+                          <button onClick={() => handleContact(gift)} disabled={updatingId === gift.id}
+                            className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors inline-flex items-center gap-1"
                           >
-                            {updatingId === gift.id ? '...' : '📍 Solicitar ubicación'}
+                            {updatingId === gift.id ? '...' : '📱 Contactar destinatario'}
                           </button>
                         )}
-                        {gift.delivery_address && (
-                          <button
-                            onClick={() => markDelivered(gift)}
-                            disabled={updatingId === gift.id || convertingId === gift.id}
+                        {gift.delivery_step === 'CONTACTED' && gift.receiver_phone && (
+                          <button onClick={() => handleNotifyShipped(gift)} disabled={updatingId === gift.id}
+                            className="px-3 py-1.5 bg-sky-600 text-white text-xs font-medium rounded-lg hover:bg-sky-700 disabled:opacity-50 transition-colors inline-flex items-center gap-1"
+                          >
+                            {updatingId === gift.id ? '...' : '🚚 Avisar que va en camino'}
+                          </button>
+                        )}
+                        {gift.delivery_step === 'SHIPPED' && (
+                          <button onClick={() => markDelivered(gift)} disabled={updatingId === gift.id || editingId === gift.id}
                             className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors"
                           >
-                            {updatingId === gift.id ? '...' : '🚚 Marcar entregado'}
+                            {updatingId === gift.id ? '...' : '✅ Marcar entregado'}
                           </button>
                         )}
-                        <button
-                          onClick={() => setShowConvertConfirm(gift.id)}
-                          disabled={updatingId === gift.id || convertingId === gift.id}
-                          className="px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
-                        >
-                          🎁 Convertir
-                        </button>
-                        <button
-                          onClick={() => cancelGift(gift)}
-                          disabled={updatingId === gift.id || convertingId === gift.id}
-                          className="px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
-                        >
-                          {updatingId === gift.id ? 'Cancelando...' : 'Cancelar'}
-                        </button>
+                        <div className="flex gap-2 pt-1.5 mt-1 border-t border-slate-200 w-full justify-end">
+                          <button onClick={() => setShowConvertConfirm(gift.id)}
+                            disabled={updatingId === gift.id || convertingId === gift.id}
+                            className="px-2 py-1 text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors"
+                          >
+                            🎁 Convertir
+                          </button>
+                          <button onClick={() => cancelGift(gift)}
+                            disabled={updatingId === gift.id || convertingId === gift.id}
+                            className="px-2 py-1 text-xs font-medium text-red-500 hover:text-red-700 transition-colors"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
                       </div>
                     ) : gift.status === 'expired' ? (
                       <button

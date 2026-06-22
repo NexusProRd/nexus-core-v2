@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error }, { status: 500 })
 
   const body = await req.json()
-  const { idTienda, nombreCliente, telefonoCliente, items, isGift, notas, couponCode } = body
+  const { idTienda, nombreCliente, telefonoCliente, items, isGift, notas, couponCode, giftSender, giftReceiver, giftReceiverPhone, giftMessage, giftDeliveryAddress, giftDeliveryLink } = body
 
   if (!idTienda || !nombreCliente || !items?.length) {
     return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 })
@@ -276,6 +276,52 @@ export async function POST(req: NextRequest) {
     body: `Cliente: ${nombreCliente.trim()} — $${total.toLocaleString('es-DO')}`,
     data: { url: '/dashboard/pedidos', id_pedido: pedido.id, id_tienda: idTienda },
   }).catch((e) => console.error('[API Checkout] push error', e))
+
+  // ───────────────────────────────────────────────
+  // PASO 7: Crear gift_experiences si es modo regalo
+  // ───────────────────────────────────────────────
+  if (isGift && giftSender) {
+    const giftCode = Array.from(crypto.getRandomValues(new Uint8Array(10)), b =>
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[b % 36]
+    ).join('')
+
+    const giftItemsList = items
+      .filter((i: any) => !i.isGift)
+      .map((i: any) => ({
+        product_id: idProductoReal(i) || i.id,
+        nombre: i.nombre,
+        precio: Number(i.precio) || 0,
+        imagen_url: i.imagen_url || null,
+        cantidad: i.cantidad || 1,
+        variante_seleccionada: i.variante_seleccionada || null,
+      }))
+
+    const { error: giftError } = await supabase!
+      .from('gift_experiences')
+      .insert({
+        store_id: idTienda,
+        sender_name: giftSender.trim(),
+        sender_phone: telefonoCliente?.trim() || null,
+        receiver_name: giftReceiver?.trim() || '',
+        receiver_phone: giftReceiverPhone?.trim() || null,
+        personal_message: giftMessage?.trim() || null,
+        gift_code: giftCode,
+        status: 'pending',
+        items_list: giftItemsList,
+        delivery_address: giftDeliveryAddress?.trim() || null,
+        delivery_location_link: giftDeliveryLink?.trim() || null,
+      })
+
+    if (giftError) {
+      console.error('[Checkout] Error al crear gift_experiences:', giftError.message)
+    } else {
+      sendPushToTienda(idTienda, {
+        title: '🎁 Nuevo regalo pendiente',
+        body: `${giftSender.trim()} te ha enviado un regalo para ${giftReceiver?.trim() || ''}. Código: ${giftCode}`,
+        data: { url: '/dashboard/regalos', giftCode },
+      }).catch(() => {})
+    }
+  }
 
   return NextResponse.json({ pedido: { id: pedido.id, total, order_id: orderId } })
 }

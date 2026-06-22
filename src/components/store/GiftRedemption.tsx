@@ -3,10 +3,8 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import confetti from 'canvas-confetti'
-import { useCart } from '@/context/CartContext'
 
 export default function GiftRedemption({ idTienda, defaultCode, onOpen }: { idTienda: string; defaultCode?: string; onOpen?: () => void }) {
-  const { addToCart, setIsOpen } = useCart()
   const [open, setOpen] = useState(false)
   const [code, setCode] = useState('')
 
@@ -23,6 +21,7 @@ export default function GiftRedemption({ idTienda, defaultCode, onOpen }: { idTi
     sender_name: string
     receiver_name: string
     personal_message: string
+    store_id: string
     items: { product_id: string; nombre: string; precio: number; imagen_url: string | null }[]
   } | null>(null)
 
@@ -36,7 +35,7 @@ export default function GiftRedemption({ idTienda, defaultCode, onOpen }: { idTi
 
     const { data: giftData } = await supabase
       .from('gift_experiences')
-      .select('sender_name, receiver_name, personal_message, status')
+      .select('sender_name, receiver_name, personal_message, status, store_id')
       .eq('store_id', idTienda)
       .eq('gift_code', code.trim().toUpperCase())
       .maybeSingle()
@@ -73,6 +72,8 @@ export default function GiftRedemption({ idTienda, defaultCode, onOpen }: { idTi
     })
 
     if (rpcError) {
+      console.error('GiftRedemption RPC Error:', rpcError)
+      console.error('GiftRedemption RPC Response:', rpcData)
       setError('Error de comunicación con el servidor. Inténtalo de nuevo.')
       setLoading(false)
       return
@@ -92,9 +93,6 @@ export default function GiftRedemption({ idTienda, defaultCode, onOpen }: { idTi
     }).catch(() => {})
 
     const items = (res.items || []) as { product_id: string; nombre: string; precio: number; imagen_url: string | null }[]
-    for (const item of items) {
-      addToCart({ id: item.product_id, nombre: item.nombre, precio: 0, imagen_url: item.imagen_url, isGift: true })
-    }
 
     confetti({
       particleCount: 200,
@@ -110,6 +108,7 @@ export default function GiftRedemption({ idTienda, defaultCode, onOpen }: { idTi
       sender_name: giftData?.sender_name || '',
       receiver_name: giftData?.receiver_name || '',
       personal_message: giftData?.personal_message || '',
+      store_id: giftData?.store_id || '',
       items,
     })
     setLoading(false)
@@ -141,7 +140,6 @@ export default function GiftRedemption({ idTienda, defaultCode, onOpen }: { idTi
             <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-2.5">
               <p className="text-[11px] font-bold text-amber-800">¡Importante! Debes canjear este regalo en menos de <span className="text-amber-900 underline decoration-amber-400 decoration-2">72 horas</span> después de ser aprobado.</p>
               <p className="text-[10px] text-amber-600 mt-0.5">Pasado este tiempo, el cupón expirará automáticamente para liberar el inventario y no habrá reembolsos.</p>
-              <p className="text-[10px] text-slate-500 mt-1 pt-1 border-t border-amber-200/50">El costo de envío no está incluido y se cotizará según la zona al realizar el pedido.</p>
             </div>
 
             {error && <p className="text-xs text-rose-600 mt-2">{error}</p>}
@@ -181,10 +179,10 @@ export default function GiftRedemption({ idTienda, defaultCode, onOpen }: { idTi
               </div>
             )}
 
-            <button onClick={() => { setIsOpen(true); setOpen(false); setGift(null); setCode('') }}
-              className="w-full py-2.5 bg-[var(--primary)] text-white font-medium rounded-xl hover:brightness-110 transition-colors text-sm">
-              Ir al carrito por mi regalo
-            </button>
+            <a href={`/catalogo/${gift.store_id}`}
+              className="block w-full py-2.5 bg-[var(--primary)] text-white font-medium rounded-xl hover:brightness-110 transition-colors text-sm text-center">
+              🏪 Explorar tienda
+            </a>
           </div>
         </div>
       )}

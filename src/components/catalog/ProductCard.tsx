@@ -53,7 +53,6 @@ const badgeStyles: Record<string, string> = {
 
 interface Props {
   producto: Producto
-  giftMode: boolean
   compact?: boolean
   trendingIds: Set<string>
   onQuickView?: (p: Producto) => void
@@ -61,7 +60,7 @@ interface Props {
   layout?: 'grid' | 'list'
 }
 
-export default function ProductCard({ producto, giftMode, compact, trendingIds, onQuickView, index, layout = 'grid' }: Props) {
+export default function ProductCard({ producto, compact, trendingIds, onQuickView, index, layout = 'grid' }: Props) {
   const router = useRouter()
   const { addToCart } = useCart()
   const { idTienda, whatsappNumber, nombreTienda, tipoNegocio, currencyCode } = useConfig()

@@ -49,14 +49,20 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber, defaultProd
     const supabase = createClient()
     supabase
       .from('productos')
-      .select('id, nombre, precio, imagen_url, stock, in_stock')
+      .select('id, nombre, precio, imagen_url, stock, in_stock, tallas')
       .eq('id_tienda', idTienda)
       .then(({ data, error }) => {
         if (error) {
           console.error('Error fetching products:', error)
           return
         }
-        if (data) setProductos(data as Producto[])
+        if (data) {
+          setProductos(
+            (data as any[]).filter(
+              (p) => !p.tallas || !Array.isArray(p.tallas) || p.tallas.length === 0
+            ) as Producto[]
+          )
+        }
       })
   }, [idTienda])
 
@@ -128,6 +134,27 @@ export default function GiftPurchaseForm({ idTienda, whatsappNumber, defaultProd
 
       const data = await res.json()
       setGiftCodeResult(data.giftCode || giftCode)
+
+      const itemsLines = selected
+        .map((p) => `- ${p.nombre} - ${formatCurrency(p.precio, currencyCode)}`)
+        .join('\n')
+      const waMessage =
+        `🎁 *Nuevo regalo - Pendiente de confirmación*` +
+        `\n\n🛍️ *Productos:*` +
+        `\n${itemsLines}` +
+        `\n*Total: ${formatCurrency(total, currencyCode)}*` +
+        `\n\n👤 *De parte de:* ${sender.trim()}` +
+        `\n📞 *WhatsApp:* ${senderPhone.trim()}` +
+        `\n🎯 *Para:* ${receiver.trim()}` +
+        `\n📞 *Destinatario:* ${receiverPhone.trim() || 'No especificado'}` +
+        (message.trim() ? `\n💬 *Mensaje:* ${message.trim()}` : '') +
+        (hasLocation && deliveryAddress.trim()
+          ? `\n📍 *Dirección:* ${deliveryAddress.trim()}`
+          : '') +
+        `\n🔑 *Código:* ${data.giftCode || giftCode}` +
+        `\n\nPor favor confirma el pago y la disponibilidad para activar este regalo.`
+      const waUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${encodeURIComponent(waMessage)}`
+      window.open(waUrl, '_blank')
 
       setSuccess(true)
       setSender('')

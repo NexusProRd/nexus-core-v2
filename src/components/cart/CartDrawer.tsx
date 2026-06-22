@@ -1,18 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useCart, CartItem } from '@/context/CartContext'
 import { useConfig } from '@/context/ConfigProvider'
 import { formatCurrency } from '@/lib/utils'
+import GiftModal from './GiftModal'
 
 interface CartDrawerProps {
   idTienda: string
   whatsappNumber: string
-  giftMode?: { sender: string; receiver: string; phone?: string; message: string }
   hideCheckout?: boolean
 }
 
-export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideCheckout }: CartDrawerProps) {
+export default function CartDrawer({ idTienda, whatsappNumber, hideCheckout }: CartDrawerProps) {
   const { items, isOpen, setIsOpen, removeFromCart, updateQuantity, clearCart, totalPrice, totalItems, totalImpuesto, subtotalSinImpuesto } = useCart()
   const { monedaSimbolo, currencyCode } = useConfig()
   const [nombreCliente, setNombreCliente] = useState('')
@@ -20,9 +20,22 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
   const [notas, setNotas] = useState('')
   const [giftToRemove, setGiftToRemove] = useState<CartItem | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [giftSender, setGiftSender] = useState('')
+  const [giftReceiver, setGiftReceiver] = useState('')
+  const [giftReceiverPhone, setGiftReceiverPhone] = useState('')
+  const [giftMessage, setGiftMessage] = useState('')
+  const [giftModalOpen, setGiftModalOpen] = useState(false)
+  const [datosAccordionOpen, setDatosAccordionOpen] = useState(true)
   const hasGiftItems = items.some(i => i.isGift)
+  const giftConfigurado = giftSender.trim() && giftReceiver.trim()
   const nombreValido = nombreCliente.trim().length > 0
   const telefonoValido = telefonoCliente.replace(/\D/g, '').length >= 10
+
+  useEffect(() => {
+    if (nombreValido && telefonoValido) {
+      setDatosAccordionOpen(false)
+    }
+  }, [nombreValido, telefonoValido])
   const puedeEnviar = nombreValido && telefonoValido
 
   if (!isOpen) return null
@@ -58,12 +71,12 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
       mensaje += `Por favor, contáctame para cotizar el costo de envío según mi ubicación.\n`
       mensaje += `📍 *Mi ubicación:* [Comparte tu ubicación aquí]`
     }
-    if (giftMode && giftMode.sender) {
+    if (giftSender.trim()) {
       mensaje += `\n\n*🎁 Modo Regalo Activado*\n`
-      mensaje += `De: ${giftMode.sender}\n`
-      mensaje += `Para: ${giftMode.receiver || '—'}\n`
-      if (giftMode.phone) mensaje += `Tel. destinatario: ${giftMode.phone}\n`
-      if (giftMode.message) mensaje += `Mensaje: ${giftMode.message}`
+      mensaje += `De: ${giftSender.trim()}\n`
+      mensaje += `Para: ${giftReceiver.trim() || '—'}\n`
+      if (giftMessage.trim()) mensaje += `Mensaje: ${giftMessage.trim()}\n`
+      mensaje += `\n⚠️ Ubicación y costo de envío pendientes de coordinación.`
     }
     return mensaje
   }
@@ -84,10 +97,9 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
         const add = '🎁 Regalo canjeado — Pendiente de cotización de envío. Contactar al cliente para coordinar.'
         notaEnvio = notaEnvio ? `${notaEnvio} | ${add}` : add
       }
-      if (giftMode?.sender) {
-        let add = `🎁 Modo Regalo — De: ${giftMode.sender}, Para: ${giftMode.receiver || '—'}`
-        if (giftMode.phone) add += `, Tel: ${giftMode.phone}`
-        if (giftMode.message) add += `, Msj: "${giftMode.message}"`
+      if (giftSender.trim()) {
+        let add = `🎁 Modo Regalo — De: ${giftSender.trim()}, Para: ${giftReceiver.trim() || '—'}`
+        if (giftMessage.trim()) add += `, Msj: "${giftMessage.trim()}"`
         notaEnvio = notaEnvio ? `${notaEnvio} | ${add}` : add
       }
 
@@ -99,8 +111,12 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
           nombreCliente: nombreCliente.trim(),
           telefonoCliente: telefonoCliente.trim() || null,
           items: itemsParaInsertar,
-          isGift: !!giftMode?.sender,
+          isGift: !!giftSender.trim(),
           notas: notaEnvio,
+          giftSender: giftSender.trim() || null,
+          giftReceiver: giftReceiver.trim() || null,
+          giftReceiverPhone: giftReceiverPhone.trim() || null,
+          giftMessage: giftMessage.trim() || null,
         }),
       })
 
@@ -115,6 +131,10 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
       localStorage.setItem(`nexus-last-order-${idTienda}`, pedido.id)
 
       clearCart()
+      setGiftSender('')
+      setGiftReceiver('')
+      setGiftReceiverPhone('')
+      setGiftMessage('')
       const orderDisplayId = pedido.id.slice(-6).toUpperCase()
       const mensaje = generarMensaje(orderDisplayId)
       const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(mensaje)}`
@@ -131,7 +151,7 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
       {/* MOTION SYSTEM PASS: Drawer slide-in with spring easing */}
       <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-backdrop-in" onClick={() => setIsOpen(false)} />
-      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col animate-slide-in-right" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+      <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col overflow-y-auto animate-slide-in-right" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div className="p-4 border-b flex justify-between items-center bg-[var(--primary)] text-white">
           <h2 className="text-lg font-bold">Tu Carrito ({totalItems})</h2>
           <button onClick={() => setIsOpen(false)} className="p-2 text-white hover:text-white/70 rounded-lg touch-target native-press">
@@ -141,7 +161,7 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto mobile-scroll p-4">
+        <div className="flex-1 p-4">
           {items.length === 0 ? (
             <p className="text-center text-gray-500 py-8">Tu carrito está vacío</p>
           ) : (
@@ -210,32 +230,71 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
         {/* MOBILE EXPERIENCE PASS: Sticky checkout with touch-friendly inputs */}
         {!hideCheckout && items.length > 0 && (
           <div className="p-4 border-t bg-gray-50 sticky-bottom">
-            {hasGiftItems && (
-              <div className="mb-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                <p className="text-xs font-semibold text-amber-800">🚚 Costo de envío no incluido</p>
-                <p className="text-[11px] text-amber-600 mt-0.5">Una vez realizado el pedido, el comercio te contactará por WhatsApp para cotizar el envío según tu ubicación exacta.</p>
+            {/* 🎁 Gift */}
+            <div className="mb-3">
+              {!giftConfigurado ? (
+                <button onClick={() => setGiftModalOpen(true)}
+                  className="w-full py-3 px-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm font-semibold text-left hover:bg-amber-100 transition-colors">
+                  🎁 Comprar como regalo
+                </button>
+              ) : (
+                <div className="flex items-center justify-between py-3 px-4 bg-amber-50 border border-amber-200 rounded-xl">
+                  <span className="text-sm font-semibold text-amber-800">
+                    🎁 {giftSender.trim()} → {giftReceiver.trim()}
+                  </span>
+                  <button onClick={() => setGiftModalOpen(true)}
+                    className="text-xs font-semibold text-amber-700 underline hover:text-amber-900 transition-colors">
+                    Editar
+                  </button>
+                </div>
+              )}
+            </div>
+            {/* 👤 Tus datos accordion */}
+            <button onClick={() => setDatosAccordionOpen(!datosAccordionOpen)}
+              className="w-full flex items-center justify-between py-2 mb-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-6 h-6 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
+                  <svg className="w-3.5 h-3.5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                {datosAccordionOpen ? (
+                  <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Tus datos</span>
+                ) : (
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-xs font-semibold text-slate-700 truncate">{nombreCliente.trim() || 'Tus datos'}</span>
+                    <span className={nombreValido ? 'text-emerald-600' : 'text-amber-600'}>{nombreValido ? '✅' : '⚠️'}</span>
+                  </div>
+                )}
               </div>
+              <svg className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ${datosAccordionOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {datosAccordionOpen && (
+              <>
+                <div className="mb-3">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">¿A nombre de quién preparamos el pedido?</label>
+                  <input type="text" value={nombreCliente} onChange={e => setNombreCliente(e.target.value)}
+                    placeholder="Tu nombre"
+                    className="w-full px-4 py-3 text-[16px] border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900" />
+                </div>
+                <div className="mb-3">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">¿Cuál es tu WhatsApp para contactarte?</label>
+                  <input type="tel" value={telefonoCliente} onChange={e => setTelefonoCliente(e.target.value)}
+                    placeholder="+1 809 123 4567"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    className={`w-full px-4 py-3 text-[16px] border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900 ${telefonoCliente && !telefonoValido ? 'border-red-400' : 'border-slate-200'}`} />
+                </div>
+                <div className="mb-3">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Notas (opcional)</label>
+                  <textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2}
+                    placeholder="Ej: Entregar en la recepción"
+                    className="w-full px-4 py-3 text-[16px] border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900 resize-none" />
+                </div>
+              </>
             )}
-            <div className="mb-3">
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">¿A nombre de quién preparamos el pedido?</label>
-              <input type="text" value={nombreCliente} onChange={e => setNombreCliente(e.target.value)}
-                placeholder="Tu nombre"
-                className="w-full px-4 py-3 text-[16px] border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900" />
-            </div>
-            <div className="mb-3">
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">¿Cuál es tu WhatsApp para contactarte?</label>
-              <input type="tel" value={telefonoCliente} onChange={e => setTelefonoCliente(e.target.value)}
-                placeholder="+1 809 123 4567"
-                inputMode="tel"
-                autoComplete="tel"
-                className={`w-full px-4 py-3 text-[16px] border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900 ${telefonoCliente && !telefonoValido ? 'border-red-400' : 'border-slate-200'}`} />
-            </div>
-            <div className="mb-3">
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Notas (opcional)</label>
-              <textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2}
-                placeholder="Ej: Entregar en la recepción"
-                className="w-full px-4 py-3 text-[16px] border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900 resize-none" />
-            </div>
             <div className="flex justify-between items-center mb-4">
               <div>
                 <span className="text-slate-600 font-medium">Total:</span>
@@ -306,6 +365,21 @@ export default function CartDrawer({ idTienda, whatsappNumber, giftMode, hideChe
           </div>
         </div>
       )}
+      <GiftModal
+        open={giftModalOpen}
+        initialSender={giftSender}
+        initialReceiver={giftReceiver}
+        initialReceiverPhone={giftReceiverPhone}
+        initialMessage={giftMessage}
+        onSave={(sender, receiver, receiverPhone, message) => {
+          setGiftSender(sender)
+          setGiftReceiver(receiver)
+          setGiftReceiverPhone(receiverPhone)
+          setGiftMessage(message)
+          setGiftModalOpen(false)
+        }}
+        onCancel={() => setGiftModalOpen(false)}
+      />
     </div>
     </>
   )

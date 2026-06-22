@@ -7,7 +7,6 @@ import Link from 'next/link'
 import { checkTiendaActiva } from '@/lib/commercial'
 import type { PlanTipo, PlanStatus } from '@/lib/commercial'
 import { formatCurrency, generarMensaje } from '@/lib/utils'
-import { gestionarStock } from '@/lib/stock'
 import type { VarsWhatsApp } from '@/lib/utils'
 import { useTheme } from '@/context/ThemeContext'
 import { getPalette, applyPalette } from '@/lib/palettes'
@@ -704,46 +703,17 @@ export default function DashboardLayout({
   const handleGiftAction = async (giftId: string, newStatus: 'approved' | 'rejected') => {
     if (newStatus === 'approved') {
       const gift = giftPendientes.find(g => g.id === giftId)
-      if (gift?.items_list && gift.items_list.length > 0) {
-        const productIds = gift.items_list.map(i => i.product_id)
-        const { data: products } = await getSupabase()
-          .from('productos')
-          .select('id, stock, in_stock')
-          .in('id', productIds)
-
-        const insufficient: string[] = []
-        for (const item of gift.items_list) {
-          const prod = products?.find(p => p.id === item.product_id)
-          if (!prod || !prod.in_stock || prod.stock <= 0) {
-            insufficient.push(item.nombre)
-          }
-        }
-
-        if (insufficient.length > 0) {
-          console.error('[Gift] Stock insuficiente para:', insufficient.join(', '))
-          alert(`No se puede aprobar el regalo. Stock insuficiente para: ${insufficient.join(', ')}`)
-          return
-        }
-
-        const stockResult = await gestionarStock(
-          getSupabase(),
-          gift.items_list.map(i => ({
-            id_producto: i.product_id,
-            nombre: i.nombre,
-            cantidad: 1,
-            variante_seleccionada: null,
-          })),
-          'deduct'
-        )
-        if (!stockResult.ok) {
-          console.error('[Gift] stock decrement errors:', stockResult.errors)
-          alert('No se pudo descontar el stock. Intenta de nuevo.')
-          return
-        }
+      const { data, error } = await getSupabase().rpc('aprobar_regalo_v2', { p_gift_id: giftId })
+      if (error) {
+        console.error('[Gift] Error en RPC:', error)
+        alert('Error al aprobar el regalo. Intenta de nuevo.')
+        return
       }
-
-      const updates: any = { status: newStatus, approved_at: new Date().toISOString() }
-      await getSupabase().from('gift_experiences').update(updates).eq('id', giftId)
+      if (!data?.success) {
+        console.error('[Gift] aprobar_regalo_v2:', data?.error)
+        alert(data?.error || 'No se pudo aprobar el regalo.')
+        return
+      }
       setApprovedGift(gift || null)
       return
     }
@@ -1351,7 +1321,7 @@ export default function DashboardLayout({
         )}
       </div>
       </ToastProvider>
-       <PwaRegister swUrl="/dashboard/sw.js" scope="/dashboard" manifestUrl={tiendaId ? `/api/manifest/dashboard/${tiendaId}` : undefined} logoUrl={storeLogoUrl} />
+       <PwaRegister swUrl="/dashboard/sw.js" scope="/dashboard/" manifestUrl={tiendaId ? `/api/manifest/dashboard/${tiendaId}` : undefined} logoUrl={storeLogoUrl} />
       <InstallAppButton />
     </OrderAlertContext.Provider>
     </DashboardContext.Provider>

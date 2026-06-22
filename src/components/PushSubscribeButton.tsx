@@ -9,10 +9,21 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
   return Uint8Array.from(raw.split('').map((c) => c.charCodeAt(0)))
 }
 
+async function getSwRegistration(scopePath = '/dashboard/', timeoutMs = 15000): Promise<ServiceWorkerRegistration> {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    const reg = await navigator.serviceWorker.getRegistration(scopePath)
+    if (reg?.active) return reg
+    await new Promise(r => setTimeout(r, 300))
+  }
+  throw new Error('Service Worker not ready after ' + timeoutMs + 'ms')
+}
+
 export default function PushSubscribeButton({ idTienda }: { idTienda?: string }) {
   const [supported, setSupported] = useState(false)
   const [subscribed, setSubscribed] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('PushManager' in window) || !('serviceWorker' in navigator)) {
@@ -20,20 +31,25 @@ export default function PushSubscribeButton({ idTienda }: { idTienda?: string })
     }
     setSupported(true)
 
-    navigator.serviceWorker.ready.then((reg) => {
-      reg.pushManager.getSubscription().then((sub) => {
-        setSubscribed(!!sub)
-      })
+    getSwRegistration().then((reg) => {
+      console.log('[Push] SW ready, checking subscription')
+      return reg.pushManager.getSubscription()
+    }).then((sub) => {
+      setSubscribed(!!sub)
+    }).catch((e) => {
+      console.warn('[Push] SW not available:', e.message)
+      setError('Service Worker no disponible. Las notificaciones no funcionarán.')
     })
   }, [])
 
   const handleToggle = useCallback(async () => {
     if (!idTienda || loading) return
     setLoading(true)
+    setError(null)
 
     try {
       if (subscribed) {
-        const reg = await navigator.serviceWorker.ready
+        const reg = await getSwRegistration()
         const sub = await reg.pushManager.getSubscription()
         if (sub) {
           await sub.unsubscribe()
@@ -62,7 +78,7 @@ export default function PushSubscribeButton({ idTienda }: { idTienda?: string })
           return
         }
 
-        const reg = await navigator.serviceWorker.ready
+        const reg = await getSwRegistration()
 
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
@@ -84,8 +100,10 @@ export default function PushSubscribeButton({ idTienda }: { idTienda?: string })
         }
         setSubscribed(true)
       }
-    } catch (error) {
-      console.error('[Push] subscribe error', error)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error desconocido'
+      console.error('[Push] subscribe error:', msg)
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -94,18 +112,23 @@ export default function PushSubscribeButton({ idTienda }: { idTienda?: string })
   if (!supported) return null
 
   return (
-    <button
-      onClick={handleToggle}
-      disabled={loading}
-      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
-      style={{ color: subscribed ? 'var(--primary)' : 'var(--text-muted)' }}
-      onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-      onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = subscribed ? 'var(--primary)' : 'var(--text-muted)' }}>
-      <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-      </svg>
-      <span className="flex-1">{subscribed ? 'Notificaciones activadas' : 'Activar notificaciones'}</span>
-      {loading && <span className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--text-muted)', borderTopColor: 'transparent' }} />}
-    </button>
+    <div>
+      <button
+        onClick={handleToggle}
+        disabled={loading}
+        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
+        style={{ color: subscribed ? 'var(--primary)' : 'var(--text-muted)' }}
+        onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--bg-surface-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+        onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = subscribed ? 'var(--primary)' : 'var(--text-muted)' }}>
+        <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+        <span className="flex-1">{subscribed ? 'Notificaciones activadas' : 'Activar notificaciones'}</span>
+        {loading && <span className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: 'var(--text-muted)', borderTopColor: 'transparent' }} />}
+      </button>
+      {error && (
+        <p className="text-xs mt-1 px-3" style={{ color: '#ef4444' }}>{error}</p>
+      )}
+    </div>
   )
 }

@@ -16,6 +16,7 @@ interface GiftData {
   gift_code: string
   store_id: string
   items: { product_id: string; nombre: string; precio: number; imagen_url: string | null }[]
+  delivery_address: string | null
 }
 
 function CanjeContent() {
@@ -27,6 +28,7 @@ function CanjeContent() {
   const [isRedeemed, setIsRedeemed] = useState(false)
   const [isV2, setIsV2] = useState(false)
   const [debugMsg, setDebugMsg] = useState('')
+  const [redeemed, setRedeemed] = useState(false)
   const fetched = useRef(false)
 
   useEffect(() => {
@@ -47,7 +49,7 @@ function CanjeContent() {
     const supabase = createClient()
     const query = supabase
       .from('gift_experiences')
-      .select('id, sender_name, receiver_name, personal_message, gift_code, is_redeemed, store_id, items_list, status')
+      .select('id, sender_name, receiver_name, personal_message, gift_code, is_redeemed, store_id, items_list, status, delivery_address')
       .eq('gift_code', code)
 
     query.maybeSingle().then(({ data, error: fetchError }) => {
@@ -74,6 +76,7 @@ function CanjeContent() {
           gift_code: data.gift_code,
           store_id: data.store_id,
           items: (data.items_list as GiftData['items']) || [],
+          delivery_address: data.delivery_address,
         })
         setLoading(false)
         return
@@ -88,6 +91,7 @@ function CanjeContent() {
           gift_code: data.gift_code,
           store_id: data.store_id,
           items: (data.items_list as GiftData['items']) || [],
+          delivery_address: data.delivery_address,
         })
         setLoading(false)
         return
@@ -110,7 +114,9 @@ function CanjeContent() {
         setLoading(false)
         return
       }
-      if (data.status === 'RESERVED') setIsV2(true)
+      if (data.status === 'RESERVED') {
+        setIsV2(true)
+      }
       setGift({
         id: data.id,
         sender_name: data.sender_name,
@@ -119,6 +125,7 @@ function CanjeContent() {
         gift_code: data.gift_code,
         store_id: data.store_id,
         items: (data.items_list as GiftData['items']) || [],
+        delivery_address: data.delivery_address,
       })
       setLoading(false)
     })
@@ -140,6 +147,23 @@ function CanjeContent() {
         colors: ['#7c3aed', '#ec4899'],
       })
     }, 250)
+  }
+
+  const handleRedeemSuccess = () => {
+    setRedeemed(true)
+    confetti({
+      particleCount: 150,
+      spread: 80,
+      origin: { y: 0.55 },
+    })
+    setTimeout(() => {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.3 },
+        colors: ['#7c3aed', '#22c55e'],
+      })
+    }, 300)
   }
 
   useEffect(() => {
@@ -186,15 +210,14 @@ function CanjeContent() {
                 </p>
               </div>
             )}
-            <button
-              onClick={() => { window.location.href = window.location.origin + '/catalogo/' + gift.store_id + '?openCart=1' }}
+            <a href={`/catalogo/${gift.store_id}`}
               className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl shadow-lg shadow-emerald-200 hover:shadow-xl transition-all duration-300"
             >
               Ver el estado de mi regalo
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
-            </button>
+            </a>
           </div>
           <p className="text-[11px] text-slate-400 text-center mt-6">
             Código: <span className="font-mono font-semibold text-slate-500">{gift.gift_code}</span>
@@ -226,7 +249,65 @@ function CanjeContent() {
   return (
     <main className="min-h-screen bg-gradient-to-b from-violet-50 via-white to-pink-50 px-4 py-12">
       <div className="mx-auto max-w-xl">
-        {!revealed ? (
+        {redeemed ? (
+          <div className="animate-[fadeSlideUp_0.5s_ease-out]">
+            <div className="bg-white rounded-2xl border border-emerald-200 p-8 shadow-sm mb-6 text-center">
+              <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
+                <span className="text-3xl">🎉</span>
+              </div>
+              <h1 className="text-xl font-bold text-emerald-800 mb-1">¡Regalo canjeado con éxito!</h1>
+              <div className="mt-6 text-left space-y-4">
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">De</p>
+                  <p className="text-base font-bold text-slate-900">{gift.sender_name}</p>
+                </div>
+                {gift.personal_message && (
+                  <div className="bg-gradient-to-r from-violet-50 to-pink-50 rounded-xl p-4 border border-violet-100">
+                    <p className="text-base italic font-medium text-violet-800 leading-relaxed">
+                      &ldquo;{gift.personal_message}&rdquo;
+                    </p>
+                  </div>
+                )}
+                {gift.items.length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Tu regalo incluye</p>
+                    <div className="space-y-2">
+                      {gift.items.map((item, i) => (
+                        <div key={i} className="flex items-center gap-3 bg-slate-50 rounded-xl p-3">
+                          {item.imagen_url && (
+                            <div className="w-12 h-12 rounded-lg bg-white flex-shrink-0 overflow-hidden">
+                              <img src={item.imagen_url} alt={item.nombre} className="w-full h-full object-cover" />
+                            </div>
+                          )}
+                          <span className="text-sm font-semibold text-slate-700">{item.nombre}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+              <p className="text-sm font-bold text-amber-800 mb-1">📱 ¿Qué sigue?</p>
+              <p className="text-sm text-amber-700 leading-relaxed">
+                El comercio se pondrá en contacto contigo para coordinar la entrega.
+              </p>
+            </div>
+            <div className="space-y-3">
+              <a href={`/catalogo/${gift.store_id}`}
+                className="block w-full text-center px-6 py-4 bg-[var(--primary)] text-white font-bold rounded-2xl shadow-lg hover:brightness-110 transition-all duration-300 text-base">
+                🏪 Explorar tienda
+              </a>
+              <a href="/"
+                className="block w-full text-center px-6 py-3 text-slate-500 font-semibold rounded-xl hover:text-slate-700 transition-colors text-sm">
+                🏠 Volver al inicio
+              </a>
+            </div>
+            <p className="text-[11px] text-slate-400 text-center mt-6">
+              Código: <span className="font-mono font-semibold text-slate-500">{gift.gift_code}</span>
+            </p>
+          </div>
+        ) : !revealed ? (
           <div className="text-center">
             <div className="animate-bounce mb-6">
               <div className="mx-auto w-24 h-24 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 shadow-lg shadow-pink-200 flex items-center justify-center">
@@ -290,10 +371,9 @@ function CanjeContent() {
               <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-3">
                 <p className="text-xs font-bold text-amber-800">¡Importante! Debes canjear este regalo en menos de <span className="text-amber-900 underline decoration-amber-400 decoration-2">72 horas</span> después de ser aprobado.</p>
                 <p className="text-[11px] text-amber-600 mt-1">Pasado este tiempo, el cupón expirará automáticamente para liberar el inventario y no habrá reembolsos.</p>
-                <p className="text-[11px] text-slate-500 mt-1.5 pt-1.5 border-t border-amber-200/50">El costo de envío no está incluido y se cotizará según la zona al realizar el pedido.</p>
               </div>
             )}
-            <RedeemButton giftId={gift.id} items={gift.items} storeId={gift.store_id} giftCode={gift.gift_code} isV2={isV2} />
+            <RedeemButton items={gift.items} storeId={gift.store_id} giftCode={gift.gift_code} isV2={isV2} onSuccess={handleRedeemSuccess} />
           </div>
         )}
       </div>

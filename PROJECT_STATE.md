@@ -11,15 +11,15 @@
 | Atributo | Valor |
 |----------|-------|
 | Stack | Next.js 16.2.6, React 19.2.4, Supabase, Tailwind v4 |
-| Base de datos | Supabase PostgreSQL (78 migraciones) |
+| Base de datos | Supabase PostgreSQL (82 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H) |
+| Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name) |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Regalos V2 Sprint 3H — Consulta pública Gift Cards (API + /[slug]/gift-card + link catálogo) |
+| Último commit | Regalos V3.5 — WhatsApp store name fix, delivery_step, terminal canje |
 
-| Última verificación | 2026-06-19 — Regalos V2 Sprint 3H: build PASS, typecheck PASS. 3 archivos creados, 2 modificados. |
+| Última verificación | 2026-06-21 — Regalos V3.5: build PASS, typecheck PASS. |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -88,8 +88,73 @@
 **Sprint Comercial 1A — Centro de Suscripción (`/dashboard/suscripcion`) + PCC Métodos de Cobro en Configuración Comercial**
 **Sprint QA-WA-02 — WhatsApp Quick Wins (QW1-QW5): CTAs sin contexto, share sin número, URLs inconsistentes**
 **Sprint UX-VITRINA-01 — Hero + Header + Portada cleanup, Destacados auto-slide mobile, precios portadas, cross-fade**
+**Regalos V3.5 — delivery_step, terminal canje, WhatsApp store name, PGRST203 fix**
 
 ### Estado
+
+**Sprint REGALOS-V2-03I-A Completado.** Push notifications (5 eventos) + receiver_phone:
+
+**FASE A — receiver_phone persiste en gift_experiences:**
+- GiftPurchaseForm: nuevo campo "WhatsApp del destinatario (opcional)" + estado receiverPhone + enviado al API
+- `/api/gift-purchase`: destructura receiverPhone del body y lo persiste en `gift_experiences.receiver_phone` (trim, null si vacío)
+- No rompe flujo existente — compatible con receiver_phone ausente
+
+**FASE B — Push notifications al store owner (5 eventos):**
+- `/api/push/gift-notify` (nuevo): endpoint best-effort que recibe `{ idTienda, event, giftCode, senderName?, receiverName? }` y llama `sendPushToTienda()` con título/cuerpo según evento
+- 5 eventos: `purchase` (nuevo regalo pending), `approved`, `claimed`, `delivered`, `converted`
+- Notificaciones best-effort: si fallan NO revierten la operación principal
+- Push server-side en `/api/gift-purchase` tras INSERT exitoso
+- Push client-side en GiftDashboard (approve/deliver/convert), GiftRedemption (reclaim), RedeemButton (reclaim)
+
+**Decisiones:**
+- ✅ `sendPushToTienda()` reutilizada directamente — sin nuevas dependencias
+- ✅ receiver_phone: trim, null si vacío
+- ✅ Notificaciones best-effort — `.catch(() => {})` en todos los puntos
+- Sin migraciones, sin cambios en DB
+
+Build PASS. Typecheck PASS. Commit `b43176d` — 6 files, +96/-2.
+
+**Regalos V3.5 — delivery_step, terminal canje, WhatsApp store name:**
+
+**FASE A — receiver_phone obligatorio en checkout:**
+- GiftModal.tsx: nuevo campo "WhatsApp del destinatario" (requerido), `onSave` extendido a 4 params
+- CartDrawer.tsx: estado `giftReceiverPhone` + incluido en body del checkout
+
+**FASE B — delivery_step (flujo guiado CLAIMED):**
+- Migración 081: `ALTER TABLE gift_experiences ADD COLUMN delivery_step TEXT` + partial index
+- GiftDashboard.tsx: botones secuenciales (Contactar→Avisar envío→Entregado) + badges "📞 Contactado" / "🚚 En camino"
+- WhatsApp messages actualizados con store name real desde `perfil_tienda.nombre_comercial`
+
+**FASE C — Terminal canje (D2+D4):**
+- GiftRedemption.tsx: eliminado `useCart`, `addToCart`, address modal. Reemplazado "Ir al carrito" por "🏪 Explorar tienda"
+- canje/page.tsx: eliminados `needsAddress`, `deliveryAddress`, address block, shipping cost
+- RedeemButton.tsx: eliminada prop `deliveryAddress`
+
+**FASE D — WhatsApp post-entrega:**
+- markDelivered.ts: abre WhatsApp tras `entregar_regalo_v2` exitoso con mensaje "esperamos que estés disfrutando" + catalog URL
+
+**FASE E — delivery_address ya no es requisito:**
+- Migración 082: `entregar_regalo_v2` sin NULL check de delivery_address
+- Frontend guard eliminado
+
+**FASE F — PGRST203 fix:**
+- Migración 080: `DROP FUNCTION reclamar_regalo_v2(TEXT, UUID)` (overload legacy 2-param)
+
+**FASE G — WhatsApp store name:**
+- GiftDashboard.tsx: fetch `nombre_comercial` desde `perfil_tienda` + estado `storeName`
+- Templates actualizados: "la tienda" → `{storeName}`, "nuestra tienda" → `{storeName}`
+- Build PASS. Typecheck PASS.
+
+**Decisiones:**
+- ✅ `nombre_comercial` de `perfil_tienda` es la fuente correcta del nombre de tienda
+- ✅ receiver_phone es obligatorio en checkout (sin número, store no puede contactar)
+- ✅ delivery_step guía flujo CLAIMED sin crear nuevos status de negocio
+- ✅ Canje es terminal — GiftRedemption ya no usa carrito
+- ✅ delivery_address ya no es requisito para entregar (V3.5 coordina por WhatsApp)
+- ✅ WhatsApp post-entrega se envía solo si RPC retorna success=true
+- ✅ PGRST203: eliminar overload legacy 2-param de reclamar_regalo_v2
+
+Build PASS. Typecheck PASS. 5 migrations (079-082), 8+ files modificados.
 
 **Sprint REGALOS-V2-03H Completado.** Consulta pública de Gift Cards:
 
@@ -3291,3 +3356,127 @@ Posible relación con planes superiores.
 **Objetivo:** Centralizar feedback y evitar depender de mensajes dispersos por WhatsApp.
 
 **Estado:** Documentado. No implementado.
+
+---
+
+# REGALOS V3 — REESTRUCTURACIÓN OPERATIVA (PENDIENTE)
+
+**Estado:** EN DISEÑO / NO IMPLEMENTADO
+
+**Contexto:** Durante la auditoría de dominio Regalos V3.5 se identificó que el flujo actual mezcla conceptos heredados de V1, V2 y V3. La decisión es alinear Regalos V3 con la operación real de una tienda que vende por WhatsApp.
+
+---
+
+## Flujo Objetivo
+
+```
+Comprador
+↓
+Configura regalo
+↓
+De parte de
+Para
+Whatsapp destinatario
+Mensaje personalizado
+↓
+Compra
+↓
+Comercio aprueba
+↓
+Status RESERVED
+↓
+Destinatario abre enlace
+↓
+Canjea regalo
+↓
+Status CLAIMED
+↓
+Comercio contacta destinatario vía WhatsApp
+↓
+Coordina entrega
+↓
+Status DELIVERED
+```
+
+---
+
+## Decisiones Aprobadas
+
+### Checkout regalo debe solicitar únicamente:
+
+- `sender_name`
+- `receiver_name`
+- `receiver_phone` (WhatsApp destinatario)
+- `personal_message`
+
+### Eliminar del flujo de compra:
+
+- `delivery_address`
+- `delivery_location_link`
+- `shipping_cost`
+
+### Mensaje aprobado:
+
+> ℹ️ El costo de envío se cotizará cuando compartas la ubicación del destinatario por WhatsApp.
+
+---
+
+## Canje
+
+Regalos V3 debe ser **TERMINAL**. **NO** debe usar carrito.
+
+### Eliminar dependencia de:
+
+- `addToCart()`
+- `CartContext`
+- `openCart`
+- localStorage hacks
+
+### Después del canje:
+
+- Pantalla de éxito
+- Botón **Explorar tienda**
+
+---
+
+## Dashboard Regalos
+
+Pendiente implementar:
+
+- Mostrar `receiver_phone`
+- Mostrar `delivery_address` texto completo
+- Botón **Contactar destinatario**
+- Botón **Pedido en camino**
+- Botón **Marcar entregado**
+
+Mensajes WhatsApp pendientes de implementación.
+
+---
+
+## Deuda Técnica Identificada
+
+### Columnas muertas:
+
+- `product_id`
+- `legacy_code`
+- `delivery_location_link`
+- `shipping_cost`
+- `location_requested_at`
+
+### Columnas V1:
+
+- `approved_at`
+- `is_redeemed`
+
+Pendiente evaluar limpieza post-Beta.
+
+---
+
+## Pendiente para Beta
+
+1. Activar cron `gift-expiration` en producción
+2. Eliminar carrito del flujo de canje
+3. Reestructurar checkout regalo
+4. Agregar acciones operativas en GiftDashboard
+5. Revisar dependencia de `delivery_address` para DELIVERED
+6. Definir política final de expiración

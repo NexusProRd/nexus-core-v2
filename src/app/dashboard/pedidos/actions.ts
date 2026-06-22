@@ -101,8 +101,27 @@ export async function actualizarEstado(formData: FormData) {
 
     const isGift = (pedido?.notas?.includes('🎁 Modo Regalo') ?? false) || (pedido as any)?.is_gift === true
     if (isGift) {
-      const code = generateTicketCode()
       const giftDetails = parseGiftDetails(pedido?.notas ?? null)
+
+      // Dedup guard: skip if checkout already created a pending gift (Sprint 3N)
+      if (giftDetails.sender_name && pedido?.id_tienda) {
+        const { data: existingGift } = await supabase
+          .from('gift_experiences')
+          .select('id')
+          .eq('store_id', pedido.id_tienda)
+          .eq('sender_name', giftDetails.sender_name)
+          .eq('receiver_name', giftDetails.recipient_name)
+          .eq('status', 'pending')
+          .gte('created_at', new Date(Date.now() - 86400000).toISOString())
+          .limit(1)
+
+        if (existingGift && existingGift.length > 0) {
+          console.log('[actions] Gift already exists from checkout, skipping creation')
+          return redirect('/dashboard/pedidos')
+        }
+      }
+
+      const code = generateTicketCode()
 
       if (!pedido?.id_tienda) {
         console.error('Error al crear gift: pedido sin id_tienda')
