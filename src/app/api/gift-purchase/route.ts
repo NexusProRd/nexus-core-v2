@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   const productIds = items.map((p: any) => p.product_id)
   const { data: stockCheck, error: stockCheckError } = await supabase!
     .from('productos')
-    .select('id, stock, stock_reservado, in_stock, tallas')
+    .select('id, stock, stock_reservado, in_stock, tallas, costo_compra')
     .in('id', productIds)
 
   if (stockCheckError) {
@@ -32,6 +32,9 @@ export async function POST(req: NextRequest) {
   if (noDisponibles.length > 0) {
     return NextResponse.json({ error: 'Algunos productos seleccionados ya no están disponibles o tienen variantes.' }, { status: 409 })
   }
+
+  const costMap = new Map<string, number>()
+  stockCheck?.forEach(p => costMap.set(p.id, p.costo_compra || 0))
 
   const itemsList = items.map((p: any) => ({
     product_id: p.product_id,
@@ -60,6 +63,36 @@ export async function POST(req: NextRequest) {
 
   if (insertError) {
     return NextResponse.json({ error: insertError.message }, { status: 500 })
+  }
+
+  const total = items.reduce((sum: number, p: any) => sum + Number(p.precio || 0), 0)
+
+  const { error: pedidoError } = await supabase!
+    .from('pedidos')
+    .insert({
+      id_tienda: idTienda,
+      cliente_nombre: sender.trim(),
+      cliente_telefono: senderPhone.trim(),
+      total,
+      estado: 'pendiente',
+      notas: '🎁 Modo Regalo',
+      detalles_pedido: items.map((p: any) => ({
+        id_producto: p.product_id,
+        producto: p.nombre,
+        cantidad: 1,
+        precio_unitario: p.precio,
+        costo_real: costMap.get(p.product_id) || 0,
+        subtotal: p.precio,
+        total: p.precio,
+        impuesto: 0,
+        aplica_impuesto: false,
+        porcentaje_impuesto: null,
+      })),
+      order_id: crypto.randomUUID(),
+    })
+
+  if (pedidoError) {
+    console.error('[gift-purchase] Error al crear pedido:', pedidoError)
   }
 
   sendPushToTienda(idTienda, {

@@ -14,12 +14,12 @@
 | Base de datos | Supabase PostgreSQL (82 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta QA** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name) |
+| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados) |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Regalos V3.5 — WhatsApp store name fix, delivery_step, terminal canje |
+| Último commit | Regalos V3.6 — R1, D1+D8, gift_config UI, P0s cerrados, Beta Ready |
 
-| Última verificación | 2026-06-21 — Regalos V3.5: build PASS, typecheck PASS. |
+| Última verificación | 2026-06-22 — Regalos V3.6: build PASS, typecheck PASS. Beta Ready. |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -89,6 +89,19 @@
 **Sprint QA-WA-02 — WhatsApp Quick Wins (QW1-QW5): CTAs sin contexto, share sin número, URLs inconsistentes**
 **Sprint UX-VITRINA-01 — Hero + Header + Portada cleanup, Destacados auto-slide mobile, precios portadas, cross-fade**
 **Regalos V3.5 — delivery_step, terminal canje, WhatsApp store name, PGRST203 fix**
+
+**Regalos V3.6 — R1, D1+D8, gift_config UI, P0s cerrados, Beta Ready**
+- R1: `detalles_pedido` enriquecido (costo_compra, id_producto, costo_real, subtotal, total, impuesto) — métricas financieras correctas
+- P0-1: gift-purchase crea pedido asociado
+- P0-2: GiftRedemption.tsx eliminado (código muerto, 191 líneas)
+- P0-3: rejected protegido con `.eq('status', 'pending')` en GiftDashboard
+- D1: delivery section eliminada de GiftPurchaseForm
+- D8: textos "Pago contra entrega"/"costo de envío" reemplazados por "Pendiente de confirmación"
+- gift_config UI: formulario en GiftDashboard (reserved_expires_days, gift_card_expires_days)
+- `claimed_expires_days` ocultado de UI Beta (sin enforcement real)
+- WhatsApp approval notification al comprador
+- Store name fix (`nombre_tienda` → `nombre_comercial`)
+- Build PASS. Typecheck PASS. 4 files modificados, 1 eliminado.
 
 ### Estado
 

@@ -62,6 +62,48 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
   const [editAddress, setEditAddress] = useState('')
   const [deliveringId, setDeliveringId] = useState<string | null>(null)
   const [storeName, setStoreName] = useState('')
+  const [configSettings, setConfigSettings] = useState<{reserved_expires_days: number; gift_card_expires_days: number} | null>(null)
+  const [configLoading, setConfigLoading] = useState(false)
+  const [configSaving, setConfigSaving] = useState(false)
+  const [configSaved, setConfigSaved] = useState(false)
+
+  const fetchConfig = useCallback(async () => {
+    setConfigLoading(true)
+    try {
+      const res = await fetch('/api/gift-rules')
+      if (res.ok) {
+        const data = await res.json()
+        setConfigSettings({ reserved_expires_days: data.reserved_expires_days, gift_card_expires_days: data.gift_card_expires_days })
+      }
+    } catch {
+      // ignore
+    } finally {
+      setConfigLoading(false)
+    }
+  }, [])
+
+  const saveConfig = useCallback(async () => {
+    if (!configSettings) return
+    setConfigSaving(true)
+    setConfigSaved(false)
+    try {
+      const res = await fetch('/api/gift-rules', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(configSettings),
+      })
+      if (res.ok) {
+        setConfigSaved(true)
+        setTimeout(() => setConfigSaved(false), 3000)
+      }
+    } catch {
+      // ignore
+    } finally {
+      setConfigSaving(false)
+    }
+  }, [configSettings])
+
+  useEffect(() => { fetchConfig() }, [fetchConfig])
 
   useEffect(() => {
     const supabase = createClient()
@@ -137,6 +179,7 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
           .from('gift_experiences')
           .update({ status: 'rejected' })
           .eq('id', gift.id)
+          .eq('status', 'pending')
         if (error) console.error('[GiftDashboard] Error al rechazar:', error)
         setUpdatingId(null)
         return
@@ -149,10 +192,17 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
         console.error('[GiftDashboard] aprobar_regalo_v2:', data?.error)
       } else {
         sendGiftPush(storeId, 'approved', gift.gift_code)
+        if (gift.sender_phone) {
+          const giftUrl = `${window.location.origin}/canje?gift=${gift.gift_code}&id=${gift.store_id}`
+          const waUrl = `https://wa.me/${gift.sender_phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+            `Hola ${gift.sender_name} 👋\n\n¡Tu regalo ha sido aprobado! 🎉\n\nYa puedes compartir este enlace con ${gift.receiver_name} para que pueda reclamar y disfrutar el detalle que le preparaste con mucho cariño.\n\n🎁 Enlace del regalo:\n${giftUrl}\n\nCuando ${gift.receiver_name} abra el enlace podrá reclamar su regalo y nosotros nos encargaremos de coordinar la entrega.\n\nGracias por confiar en ${storeName}.`
+          )}`
+          window.open(waUrl, '_blank')
+        }
       }
       setUpdatingId(null)
     },
-    []
+    [storeName]
   )
 
   const markDelivered = useCallback(async (gift: Gift) => {
@@ -776,6 +826,40 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
           </div>
         </div>
       )}
+
+      <details className="mb-4 group">
+        <summary className="text-xs font-semibold text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-600 transition-colors select-none">
+          ⚙️ Configuración
+        </summary>
+        <div className="mt-3 p-4 bg-white rounded-xl border border-slate-200 space-y-4">
+          {configLoading ? (
+            <p className="text-xs text-slate-400">Cargando configuración...</p>
+          ) : configSettings ? (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Días para expiración de reserva</label>
+                <input type="number" min={1} max={90} value={configSettings.reserved_expires_days}
+                  onChange={e => setConfigSettings(prev => prev ? { ...prev, reserved_expires_days: Math.max(1, Math.min(90, Number(e.target.value) || 1)) } : prev)}
+                  className="w-24 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-900 focus:ring-2 focus:ring-[var(--primary)] outline-none" />
+                <p className="text-[10px] text-slate-400 mt-0.5">Un regalo reservado se convierte a Gift Card si no se reclama en este plazo.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Días de vigencia de Gift Card</label>
+                <input type="number" min={1} max={1825} value={configSettings.gift_card_expires_days}
+                  onChange={e => setConfigSettings(prev => prev ? { ...prev, gift_card_expires_days: Math.max(1, Math.min(1825, Number(e.target.value) || 1)) } : prev)}
+                  className="w-24 px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-900 focus:ring-2 focus:ring-[var(--primary)] outline-none" />
+                <p className="text-[10px] text-slate-400 mt-0.5">Tiempo máximo para canjear una Gift Card antes de que expire.</p>
+              </div>
+              <button onClick={saveConfig} disabled={configSaving}
+                className="px-4 py-2 bg-[var(--primary)] text-white text-xs font-medium rounded-xl hover:brightness-110 transition-colors disabled:opacity-50">
+                {configSaving ? 'Guardando...' : configSaved ? '✓ Guardado' : 'Guardar'}
+              </button>
+            </>
+          ) : (
+            <p className="text-xs text-slate-400">No se pudo cargar la configuración.</p>
+          )}
+        </div>
+      </details>
     </div>
   )
 }
