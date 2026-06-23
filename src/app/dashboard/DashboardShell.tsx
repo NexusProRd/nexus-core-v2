@@ -20,6 +20,7 @@ const TIPOS: { value: NexusAnuncioTipo; label: string; icon: string; color: stri
 import PwaRegister from '@/components/PwaRegister'
 import InstallAppButton from '@/components/InstallAppButton'
 import PushSubscribeButton from '@/components/PushSubscribeButton'
+import PushBanner from '@/components/PushBanner'
 import { SessionProvider, usePermisos } from '@/context/PermisosContext'
 import ToastProvider, { useToast } from '@/components/Toast'
 import { DashboardContext } from './DashboardContext'
@@ -842,6 +843,7 @@ function DashboardLayoutInner({
               </div>
             )
           })}
+          <PushBanner idTienda={tiendaId} />
           {/* MOTION SYSTEM PASS: Page enter with spring easing */}
           <div key={pathname} className="max-w-7xl mx-auto animate-page-enter content-visibility-auto">
             {children}
