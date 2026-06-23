@@ -295,7 +295,7 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
           {/* ORDERS UX PASS: Quick actions */}
           {(permisos === null || permisos.pedidos) && (
             <div className="flex gap-2 mt-4 flex-wrap">
-              {pedido.estado === 'pendiente' ? (
+              {pedido.estado === 'pendiente' && pedido.metodo_pago ? (
                 <>
                   <button
                     onClick={async () => {
@@ -319,6 +319,28 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
                     )}
                     {accionando === 'gestionar_cobro' ? 'Enviando...' : 'Gestionar Cobro'}
                   </button>
+                  <form action={actualizarEstado}>
+                    <input type="hidden" name="pedidoId" value={pedido.id} />
+                    <input type="hidden" name="estado" value="rechazado" />
+                    <button type="submit"
+                      className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-white dark:bg-slate-700 hover:bg-rose-50 dark:hover:bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-600 transition-all press-scale-sm"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                      Rechazar
+                    </button>
+                  </form>
+                  <form action={actualizarEstado}>
+                    <input type="hidden" name="pedidoId" value={pedido.id} />
+                    <input type="hidden" name="estado" value="cancelado" />
+                    <button type="submit"
+                      className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-600 transition-all press-scale-sm"
+                    >
+                      Cancelar
+                    </button>
+                  </form>
+                </>
+              ) : pedido.estado === 'pendiente' ? (
+                <>
                   <form action={actualizarEstado}>
                     <input type="hidden" name="pedidoId" value={pedido.id} />
                     <input type="hidden" name="estado" value="rechazado" />
