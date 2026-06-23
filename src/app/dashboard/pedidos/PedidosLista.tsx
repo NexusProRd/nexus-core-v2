@@ -17,6 +17,7 @@ interface Pedido {
   is_gift?: boolean
   id_tienda?: string
   notas?: string | null
+  metodo_pago?: string | null
 }
 
 const STAT_LABELS: Record<string, { label: string; cls: string }> = {

@@ -88,6 +88,7 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
   const [buyName, setBuyName] = useState('')
   const [buyPhone, setBuyPhone] = useState('')
   const [buying, setBuying] = useState(false)
+  const [buyMetodoPago, setBuyMetodoPago] = useState<'transferencia' | 'contra_entrega' | null>(null)
   const [showSizeModal, setShowSizeModal] = useState(false)
   const [pendingBuy, setPendingBuy] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
@@ -175,6 +176,7 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
         }],
         isGift: false,
         notas: `Compra rápida directa: ${nombreConVariante} x${quantity}`,
+        metodoPago: buyMetodoPago,
       }),
     })
 
@@ -483,12 +485,62 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
                   onFocus={e => { e.currentTarget.style.borderColor = vars.textPrimary; e.currentTarget.style.boxShadow = `0 0 0 2px ${vars.borderMedium}` }}
                   onBlur={e => { e.currentTarget.style.borderColor = vars.borderLight; e.currentTarget.style.boxShadow = 'none' }} />
                 <div className="flex gap-2">
-                  <button onClick={() => { setShowBuyForm(false); setBuyName(''); setBuyPhone('') }}
+                  <button onClick={() => setBuyMetodoPago('transferencia')}
+                    className={`flex-1 py-2 rounded-xl border-2 text-xs font-semibold text-left transition-all ${
+                      buyMetodoPago === 'transferencia'
+                        ? 'border-[var(--primary)] bg-[var(--primary)]/5 text-[var(--primary)]'
+                        : 'border-slate-200 text-slate-600'
+                    }`}>
+                    <span className="block text-xs">🏦</span>
+                    Transferencia
+                  </button>
+                  <button onClick={() => setBuyMetodoPago('contra_entrega')}
+                    className={`flex-1 py-2 rounded-xl border-2 text-xs font-semibold text-left transition-all ${
+                      buyMetodoPago === 'contra_entrega'
+                        ? 'border-[var(--primary)] bg-[var(--primary)]/5 text-[var(--primary)]'
+                        : 'border-slate-200 text-slate-600'
+                    }`}>
+                    <span className="block text-xs">🚚</span>
+                    Contra entrega
+                  </button>
+                </div>
+
+                {!buyMetodoPago && (
+                  <div className="p-2.5 rounded-xl border" style={{ borderColor: vars.borderLight, backgroundColor: vars.bgInput }}>
+                    <p className="text-[11px] font-semibold" style={{ color: vars.textPrimary }}>📱 ¿Qué sucede después?</p>
+                    <ol className="text-[10px]" style={{ color: vars.textMuted }}>
+                      <li>1. Envías tu pedido.</li>
+                      <li>2. La tienda revisa la disponibilidad.</li>
+                      <li>3. Te contactará por WhatsApp para coordinar el pago y la entrega.</li>
+                    </ol>
+                  </div>
+                )}
+
+                {buyMetodoPago === 'transferencia' && (
+                  <div className="p-2.5 rounded-xl border" style={{ borderColor: 'var(--border-medium)', backgroundColor: 'var(--bg-input)' }}>
+                    <p className="text-[11px] font-semibold text-sky-800">ℹ️ Transferencia bancaria</p>
+                    <p className="text-[10px] text-sky-700/80 leading-relaxed">
+                      No necesitas realizar ninguna transferencia ahora. La tienda se comunicará contigo por WhatsApp para compartir las instrucciones de pago.
+                    </p>
+                  </div>
+                )}
+
+                {buyMetodoPago === 'contra_entrega' && (
+                  <div className="p-2.5 rounded-xl border" style={{ borderColor: 'var(--border-medium)', backgroundColor: 'var(--bg-input)' }}>
+                    <p className="text-[11px] font-semibold text-orange-800">ℹ️ Contra entrega</p>
+                    <p className="text-[10px] text-orange-700/80 leading-relaxed">
+                      El pago se realizará al recibir tu pedido. La tienda se comunicará contigo por WhatsApp para coordinar la entrega.
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex gap-2">
+                  <button onClick={() => { setShowBuyForm(false); setBuyName(''); setBuyPhone(''); setBuyMetodoPago(null) }}
                     className="flex-1 py-2.5 rounded-full font-semibold text-sm transition-all"
                     style={{ border: `1px solid ${vars.borderMedium}`, color: vars.textSecondary }}
                     onMouseEnter={e => { e.currentTarget.style.backgroundColor = vars.bgSurfaceHover }}
                     onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent' }}>Cancelar</button>
-                  <button onClick={confirmBuy} disabled={!buyName.trim() || !buyPhone.trim()}
+                  <button onClick={confirmBuy} disabled={!buyName.trim() || !buyPhone.trim() || !buyMetodoPago}
                     className="flex-1 py-2.5 rounded-full font-bold text-sm disabled:opacity-40 transition-all shadow-sm"
                     style={{ backgroundColor: vars.textPrimary, color: vars.bgBody }}
                     onMouseEnter={e => { e.currentTarget.style.opacity = '0.9' }}

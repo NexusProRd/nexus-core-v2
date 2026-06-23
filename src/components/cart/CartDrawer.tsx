@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCart, CartItem } from '@/context/CartContext'
 import { useConfig } from '@/context/ConfigProvider'
@@ -29,23 +29,43 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
   const [giftReceiverPhone, setGiftReceiverPhone] = useState('')
   const [giftMessage, setGiftMessage] = useState('')
   const [giftModalOpen, setGiftModalOpen] = useState(false)
-  const [datosAccordionOpen, setDatosAccordionOpen] = useState(true)
+  const [datosAccordionOpen, setDatosAccordionOpen] = useState(false)
+  const [metodoPago, setMetodoPago] = useState<'transferencia' | 'contra_entrega' | null>(null)
+  const [datosTouched, setDatosTouched] = useState(false)
   const hasGiftItems = items.some(i => i.isGift)
   const giftConfigurado = giftSender.trim() && giftReceiver.trim()
   const nombreValido = nombreCliente.trim().length > 0
   const telefonoValido = telefonoCliente.replace(/\D/g, '').length >= 10
+  const puedeEnviar = nombreValido && telefonoValido && metodoPago !== null
+
+  const nombreRef = useRef<HTMLInputElement>(null)
+  const telefonoRef = useRef<HTMLInputElement>(null)
+  const metodoPagoRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (nombreValido && telefonoValido) {
-      setDatosAccordionOpen(false)
+    if (datosTouched) {
+      setDatosAccordionOpen(true)
     }
-  }, [nombreValido, telefonoValido])
-  const puedeEnviar = nombreValido && telefonoValido
+  }, [isOpen, datosTouched])
+
+  const marcarTocado = () => {
+    if (!datosTouched) setDatosTouched(true)
+  }
 
   if (!isOpen) return null
 
   const handleCheckout = async () => {
-    if (!nombreCliente.trim()) return
+    if (!puedeEnviar) {
+      setDatosAccordionOpen(true)
+      if (!nombreValido) {
+        setTimeout(() => nombreRef.current?.focus(), 100)
+      } else if (!telefonoValido) {
+        setTimeout(() => telefonoRef.current?.focus(), 100)
+      } else if (!metodoPago) {
+        setTimeout(() => metodoPagoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
+      }
+      return
+    }
     setIsSubmitting(true)
     try {
       const itemsParaInsertar = [...items]
@@ -75,6 +95,7 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
           telefonoCliente: telefonoCliente.trim() || null,
           items: itemsParaInsertar,
           isGift: !!giftSender.trim(),
+          metodoPago,
           notas: notaEnvio,
           giftSender: giftSender.trim() || null,
           giftReceiver: giftReceiver.trim() || null,
@@ -98,6 +119,11 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
       setGiftReceiver('')
       setGiftReceiverPhone('')
       setGiftMessage('')
+      setMetodoPago(null)
+      setDatosTouched(false)
+      setNombreCliente('')
+      setTelefonoCliente('')
+      setNotas('')
       router.push(`/catalogo/exito?pedido=${pedido.id}&tienda=${idTienda}`)
     } catch (e) {
       console.error(e)
@@ -108,7 +134,6 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
 
   return (
     <>
-      {/* MOTION SYSTEM PASS: Drawer slide-in with spring easing */}
       <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-backdrop-in" onClick={() => setIsOpen(false)} />
       <div className="absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col overflow-y-auto animate-slide-in-right" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
@@ -155,7 +180,6 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
                     {item.isGift ? (
                       <p className="text-xs text-amber-600 mt-1.5 font-medium">Cantidad: 1 (canje de regalo)</p>
                     ) : (
-                      /* MOBILE EXPERIENCE PASS: Larger quantity touch targets */
                       <div className="flex items-center gap-2 mt-2">
                         <button
                           onClick={() => updateQuantity(item.id, item.cantidad - 1)}
@@ -187,74 +211,8 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
           )}
         </div>
 
-        {/* MOBILE EXPERIENCE PASS: Sticky checkout with touch-friendly inputs */}
         {!hideCheckout && items.length > 0 && (
           <div className="p-4 border-t bg-gray-50 sticky-bottom">
-            {/* 🎁 Gift */}
-            <div className="mb-3">
-              {!giftConfigurado ? (
-                <button onClick={() => setGiftModalOpen(true)}
-                  className="w-full py-3 px-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-sm font-semibold text-left hover:bg-amber-100 transition-colors">
-                  🎁 Comprar como regalo
-                </button>
-              ) : (
-                <div className="flex items-center justify-between py-3 px-4 bg-amber-50 border border-amber-200 rounded-xl">
-                  <span className="text-sm font-semibold text-amber-800">
-                    🎁 {giftSender.trim()} → {giftReceiver.trim()}
-                  </span>
-                  <button onClick={() => setGiftModalOpen(true)}
-                    className="text-xs font-semibold text-amber-700 underline hover:text-amber-900 transition-colors">
-                    Editar
-                  </button>
-                </div>
-              )}
-            </div>
-            {/* 👤 Tus datos accordion */}
-            <button onClick={() => setDatosAccordionOpen(!datosAccordionOpen)}
-              className="w-full flex items-center justify-between py-2 mb-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-6 h-6 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
-                  <svg className="w-3.5 h-3.5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                {datosAccordionOpen ? (
-                  <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Tus datos</span>
-                ) : (
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-xs font-semibold text-slate-700 truncate">{nombreCliente.trim() || 'Tus datos'}</span>
-                    <span className={nombreValido ? 'text-emerald-600' : 'text-amber-600'}>{nombreValido ? '✅' : '⚠️'}</span>
-                  </div>
-                )}
-              </div>
-              <svg className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ${datosAccordionOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {datosAccordionOpen && (
-              <>
-                <div className="mb-3">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">¿A nombre de quién preparamos el pedido?</label>
-                  <input type="text" value={nombreCliente} onChange={e => setNombreCliente(e.target.value)}
-                    placeholder="Tu nombre"
-                    className="w-full px-4 py-3 text-[16px] border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900" />
-                </div>
-                <div className="mb-3">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">¿Cuál es tu WhatsApp para contactarte?</label>
-                  <input type="tel" value={telefonoCliente} onChange={e => setTelefonoCliente(e.target.value)}
-                    placeholder="+1 809 123 4567"
-                    inputMode="tel"
-                    autoComplete="tel"
-                    className={`w-full px-4 py-3 text-[16px] border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900 ${telefonoCliente && !telefonoValido ? 'border-red-400' : 'border-slate-200'}`} />
-                </div>
-                <div className="mb-3">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Notas (opcional)</label>
-                  <textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2}
-                    placeholder="Ej: Entregar en la recepción"
-                    className="w-full px-4 py-3 text-[16px] border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900 resize-none" />
-                </div>
-              </>
-            )}
             <div className="flex justify-between items-center mb-4">
               <div>
                 <span className="text-slate-600 font-medium">Total:</span>
@@ -266,16 +224,123 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
               </div>
               <span className="text-2xl font-bold text-[var(--primary)]">{formatCurrency(totalPrice + totalImpuesto, currencyCode)}</span>
             </div>
+
             <button
               onClick={handleCheckout}
-              disabled={!puedeEnviar || isSubmitting}
+              disabled={isSubmitting}
               className="w-full bg-[var(--primary)] text-white py-3.5 rounded-xl font-bold hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed native-press elevation-2"
             >
-              {isSubmitting ? 'Enviando...' : !nombreValido ? 'Ingresa tu nombre' : !telefonoValido ? 'Ingresa un teléfono válido' : 'Enviar Pedido por WhatsApp'}
+              {isSubmitting ? 'Enviando...' : 'Procesar pedido'}
             </button>
+
+            <button onClick={() => setDatosAccordionOpen(!datosAccordionOpen)}
+              className="w-full flex items-center justify-between py-3 mt-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">📋 Datos para tu pedido</span>
+                {!datosAccordionOpen && nombreCliente.trim() && (
+                  <span className={nombreValido ? 'text-emerald-600' : 'text-amber-600'}>✅</span>
+                )}
+              </div>
+              <svg className={`w-4 h-4 text-slate-400 transition-transform duration-200 shrink-0 ${datosAccordionOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {datosAccordionOpen && (
+              <>
+                <div className="mb-3">
+                  {!giftConfigurado ? (
+                    <button onClick={() => setGiftModalOpen(true)}
+                      className="w-full py-2.5 px-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-semibold text-left hover:bg-amber-100 transition-colors">
+                      🎁 Comprar como regalo
+                    </button>
+                  ) : (
+                    <div className="flex items-center justify-between py-2.5 px-4 bg-amber-50 border border-amber-200 rounded-xl">
+                      <span className="text-xs font-semibold text-amber-800">
+                        🎁 {giftSender.trim()} → {giftReceiver.trim()}
+                      </span>
+                      <button onClick={() => setGiftModalOpen(true)}
+                        className="text-[11px] font-semibold text-amber-700 underline hover:text-amber-900 transition-colors">
+                        Editar
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mb-3">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">¿A nombre de quién preparamos el pedido?</label>
+                  <input ref={nombreRef} type="text" value={nombreCliente} onChange={e => { setNombreCliente(e.target.value); marcarTocado() }}
+                    placeholder="Tu nombre"
+                    className="w-full px-4 py-3 text-[16px] border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900" />
+                </div>
+                <div className="mb-3">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">¿Cuál es tu WhatsApp para contactarte?</label>
+                  <input ref={telefonoRef} type="tel" value={telefonoCliente} onChange={e => { setTelefonoCliente(e.target.value); marcarTocado() }}
+                    placeholder="+1 809 123 4567"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    className={`w-full px-4 py-3 text-[16px] border rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900 ${telefonoCliente && !telefonoValido ? 'border-red-400' : 'border-slate-200'}`} />
+                </div>
+                <div className="mb-3">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Notas (opcional)</label>
+                  <textarea value={notas} onChange={e => { setNotas(e.target.value); marcarTocado() }} rows={2}
+                    placeholder="Ej: Entregar en la recepción"
+                    className="w-full px-4 py-3 text-[16px] border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900 resize-none" />
+                </div>
+
+                <div className="mb-4" ref={metodoPagoRef}>
+                  <label className="block text-xs font-semibold text-slate-700 mb-2">¿Cómo prefieres pagar?</label>
+                  <div className="flex gap-3">
+                    <button onClick={() => { setMetodoPago('transferencia'); marcarTocado() }}
+                      className={`flex-1 py-3 px-4 rounded-xl border-2 text-sm font-semibold text-left transition-all ${
+                        metodoPago === 'transferencia'
+                          ? 'border-[var(--primary)] bg-[var(--primary)]/5 text-[var(--primary)]'
+                          : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                      }`}>
+                      <span className="block text-base">🏦</span>
+                      Transferencia
+                    </button>
+                    <button onClick={() => { setMetodoPago('contra_entrega'); marcarTocado() }}
+                      className={`flex-1 py-3 px-4 rounded-xl border-2 text-sm font-semibold text-left transition-all ${
+                        metodoPago === 'contra_entrega'
+                          ? 'border-[var(--primary)] bg-[var(--primary)]/5 text-[var(--primary)]'
+                          : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                      }`}>
+                      <span className="block text-base">🚚</span>
+                      Contra entrega
+                    </button>
+                  </div>
+
+                  {!metodoPago && (
+                    <div className="mt-2 p-2.5 rounded-xl border border-slate-200 bg-slate-50/50">
+                      <p className="text-[11px] text-slate-500 leading-relaxed">
+                        📱 Envías tu pedido y la tienda te contactará por WhatsApp para coordinar el pago y la entrega.
+                      </p>
+                    </div>
+                  )}
+
+                  {metodoPago === 'transferencia' && (
+                    <div className="mt-2 p-2.5 rounded-xl border border-sky-200 bg-sky-50/70">
+                      <p className="text-[11px] text-sky-700/80 leading-relaxed">
+                        ℹ️ No necesitas transferir ahora. La tienda te contactará por WhatsApp con las instrucciones.
+                      </p>
+                    </div>
+                  )}
+
+                  {metodoPago === 'contra_entrega' && (
+                    <div className="mt-2 p-2.5 rounded-xl border border-orange-200 bg-orange-50/70">
+                      <p className="text-[11px] text-orange-700/80 leading-relaxed">
+                        ℹ️ El pago se realiza al recibir tu pedido. La tienda coordinará la entrega contigo.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
             <button
               onClick={clearCart}
-              className="w-full mt-3 text-slate-500 text-sm hover:text-slate-700 py-2 touch-target"
+              className="w-full mt-2 text-slate-500 text-sm hover:text-slate-700 py-2 touch-target"
             >
               Vaciar Carrito
             </button>

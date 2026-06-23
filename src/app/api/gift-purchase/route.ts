@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error }, { status: 500 })
 
   const body = await req.json()
-  const { idTienda, sender, senderPhone, receiver, receiverPhone, message, items, giftCode, delivery_address, delivery_location_link } = body
+  const { idTienda, sender, senderPhone, receiver, receiverPhone, message, items, giftCode, delivery_address, delivery_location_link, metodoPago } = body
 
   if (!idTienda || !sender?.trim() || !senderPhone?.trim() || !receiver?.trim() || !items?.length) {
     return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 })
@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
       total,
       estado: 'pendiente',
       notas: '🎁 Modo Regalo',
+      metodo_pago: metodoPago || null,
       detalles_pedido: items.map((p: any) => ({
         id_producto: p.product_id,
         producto: p.nombre,

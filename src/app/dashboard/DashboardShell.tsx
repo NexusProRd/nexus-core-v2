@@ -6,8 +6,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { checkTiendaActiva } from '@/lib/commercial'
 import type { PlanTipo, PlanStatus } from '@/lib/commercial'
-import { formatCurrency, generarMensaje } from '@/lib/utils'
-import type { VarsWhatsApp } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import { useTheme } from '@/context/ThemeContext'
 import { getPalette, applyPalette } from '@/lib/palettes'
 import type { NexusAnuncio, NexusAnuncioTipo } from '@/types/database'
@@ -46,9 +45,8 @@ interface Pedido {
   is_gift?: boolean
   id_tienda?: string
   notas?: string | null
+  metodo_pago?: string | null
 }
-
-const FALLBACK_CONFIRMADO = '🛍️ *¡Hola, {cliente}!* Tu pedido #{pedido} ya fue recibido y lo estamos preparando en *{tienda}*. 🚀 En breve te avisaremos cuando vaya de camino. ¡Muchas gracias por tu confianza! 🙏✨'
 
 interface GiftAlert {
   id: string
@@ -399,7 +397,6 @@ function DashboardLayoutInner({
   const [showGiftModal, setShowGiftModal] = useState(false)
   const [approvedGift, setApprovedGift] = useState<GiftAlert | null>(null)
   const [silenciado, setSilenciado] = useState(false)
-  const [plantillas, setPlantillas] = useState<Record<string, string>>({})
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
   const [landingLogoUrl, setLandingLogoUrl] = useState('')
@@ -622,25 +619,6 @@ function DashboardLayoutInner({
 
   useEffect(() => {
     if (!tiendaId) return
-    getSupabase()
-      .from('whatsapp_templates')
-      .select('confirmado, preparando, en_camino, entregado')
-      .eq('store_id', tiendaId)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setPlantillas({
-            confirmado: data.confirmado || '',
-            preparando: data.preparando || '',
-            en_camino: data.en_camino || '',
-            entregado: data.entregado || '',
-          })
-        }
-      })
-  }, [tiendaId, getSupabase])
-
-  useEffect(() => {
-    if (!tiendaId) return
 
     const canal = getSupabase()
       .channel(`regalos-${tiendaId}`)
@@ -729,28 +707,6 @@ function DashboardLayoutInner({
       if (updated.length === 0) setShowGiftModal(false)
       return updated
     })
-  }
-
-  async function actualizarEstado(pedidoId: string, nuevoEstado: string) {
-    const { error } = await getSupabase()
-      .from('pedidos')
-      .update({ estado: nuevoEstado })
-      .eq('id', pedidoId)
-
-    if (!error) {
-      const pedido = pedidosPendientes.find(p => p.id === pedidoId)
-      if ((pedido?.notas?.includes('🎁 Modo Regalo') || pedido?.is_gift) && nuevoEstado === 'confirmado') {
-        setPedidosPendientes(prev =>
-          prev.map(p => p.id === pedidoId ? { ...p, estado: 'confirmado' } : p)
-        )
-      } else if (nuevoEstado === 'rechazado' || nuevoEstado === 'en_camino' || nuevoEstado === 'entregado') {
-        setPedidosPendientes(prev => prev.filter(p => p.id !== pedidoId))
-      } else if (nuevoEstado === 'en_proceso') {
-        setPedidosPendientes(prev => prev.map(p => p.id === pedidoId ? { ...p, estado: 'en_proceso' } : p))
-      } else {
-        setPedidosPendientes(prev => prev.filter(p => p.id !== pedidoId))
-      }
-    }
   }
 
   if (loading) {
@@ -1164,117 +1120,23 @@ function DashboardLayoutInner({
                       </div>
                     )}
 
-                    <p className="text-lg font-bold text-green-600 dark:text-green-400 mb-2">Total: {formatCurrency(pedido.total, currencyCode)}</p>
+                    <p className="text-lg font-bold text-green-600 dark:text-green-400 mb-1">Total: {formatCurrency(pedido.total, currencyCode)}</p>
 
-                    {(pedido.notas?.includes('🎁 Modo Regalo') || pedido.is_gift) ? (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => actualizarEstado(pedido.id, 'rechazado')}
-                          className="flex-1 bg-rose-500/90 backdrop-blur-sm text-white py-1.5 px-3 rounded-xl hover:bg-rose-600 transition-all text-sm font-medium border border-white/10"
-                        >
-                          Rechazar
-                        </button>
-                        <button
-                          onClick={() => actualizarEstado(pedido.id, 'confirmado')}
-                          className="flex-1 bg-emerald-600/90 backdrop-blur-sm text-white py-1.5 px-3 rounded-xl hover:bg-emerald-700 transition-all text-sm font-medium border border-white/10"
-                        >
-                          Aprobar
-                        </button>
-                      </div>
-                    ) : pedido.estado === 'en_proceso' ? (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            const numeroCliente = pedido.cliente_telefono?.replace(/\D/g, '') || ''
-                            const codigoReal = pedido.order_id || pedido.id.slice(0, 8).toUpperCase()
-                            const msgEnCamino = `🛍️ *¡Hola, ${pedido.cliente_nombre}!* Tu pedido *#${codigoReal}* ya va en camino. 🛵 El mensajero se pondrá en contacto contigo muy pronto para la entrega. ¡Gracias por elegirnos! 🙌✨`
-                            if (numeroCliente) {
-                              window.open(`https://wa.me/${numeroCliente}?text=${encodeURIComponent(msgEnCamino)}`, '_blank')
-                            }
-                            actualizarEstado(pedido.id, 'en_camino')
-                          }}
-                          className="flex-1 bg-purple-600/90 backdrop-blur-sm text-white py-1.5 px-3 rounded-xl hover:bg-purple-700 transition-all text-sm font-medium flex items-center justify-center gap-1.5 border border-white/10"
-                        >
-                          🛵 Marcar como En Camino
-                        </button>
-                        <button
-                          onClick={() => setPedidosPendientes(prev => prev.filter(p => p.id !== pedido.id))}
-                          className="flex-1 bg-white/50 dark:bg-white/[0.03] text-slate-700 dark:text-slate-300 py-1.5 px-3 rounded-xl hover:bg-white/80 dark:hover:bg-white/[0.06] transition-all text-sm font-medium border border-white/30 dark:border-white/[0.06]"
-                        >
-                          Cerrar
-                        </button>
-                      </div>
-                    ) : pedido.estado === 'en_camino' ? (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            const numeroCliente = pedido.cliente_telefono?.replace(/\D/g, '') || ''
-                            const codigoReal = pedido.order_id || pedido.id.slice(0, 8).toUpperCase()
-                            const msgEntregado = `🛍️ *¡Hola, ${pedido.cliente_nombre}!* Tu pedido *#${codigoReal}* ya fue entregado, esperamos que lo disfrutes mucho.\n\nGracias por tu confianza.`
-                            if (numeroCliente) {
-                              window.open(`https://wa.me/${numeroCliente}?text=${encodeURIComponent(msgEntregado)}`, '_blank')
-                            }
-                            actualizarEstado(pedido.id, 'entregado')
-                          }}
-                          className="flex-1 bg-emerald-600/90 backdrop-blur-sm text-white py-1.5 px-3 rounded-xl hover:bg-emerald-700 transition-all text-sm font-medium flex items-center justify-center gap-1.5 border border-white/10"
-                        >
-                          ✅ Marcar como Entregado
-                        </button>
-                        <button
-                          onClick={() => setPedidosPendientes(prev => prev.filter(p => p.id !== pedido.id))}
-                          className="flex-1 bg-white/50 dark:bg-white/[0.03] text-slate-700 dark:text-slate-300 py-1.5 px-3 rounded-xl hover:bg-white/80 dark:hover:bg-white/[0.06] transition-all text-sm font-medium border border-white/30 dark:border-white/[0.06]"
-                        >
-                          Cerrar
-                        </button>
-                      </div>
-                    ) : (() => {
-                      const detallesStr = Array.isArray(pedido.detalles_pedido)
-                        ? pedido.detalles_pedido.map((d: DetallePedido) => `${d.cantidad}x ${d.producto}`).join(', ')
-                        : ''
-                      const vars: VarsWhatsApp = {
-                        cliente: pedido.cliente_nombre,
-                        pedido: `#${codigoReal}`,
-                        tienda: nombreTienda || 'nuestra tienda',
-                        detalles: detallesStr,
-                        total: formatCurrency(pedido.total, currencyCode),
-                        fecha: new Date(pedido.creado_at).toLocaleDateString('es-DO'),
-                      }
-                      const mensajeWhatsApp = generarMensaje(plantillas, 'confirmado', FALLBACK_CONFIRMADO, vars)
-                      return (
-                      <>
-                        <div className="bg-white/30 dark:bg-white/[0.02] border border-white/30 dark:border-white/[0.06] rounded-xl p-3 mb-3 text-xs text-gray-900 dark:text-slate-300 leading-relaxed text-left">
-                          <p className="font-semibold text-gray-700 dark:text-slate-400 text-[10px] uppercase tracking-wide mb-1">🛍️ Vista previa del mensaje (WhatsApp)</p>
-                          <p className="font-mono whitespace-pre-wrap text-gray-900 dark:text-slate-200 bg-white/50 dark:bg-black/20 p-2 rounded-lg border border-white/30 dark:border-white/[0.06]">
-                            {mensajeWhatsApp}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => actualizarEstado(pedido.id, 'rechazado')}
-                            className="flex-1 bg-rose-500/90 backdrop-blur-sm text-white py-1.5 px-3 rounded-xl hover:bg-rose-600 transition-all text-sm font-medium border border-white/10"
-                          >
-                            Rechazar
-                          </button>
-                          <button
-                            onClick={() => {
-                              actualizarEstado(pedido.id, 'en_proceso')
-                              window.open(`https://wa.me/${(pedido.cliente_telefono || '').replace(/\D/g, '')}?text=${encodeURIComponent(mensajeWhatsApp)}`, '_blank')
-                            }}
-                            className="flex-1 bg-emerald-600/90 backdrop-blur-sm text-white py-1.5 px-3 rounded-xl hover:bg-emerald-700 transition-all text-sm font-medium border border-white/10"
-                          >
-                            Aprobar
-                          </button>
-                        </div>
-                      </>
-                    )})()}
+                    {pedido.metodo_pago && (
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                        {pedido.metodo_pago === 'transferencia' ? '🏦 Transferencia' : '🚚 Contra entrega'}
+                      </p>
+                    )}
+
+                    <button
+                      onClick={() => { setPedidosPendientes([]); router.push('/dashboard/pedidos') }}
+                      className="w-full bg-[var(--primary)]/10 hover:bg-[var(--primary)]/20 text-[var(--primary)] font-semibold text-sm py-2.5 px-4 rounded-xl transition-all border border-[var(--primary)]/20"
+                    >
+                      Gestionar Pedido →
+                    </button>
                   </div>
                 )
               })}
-              </div>
-              <div className="px-4 py-3 border-t border-white/30 dark:border-white/[0.06] shrink-0">
-                <Link href="/dashboard/pedidos" className="block text-center text-xs text-[var(--primary)] hover:underline font-medium" onClick={() => setPedidosPendientes([])}>
-                  Gestionar Pedido →
-                </Link>
               </div>
             </div>
           </div>

@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error }, { status: 500 })
 
   const body = await req.json()
-  const { idTienda, nombreCliente, telefonoCliente, items, isGift, notas, couponCode, giftSender, giftReceiver, giftReceiverPhone, giftMessage, giftDeliveryAddress, giftDeliveryLink } = body
+  const { idTienda, nombreCliente, telefonoCliente, items, isGift, notas, couponCode, giftSender, giftReceiver, giftReceiverPhone, giftMessage, giftDeliveryAddress, giftDeliveryLink, metodoPago } = body
 
   if (!idTienda || !nombreCliente || !items?.length) {
     return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 })
@@ -211,6 +211,7 @@ export async function POST(req: NextRequest) {
       total,
       estado: 'pendiente',
       detalles_pedido: detallesPedido,
+      metodo_pago: metodoPago || null,
     })
     .select()
     .single()

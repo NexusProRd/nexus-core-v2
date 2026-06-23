@@ -16,6 +16,7 @@ interface Pedido {
   estado: string
   creado_at: string
   items?: any
+  metodo_pago?: string | null
 }
 
 interface AnaliticasContentProps {

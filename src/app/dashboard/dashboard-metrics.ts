@@ -5,6 +5,7 @@ export interface PedidoBase {
   estado: string
   creado_at: string
   detalles_pedido?: any
+  metodo_pago?: string | null
 }
 
 export interface MetricasDashboard {

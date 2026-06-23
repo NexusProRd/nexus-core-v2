@@ -19,6 +19,7 @@ interface Pedido {
   is_gift?: boolean
   id_tienda?: string
   notas?: string | null
+  metodo_pago?: string | null
 }
 
 export const dynamic = 'force-dynamic'

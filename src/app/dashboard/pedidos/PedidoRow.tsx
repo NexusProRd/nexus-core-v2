@@ -33,6 +33,7 @@ interface Pedido {
   is_gift?: boolean
   notas?: string | null
   id_tienda?: string
+  metodo_pago?: string | null
 }
 
 const STATUS_CONFIG = {
@@ -55,19 +56,12 @@ const STEPS = [
 ]
 
 const STATUS_ACTIONS: Record<string, { label: string; estado: string; cls: string; icon: string; templateKey?: string; defaultMsg?: string }> = {
-  pendiente: {
-    label: 'Aceptar', estado: 'en_proceso',
-    cls: 'bg-emerald-600 hover:bg-emerald-700 text-white',
-    icon: '✓',
-    templateKey: 'confirmado',
-    defaultMsg: '¡Hola {cliente}! 🎉 Tu pedido {pedido} ha sido confirmado. En breve comenzaremos a prepararlo.',
-  },
   en_proceso: {
     label: 'En Camino', estado: 'en_camino',
     cls: 'bg-purple-600 hover:bg-purple-700 text-white',
     icon: '🛵',
     templateKey: 'en_camino',
-    defaultMsg: '¡Hola {cliente}! 🚴‍♂️ Tu pedido {pedido} va en camino. Pronto lo recibirás.',
+    defaultMsg: 'Hola {cliente} 👋\n\nTu pedido ya salió para entrega.\n\n📦 Pedido:\n{detalles}\n\nEl mensajero se pondrá en contacto contigo para coordinar la entrega.\n\nSi deseas compartir alguna referencia o indicación adicional, puedes responder este mensaje.\n\nGracias por confiar en {tienda}. 🙌',
   },
   en_camino: {
     label: 'Entregar', estado: 'entregado',
@@ -131,7 +125,10 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
   }
 
   const action = (STATUS_ACTIONS as any)[pedido.estado]
-  const puedeAccion = (permisos === null || permisos.pedidos) && action
+
+  const mensajeCobro = pedido.metodo_pago === 'transferencia'
+    ? `Hola ${pedido.cliente_nombre} 👋\n\nGracias por tu compra en ${tiendaNombre}.\n\nRecibimos tu pedido:\n${detallesStr}\n\nTotal: ${formatCurrency(pedido.total, currencyCode)}\n\nHas seleccionado transferencia bancaria.\n¿Desde qué banco realizarás la transferencia?`
+    : `Hola ${pedido.cliente_nombre} 👋\n\nGracias por tu compra en ${tiendaNombre}.\n\nRecibimos tu pedido:\n${detallesStr}\n\nTotal: ${formatCurrency(pedido.total, currencyCode)}\n\nHas seleccionado pago contra entrega.\nTe contactaremos cuando tu pedido esté listo para coordinar la entrega.`
 
   const codigoReal = pedido.order_id || pedido.id.slice(0, 8).toUpperCase()
 
@@ -143,14 +140,20 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
         <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${cfg.dot} ${pedido.estado === 'pendiente' ? 'animate-pulse' : ''}`} />
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                   {pedido.cliente_nombre}
                 </p>
                 {(pedido.notas?.includes('🎁 Modo Regalo') || pedido.is_gift) && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400 font-bold">🎁</span>
+                )}
+                {pedido.metodo_pago === 'transferencia' && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-100 dark:bg-sky-500/20 text-sky-700 dark:text-sky-400 font-bold">🏦</span>
+                )}
+                {pedido.metodo_pago === 'contra_entrega' && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400 font-bold">🚚</span>
                 )}
               </div>
               <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
@@ -275,49 +278,46 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
                   </span>
                 </div>
               </div>
-            </div>
-          ) : (
+          </div>
+            ) : (
             <div className="flex items-center justify-center py-6 text-sm text-slate-400 dark:text-slate-500 gap-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
               Sin productos registrados
             </div>
           )}
 
+          {pedido.metodo_pago && (
+            <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+              {pedido.metodo_pago === 'transferencia' ? '🏦 Transferencia' : '🚚 Contra entrega'}
+            </div>
+          )}
+
           {/* ORDERS UX PASS: Quick actions */}
-          {puedeAccion && (
+          {(permisos === null || permisos.pedidos) && (
             <div className="flex gap-2 mt-4 flex-wrap">
               {pedido.estado === 'pendiente' ? (
                 <>
                   <button
                     onClick={async () => {
-                      setAccionando('en_proceso')
+                      setAccionando('gestionar_cobro')
                       const telefono = pedido.cliente_telefono?.replace(/\D/g, '')
                       if (telefono) {
-                        const raw = plantillas?.confirmado || '¡Hola {cliente}! 🎉 Tu pedido {pedido} ha sido confirmado. En breve comenzaremos a prepararlo.'
-                        const msg = reemplazarVars(raw, {
-                          cliente: pedido.cliente_nombre,
-                          pedido: `#${codigoReal}`,
-                          tienda: tiendaNombre || '',
-                          detalles: detallesStr,
-                          total: formatCurrency(pedido.total, currencyCode),
-                          fecha: new Date(pedido.creado_at).toLocaleDateString('es-DO'),
-                        })
-                        window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(msg)}`, '_blank')
+                        window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(mensajeCobro)}`, '_blank')
                       }
                       const supabase = createClient()
                       await supabase.from('pedidos').update({ estado: 'en_proceso' }).eq('id', pedido.id)
                       setAccionando(null)
                       toast('Pedido marcado como «Preparando»', 'success')
                     }}
-                    disabled={accionando === 'en_proceso'}
-                    className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition-all press-scale-sm shadow-sm shadow-emerald-600/20 disabled:opacity-50"
+                    disabled={accionando === 'gestionar_cobro'}
+                    className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold rounded-xl transition-all press-scale-sm shadow-sm shadow-orange-600/20 disabled:opacity-50"
                   >
-                    {accionando === 'en_proceso' ? (
+                    {accionando === 'gestionar_cobro' ? (
                       <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
                     ) : (
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                      <span>💰</span>
                     )}
-                    {accionando === 'en_proceso' ? 'Aceptando...' : 'Aceptar'}
+                    {accionando === 'gestionar_cobro' ? 'Enviando...' : 'Gestionar Cobro'}
                   </button>
                   <form action={actualizarEstado}>
                     <input type="hidden" name="pedidoId" value={pedido.id} />
@@ -341,9 +341,55 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
                 </>
               ) : action && (
                 pedido.estado === 'en_proceso' ? (
-                  <button
-                    onClick={async () => {
-                      setAccionando(action.estado)
+                  <>
+                    <button
+                      onClick={async () => {
+                        setAccionando(action.estado)
+                        const telefono = pedido.cliente_telefono?.replace(/\D/g, '')
+                        if (telefono) {
+                          const raw = plantillas?.[action.templateKey || ''] || action.defaultMsg || ''
+                          const msg = reemplazarVars(raw, {
+                            cliente: pedido.cliente_nombre,
+                            pedido: `#${codigoReal}`,
+                            tienda: tiendaNombre || '',
+                            detalles: detallesStr,
+                            total: formatCurrency(pedido.total, currencyCode),
+                            fecha: new Date(pedido.creado_at).toLocaleDateString('es-DO'),
+                          })
+                          window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(msg)}`, '_blank')
+                        }
+                        const supabase = createClient()
+                        await supabase.from('pedidos').update({ estado: action.estado }).eq('id', pedido.id)
+                        setAccionando(null)
+                        toast(`Pedido marcado como «${(STATUS_CONFIG as any)[action.estado]?.label || action.estado}»`, 'success')
+                      }}
+                      disabled={accionando === action.estado}
+                      className={`inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-semibold rounded-xl transition-all press-scale-sm shadow-sm disabled:opacity-50 ${action.cls}`}
+                    >
+                      {accionando === action.estado ? (
+                        <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                      ) : (
+                        <span className="text-sm">{action.icon}</span>
+                      )}
+                      {accionando === action.estado ? 'Actualizando...' : action.label}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const supabase = createClient()
+                        await supabase.from('pedidos').update({ estado: 'pendiente' }).eq('id', pedido.id)
+                        toast('Estado retrocedido a «Recibido»', 'success')
+                      }}
+                      className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-600 transition-all press-scale-sm"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                      Retroceder Estado
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <form action={actualizarEstado} onSubmit={async (e) => {
+                      if (formResubmitRef.current) { formResubmitRef.current = false; return }
+                      e.preventDefault()
                       const telefono = pedido.cliente_telefono?.replace(/\D/g, '')
                       if (telefono) {
                         const raw = plantillas?.[action.templateKey || ''] || action.defaultMsg || ''
@@ -357,50 +403,45 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
                         })
                         window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(msg)}`, '_blank')
                       }
-                      const supabase = createClient()
-                      await supabase.from('pedidos').update({ estado: action.estado }).eq('id', pedido.id)
-                      setAccionando(null)
-                      toast(`Pedido marcado como «${(STATUS_CONFIG as any)[action.estado]?.label || action.estado}»`, 'success')
-                    }}
-                    disabled={accionando === action.estado}
-                    className={`inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-semibold rounded-xl transition-all press-scale-sm shadow-sm disabled:opacity-50 ${action.cls}`}
-                  >
-                    {accionando === action.estado ? (
-                      <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                    ) : (
-                      <span className="text-sm">{action.icon}</span>
+                      formResubmitRef.current = true
+                      setTimeout(() => { (e.target as HTMLFormElement).requestSubmit() }, 300)
+                    }}>
+                      <input type="hidden" name="pedidoId" value={pedido.id} />
+                      <input type="hidden" name="estado" value={action.estado} />
+                      <button type="submit"
+                        className={`inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-semibold rounded-xl transition-all press-scale-sm shadow-sm ${action.cls}`}
+                      >
+                        <span className="text-sm">{action.icon}</span>
+                        {action.label}
+                      </button>
+                    </form>
+                    {pedido.estado === 'en_camino' && (
+                      <button
+                        onClick={async () => {
+                          const supabase = createClient()
+                          await supabase.from('pedidos').update({ estado: 'en_proceso' }).eq('id', pedido.id)
+                          toast('Estado retrocedido a «Preparando»', 'success')
+                        }}
+                        className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-600 transition-all press-scale-sm"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                        Retroceder Estado
+                      </button>
                     )}
-                    {accionando === action.estado ? 'Actualizando...' : action.label}
-                  </button>
-                ) : (
-                  <form action={actualizarEstado} onSubmit={async (e) => {
-                    if (formResubmitRef.current) { formResubmitRef.current = false; return }
-                    e.preventDefault()
-                    const telefono = pedido.cliente_telefono?.replace(/\D/g, '')
-                    if (telefono) {
-                      const raw = plantillas?.[action.templateKey || ''] || action.defaultMsg || ''
-                      const msg = reemplazarVars(raw, {
-                        cliente: pedido.cliente_nombre,
-                        pedido: `#${codigoReal}`,
-                        tienda: tiendaNombre || '',
-                        detalles: detallesStr,
-                        total: formatCurrency(pedido.total, currencyCode),
-                        fecha: new Date(pedido.creado_at).toLocaleDateString('es-DO'),
-                      })
-                      window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(msg)}`, '_blank')
-                    }
-                    formResubmitRef.current = true
-                    setTimeout(() => { (e.target as HTMLFormElement).requestSubmit() }, 300)
-                  }}>
-                    <input type="hidden" name="pedidoId" value={pedido.id} />
-                    <input type="hidden" name="estado" value={action.estado} />
-                    <button type="submit"
-                      className={`inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-semibold rounded-xl transition-all press-scale-sm shadow-sm ${action.cls}`}
-                    >
-                      <span className="text-sm">{action.icon}</span>
-                      {action.label}
-                    </button>
-                  </form>
+                    {pedido.estado === 'entregado' && (
+                      <button
+                        onClick={async () => {
+                          const supabase = createClient()
+                          await supabase.from('pedidos').update({ estado: 'en_camino' }).eq('id', pedido.id)
+                          toast('Estado retrocedido a «En Camino»', 'success')
+                        }}
+                        className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-white dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 text-xs font-semibold rounded-xl border border-slate-200 dark:border-slate-600 transition-all press-scale-sm"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                        Retroceder Estado
+                      </button>
+                    )}
+                  </>
                 )
               )}
             </div>

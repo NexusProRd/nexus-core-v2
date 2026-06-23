@@ -22,6 +22,7 @@ interface Pedido {
   total: number
   creado_at: string
   id_tienda?: string
+  metodo_pago?: string | null
 }
 
 export default function TicketPedido({ pedido, detalles }: { pedido: Pedido; detalles: Detalle[] }) {

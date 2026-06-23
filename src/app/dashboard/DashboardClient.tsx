@@ -22,6 +22,7 @@ interface Pedido {
   total: number
   estado: string
   creado_at: string
+  metodo_pago?: string | null
 }
 
 interface InitialStats {

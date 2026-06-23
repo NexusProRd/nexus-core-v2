@@ -53,9 +53,26 @@ export default async function ExitoPage({
         </div>
 
         <h1 className="text-2xl font-bold text-slate-900 mb-2">✅ Pedido recibido</h1>
-        <p className="text-slate-600 mb-6 leading-relaxed">
-          Hemos recibido tu solicitud. La tienda revisará tu pedido y se comunicará contigo por WhatsApp para coordinar el pago y la entrega.
-        </p>
+
+        {pedido?.metodo_pago === 'transferencia' ? (
+          <div className="mb-4 p-3 rounded-xl border border-sky-200 bg-sky-50 text-left">
+            <p className="text-xs font-semibold text-sky-800 mb-1">🏦 Seleccionaste transferencia bancaria</p>
+            <p className="text-[11px] text-sky-700/80 leading-relaxed">
+              La tienda se comunicará contigo por WhatsApp para compartir las instrucciones de pago y coordinar tu pedido.
+            </p>
+          </div>
+        ) : pedido?.metodo_pago === 'contra_entrega' ? (
+          <div className="mb-4 p-3 rounded-xl border border-orange-200 bg-orange-50 text-left">
+            <p className="text-xs font-semibold text-orange-800 mb-1">🚚 Seleccionaste pago contra entrega</p>
+            <p className="text-[11px] text-orange-700/80 leading-relaxed">
+              La tienda se comunicará contigo por WhatsApp para coordinar la entrega.
+            </p>
+          </div>
+        ) : (
+          <p className="text-slate-600 mb-6 leading-relaxed">
+            Hemos recibido tu solicitud. La tienda revisará tu pedido y se comunicará contigo por WhatsApp para coordinar el pago y la entrega.
+          </p>
+        )}
         {whatsappNumero && (
           <a
             href={`https://wa.me/${whatsappNumero}`}

@@ -41,6 +41,7 @@ export default function ProductQuickView({ producto, onClose }: Props) {
   const [showShareModal, setShowShareModal] = useState(false)
   const [buyName, setBuyName] = useState('')
   const [buyPhone, setBuyPhone] = useState('')
+  const [buyMetodoPago, setBuyMetodoPago] = useState<'transferencia' | 'contra_entrega' | null>(null)
 
   const precioBase = producto.precio_oferta ?? producto.precio
   const precioActivo = selectedPrecioVariant ?? precioBase
@@ -137,6 +138,7 @@ export default function ProductQuickView({ producto, onClose }: Props) {
         }],
         isGift: false,
         notas: `Compra rápida directa: ${nombreConVariante} x${quantity}`,
+        metodoPago: buyMetodoPago,
       }),
     })
 
@@ -327,9 +329,59 @@ export default function ProductQuickView({ producto, onClose }: Props) {
                 placeholder="Tu WhatsApp (829-123-4567)"
                 className="w-full text-sm text-slate-900 placeholder:text-slate-400 border border-slate-200 rounded-xl px-3 py-2.5 focus:ring-2 focus:ring-[var(--primary)] outline-none bg-slate-50"
               />
+              <div className="flex gap-3">
+                  <button onClick={() => setBuyMetodoPago('transferencia')}
+                    className={`flex-1 py-2 rounded-xl border-2 text-xs font-semibold text-left transition-all ${
+                      buyMetodoPago === 'transferencia'
+                        ? 'border-[var(--primary)] bg-[var(--primary)]/5 text-[var(--primary)]'
+                        : 'border-slate-200 text-slate-600'
+                    }`}>
+                    <span className="block text-xs">🏦</span>
+                    Transferencia
+                  </button>
+                  <button onClick={() => setBuyMetodoPago('contra_entrega')}
+                    className={`flex-1 py-2 rounded-xl border-2 text-xs font-semibold text-left transition-all ${
+                      buyMetodoPago === 'contra_entrega'
+                        ? 'border-[var(--primary)] bg-[var(--primary)]/5 text-[var(--primary)]'
+                        : 'border-slate-200 text-slate-600'
+                    }`}>
+                    <span className="block text-xs">🚚</span>
+                    Contra entrega
+                  </button>
+                </div>
+
+              {!buyMetodoPago && (
+                <div className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50">
+                  <p className="text-[11px] font-semibold text-slate-700 mb-1">📱 ¿Qué sucede después?</p>
+                  <ol className="text-[10px] text-slate-500 space-y-0.5 list-decimal list-inside">
+                    <li>Envías tu pedido.</li>
+                    <li>La tienda revisa la disponibilidad.</li>
+                    <li>Te contactará por WhatsApp para coordinar el pago y la entrega.</li>
+                  </ol>
+                </div>
+              )}
+
+              {buyMetodoPago === 'transferencia' && (
+                <div className="p-2.5 rounded-xl border border-sky-200 bg-sky-50/70">
+                  <p className="text-[11px] font-semibold text-sky-800 mb-0.5">ℹ️ Transferencia bancaria</p>
+                  <p className="text-[10px] text-sky-700/80 leading-relaxed">
+                    No necesitas realizar ninguna transferencia ahora. La tienda se comunicará contigo por WhatsApp para compartir las instrucciones de pago.
+                  </p>
+                </div>
+              )}
+
+              {buyMetodoPago === 'contra_entrega' && (
+                <div className="p-2.5 rounded-xl border border-orange-200 bg-orange-50/70">
+                  <p className="text-[11px] font-semibold text-orange-800 mb-0.5">ℹ️ Contra entrega</p>
+                  <p className="text-[10px] text-orange-700/80 leading-relaxed">
+                    El pago se realizará al recibir tu pedido. La tienda se comunicará contigo por WhatsApp para coordinar la entrega.
+                  </p>
+                </div>
+              )}
+
               <div className="flex gap-2">
-                <button onClick={() => { setShowBuyForm(false); setBuyName(''); setBuyPhone('') }} className="flex-1 py-2.5 rounded-full border border-slate-300 text-slate-500 font-semibold text-sm hover:bg-slate-50 transition-all">Cancelar</button>
-                <button onClick={confirmBuy} disabled={!buyName.trim() || !buyPhone.trim()} className="flex-1 py-2.5 rounded-full bg-[var(--primary)] text-white font-bold text-sm hover:brightness-110 disabled:opacity-40 transition-all shadow-sm">Confirmar compra</button>
+                <button onClick={() => { setShowBuyForm(false); setBuyName(''); setBuyPhone(''); setBuyMetodoPago(null) }} className="flex-1 py-2.5 rounded-full border border-slate-300 text-slate-500 font-semibold text-sm hover:bg-slate-50 transition-all">Cancelar</button>
+                <button onClick={confirmBuy} disabled={!buyName.trim() || !buyPhone.trim() || !buyMetodoPago} className="flex-1 py-2.5 rounded-full bg-[var(--primary)] text-white font-bold text-sm hover:brightness-110 disabled:opacity-40 transition-all shadow-sm">Confirmar compra</button>
               </div>
             </div>
           )}
