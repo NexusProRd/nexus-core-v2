@@ -621,7 +621,7 @@ export default function ProductDetailClient({ producto, tienda, perfil, tiendaSl
       <CartDrawer idTienda={tiendaSlug} whatsappNumber={numeroLimpio} hideCheckout />
       <SocialToast productNames={[producto.nombre]} />
       <div className="md:hidden">
-        <BottomNav activeTab={activeNavTab} onTabChange={handleNavChange} />
+        <BottomNav activeTab={activeNavTab} onTabChange={handleNavChange} storeId={tiendaSlug} />
       </div>
 
       {showSizeModal && (

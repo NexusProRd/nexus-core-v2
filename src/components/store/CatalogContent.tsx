@@ -254,7 +254,7 @@ export default function CatalogContent({ id_tienda, productos, openCart }: Props
       {/* ===== GLOBAL FLOATING COMPONENTS ===== */}
       <CartDrawer idTienda={id_tienda} whatsappNumber={numeroLimpio} />
       <div className="md:hidden">
-        <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+        <BottomNav activeTab={activeTab} onTabChange={setActiveTab} storeId={id_tienda} />
       </div>
       <SocialToast productNames={allProductNames} />
 

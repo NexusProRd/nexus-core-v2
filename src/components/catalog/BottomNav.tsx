@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useCart } from '@/context/CartContext'
 
 export type TabId = 'inicio' | 'menu' | 'pedidos'
@@ -7,9 +8,10 @@ export type TabId = 'inicio' | 'menu' | 'pedidos'
 interface Props {
   activeTab: TabId
   onTabChange: (tab: TabId) => void
+  storeId: string
 }
 
-export default function BottomNav({ activeTab, onTabChange }: Props) {
+export default function BottomNav({ activeTab, onTabChange, storeId }: Props) {
   const { totalItems, setIsOpen } = useCart()
 
   const baseClass = (tab: TabId) =>
@@ -57,6 +59,17 @@ export default function BottomNav({ activeTab, onTabChange }: Props) {
             </span>
           )}
         </div>
+
+        {/* Gift Card */}
+        <Link
+          href={`/${storeId}/gift-card`}
+          className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-all duration-200 text-slate-400 dark:text-slate-500 hover:text-[var(--primary)] dark:hover:text-[var(--primary)] hover:bg-slate-100 dark:hover:bg-slate-800 touch-target native-press"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+          </svg>
+          <span className="text-[10px] font-semibold">Gift Card</span>
+        </Link>
 
         {/* Rastrear */}
         <button onClick={() => onTabChange('pedidos')} className={`${baseClass('pedidos')} relative touch-target native-press`}>
