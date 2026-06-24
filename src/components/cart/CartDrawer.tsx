@@ -6,6 +6,7 @@ import { useCart, CartItem } from '@/context/CartContext'
 import { useConfig } from '@/context/ConfigProvider'
 import { formatCurrency } from '@/lib/utils'
 import GiftModal from './GiftModal'
+import GiftCardInput from './GiftCardInput'
 import ToastProvider, { useToast } from '@/components/Toast'
 
 interface CartDrawerProps {
@@ -29,6 +30,8 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
   const [giftReceiverPhone, setGiftReceiverPhone] = useState('')
   const [giftMessage, setGiftMessage] = useState('')
   const [giftModalOpen, setGiftModalOpen] = useState(false)
+  const [giftCardCode, setGiftCardCode] = useState<string | null>(null)
+  const [giftCardBalance, setGiftCardBalance] = useState<number | null>(null)
   const [datosAccordionOpen, setDatosAccordionOpen] = useState(false)
   const [metodoPago, setMetodoPago] = useState<'transferencia' | 'contra_entrega' | null>(null)
   const [datosTouched, setDatosTouched] = useState(false)
@@ -36,7 +39,13 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
   const giftConfigurado = giftSender.trim() && giftReceiver.trim()
   const nombreValido = nombreCliente.trim().length > 0
   const telefonoValido = telefonoCliente.replace(/\D/g, '').length >= 10
-  const puedeEnviar = nombreValido && telefonoValido && metodoPago !== null
+  const totalConGiftCard = totalPrice + totalImpuesto
+  const giftCardDiscount = giftCardCode && giftCardBalance !== null
+    ? Math.min(giftCardBalance, totalConGiftCard)
+    : 0
+  const totalPendiente = totalConGiftCard - giftCardDiscount
+  const necesitaMetodoPago = totalPendiente > 0
+  const puedeEnviar = nombreValido && telefonoValido && (!necesitaMetodoPago || metodoPago !== null)
 
   const nombreRef = useRef<HTMLInputElement>(null)
   const telefonoRef = useRef<HTMLInputElement>(null)
@@ -61,7 +70,7 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
         setTimeout(() => nombreRef.current?.focus(), 100)
       } else if (!telefonoValido) {
         setTimeout(() => telefonoRef.current?.focus(), 100)
-      } else if (!metodoPago) {
+      } else if (necesitaMetodoPago && !metodoPago) {
         setTimeout(() => metodoPagoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100)
       }
       return
@@ -95,8 +104,9 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
           telefonoCliente: telefonoCliente.trim() || null,
           items: itemsParaInsertar,
           isGift: !!giftSender.trim(),
-          metodoPago,
+          metodoPago: necesitaMetodoPago ? metodoPago : null,
           notas: notaEnvio,
+          giftCardCode: giftCardCode,
           giftSender: giftSender.trim() || null,
           giftReceiver: giftReceiver.trim() || null,
           giftReceiverPhone: giftReceiverPhone.trim() || null,
@@ -119,6 +129,8 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
       setGiftReceiver('')
       setGiftReceiverPhone('')
       setGiftMessage('')
+      setGiftCardCode(null)
+      setGiftCardBalance(null)
       setMetodoPago(null)
       setDatosTouched(false)
       setNombreCliente('')
@@ -221,8 +233,18 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
                     Subtotal {formatCurrency(subtotalSinImpuesto, currencyCode)} + Impuesto {formatCurrency(totalImpuesto, currencyCode)}
                   </div>
                 )}
+                {giftCardDiscount > 0 && (
+                  <div className="text-xs text-emerald-600 mt-0.5">
+                    💳 Gift Card: -{formatCurrency(giftCardDiscount, currencyCode)}
+                  </div>
+                )}
               </div>
-              <span className="text-2xl font-bold text-[var(--primary)]">{formatCurrency(totalPrice + totalImpuesto, currencyCode)}</span>
+              <div className="text-right">
+                {giftCardDiscount > 0 && (
+                  <span className="text-xs text-slate-400 line-through block">{formatCurrency(totalConGiftCard, currencyCode)}</span>
+                )}
+                <span className="text-2xl font-bold text-[var(--primary)]">{formatCurrency(totalPendiente, currencyCode)}</span>
+              </div>
             </div>
 
             <button
@@ -265,6 +287,23 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
                       </button>
                     </div>
                   )}
+                </div>
+
+                <div className="mb-4">
+                  <GiftCardInput
+                    storeId={idTienda}
+                    currencyCode={currencyCode}
+                    onApply={(code, balance) => {
+                      setGiftCardCode(code)
+                      setGiftCardBalance(balance)
+                    }}
+                    onRemove={() => {
+                      setGiftCardCode(null)
+                      setGiftCardBalance(null)
+                    }}
+                    appliedCode={giftCardCode}
+                    appliedBalance={giftCardBalance}
+                  />
                 </div>
 
                 <div className="mb-3">

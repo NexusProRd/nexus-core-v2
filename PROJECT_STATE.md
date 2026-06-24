@@ -11,15 +11,15 @@
 | Atributo | Valor |
 |----------|-------|
 | Stack | Next.js 16.2.6, React 19.2.4, Supabase, Tailwind v4 |
-| Base de datos | Supabase PostgreSQL (82 migraciones) |
+| Base de datos | Supabase PostgreSQL (83 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02) |
+| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01) |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Centro Operativo V1 — smart push suppression, gift modal reactivado, Gestionar Pedido/Regalo |
+| Último commit | Sprint GC-01 — Gift Card redención en checkout |
 
-| Última verificación | 2026-06-22 — OPS-02: build PASS, typecheck PASS. 0 errors. |
+| Última verificación | 2026-06-24 — GC-01: build PASS, typecheck PASS. 0 errors. |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -44,6 +44,19 @@
 ## Current Focus
 
 ### Sprints completados
+
+**Sprint GC-01 — Gift Card Redención en Checkout**
+- Migración 083: columnas `giftcard_code` + `giftcard_used` en `pedidos`, tipo `direct_purchase` en `gift_card_transactions`, RPC `canjear_giftcard_v2()` con FOR UPDATE
+- RPC atómica: valida status active, expires_at, balance > 0, store_id; descuenta saldo; registra `gift_card_transactions` type='redemption'; retorna saldo restante
+- Gift Card permanece `active` mientras `balance > 0`, pasa a `redeemed` cuando `balance = 0`
+- `POST /api/checkout/validate-gift-card`: valida código, tienda, expiración, saldo. NO descuenta.
+- Wrapper `redeemGiftCard()` en `src/lib/gift-cards/redeem.ts`
+- Componente `GiftCardInput.tsx`: input GC font-mono, validación vía API, badge de saldo, botón Quitar
+- Checkout integrado: PASO 4 aplica Gift Card entre cupón y creación de orden
+- CartDrawer: sección Gift Card en accordion, desglose en total (tachado + pendiente), método de pago opcional si Gift Card cubre todo
+- Caso A: Gift Card cubre total → pendiente $0, sin método de pago requerido
+- Caso B: Gift Card insuficiente → saldo se consume, método de pago requerido para el resto
+- 4 archivos creados, 4 modificados. Build PASS. Typecheck PASS.
 
 **Sprint REGALOS-V2-03H — Regalos V2 Sprint 3H: Consulta pública Gift Cards**
 - API `POST /api/gift-card/consulta` con rate limiting, validación trim/uppercase/regex
@@ -3509,3 +3522,593 @@ Pendiente evaluar limpieza post-Beta.
 4. Agregar acciones operativas en GiftDashboard
 5. Revisar dependencia de `delivery_address` para DELIVERED
 6. Definir política final de expiración
+
+---
+
+## PENDIENTES POST CENTRO OPERATIVO V1
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+ESTADO GENERAL
+
+Centro Operativo V1:
+
+🟢 COMPLETADO
+🟢 LISTO PARA BETA
+
+Incluye:
+
+- OPS-02 Centro Operativo Foundation
+- OPS-04 Eliminación WhatsApp Automático
+- OPS-05 Método de Pago
+- OPS-05B UX Claridad Método de Pago
+- UX-CHECKOUT-01 Mobile-first CartDrawer
+- OPS-05C.1 Simplificación Modal Pedidos
+- OPS-06 Gestionar Cobro
+- OPS-07 Workflow de Pedidos V2
+- QA-OPS-FINAL
+- Hotfix QA-P0 pedidos legacy
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+OPS-08A — BANNER DE NOTIFICACIONES
+
+Estado:
+
+🟡 AUDITORÍA COMPLETADA
+🟡 PENDIENTE IMPLEMENTACIÓN
+
+Objetivo:
+
+Mostrar banner persistente cuando:
+
+- Notification.permission !== 'granted'
+- No existe Push Subscription válida
+
+Implementación prevista:
+
+- usePushStatus.ts
+- PushBanner.tsx
+- DashboardShell.tsx
+
+Prioridad:
+
+🔴 ALTA
+
+Motivo:
+
+Evitar pérdida de pedidos y regalos por notificaciones desactivadas.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+OPS-05C.2 — RESUMEN OPERATIVO
+
+Estado:
+
+🟡 APROBADO
+⚪ NO INICIADO
+
+Objetivo:
+
+Resumen rápido de pedidos activos:
+
+📦 Pedidos (X activos)
+
+🟡 Recibidos
+🔵 Preparando
+🟣 En Camino
+
+Con filtros rápidos por estado.
+
+No mostrar entregados.
+
+Prioridad:
+
+🟡 MEDIA
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+OPS-07B — MODERNIZACIÓN PLANTILLAS WHATSAPP
+
+Estado:
+
+🟡 PENDIENTE
+
+Objetivo:
+
+Mejorar mensajes predeterminados para socios que no personalicen plantillas.
+
+Pendientes:
+
+- Gestionar Cobro Transferencia
+- Gestionar Cobro Contra Entrega
+- Preparando
+- En Camino
+- Entregado
+- Rechazado
+
+Nota:
+
+La plantilla "En Camino" fue mejorada para indicar que el mensajero se pondrá en contacto con el cliente.
+
+Prioridad:
+
+🟡 MEDIA
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+GIFTCARD MVP
+
+Auditoría estratégica completada.
+
+Resultado:
+
+🟢 VALE LA PENA CONSTRUIR AHORA
+
+Estado actual:
+
+Existe aproximadamente 60% de la infraestructura:
+
+- gift_cards
+- gift_card_transactions
+- consulta de saldo
+- dashboard
+- expiración
+- códigos únicos
+- conversión desde regalos
+
+Falta:
+
+- compra directa
+- redención
+- integración checkout
+- consumo de saldo
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+GIFTCARD-02 — ARQUITECTURA MVP
+
+Estado:
+
+⚪ NO INICIADO
+
+Objetivo:
+
+Definir:
+
+- flujo de compra
+- flujo de canje
+- integración checkout
+- saldo parcial
+- comportamiento de pedidos
+- diferencias cuando el saldo no cubre el total
+
+Prioridad:
+
+🟡 MEDIA-ALTA
+
+Debe realizarse antes de programar GiftCard MVP.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+LOG-01 — DELIVERY PORTAL
+
+Estado:
+
+🔵 POST-BETA
+
+Objetivo:
+
+Portal para repartidores.
+
+Funciones previstas:
+
+- ver pedidos asignados
+- marcar En Camino
+- marcar Entregado
+- subir evidencia fotográfica
+- registrar hora de entrega
+- futura confirmación del receptor
+
+Relacionado con:
+
+Plan Omnicanal.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+ORDEN RECOMENDADO
+
+1. OPS-08A Banner Notificaciones
+2. OPS-05C.2 Resumen Operativo
+3. GIFTCARD-02 Arquitectura MVP
+4. GIFTCARD MVP
+5. OPS-07B Plantillas WhatsApp
+6. LOG-01 Delivery Portal
+
+---
+
+## GIFTCARD-02 — ARQUITECTURA MVP GIFT CARD (APROBADA)
+
+> Documento de diseño aprobado. NO programar hasta que todas las fases estén definidas y aprobadas.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+### 1. DISEÑO FINAL DE BASE DE DATOS
+
+#### Cambios propuestos en `gift_cards`
+
+| Campo | Cambio | Justificación |
+|-------|--------|---------------|
+| `source_type` | NUEVO `TEXT CHECK('direct_purchase','gift_expired','gift_manual_conversion')` | Permite mostrar origen en Dashboard sin JOIN |
+| `sender_name` | NUEVO `TEXT` (solo para `direct_purchase`) | Quién compró la Gift Card |
+| `purchased_order_id` | NUEVO `UUID REFERENCES pedidos(id) ON DELETE SET NULL` | Pedido de compra (solo `direct_purchase`) |
+
+#### Sin cambios en `gift_card_transactions`
+
+La tabla actual ya soporta todos los casos con `type = 'redemption'` y `order_id`:
+
+| Campo | Uso en redención |
+|-------|------------------|
+| `gift_card_id` | FK a gift_cards |
+| `order_id` | FK al pedido que usó la Gift Card |
+| `amount` | Monto consumido |
+| `type` | `'redemption'` |
+
+#### Sin cambios en `pedidos`
+
+No se agregan columnas nuevas. Se utiliza `notas` para almacenar `pagado_por_giftcard` si es necesario. Alternativamente, un campo JSONB `giftcard_info` opcional en `detalles_pedido`.
+
+**Decisión:** Almacenar en `pedidos.notas` con formato `💳 Gift Card: {code} - RD${amount} consumido`. Esto evita migración y es compatible con el pattern existente de notas (cupones, modo regalo).
+
+#### Migración propuesta: `084_gift_cards_mvp.sql`
+
+```sql
+-- GIFTCARD-02: MVP Gift Card soporte
+
+-- 1. source_type en gift_cards
+ALTER TABLE public.gift_cards
+  ADD COLUMN source_type TEXT CHECK (source_type IN ('direct_purchase', 'gift_expired', 'gift_manual_conversion'));
+
+-- 2. sender_name para compras directas
+ALTER TABLE public.gift_cards
+  ADD COLUMN sender_name TEXT;
+
+-- 3. purchased_order_id para compras directas (nullable)
+ALTER TABLE public.gift_cards
+  ADD COLUMN purchased_order_id UUID REFERENCES public.pedidos(id) ON DELETE SET NULL;
+
+CREATE INDEX idx_gift_cards_source ON public.gift_cards(source_type) WHERE source_type IS NOT NULL;
+
+-- 4. Backfill: source_type para gift cards existentes
+UPDATE public.gift_cards
+SET source_type = 'gift_manual_conversion'
+WHERE original_gift_id IS NOT NULL
+  AND source_type IS NULL;
+```
+
+#### Constraints post-migración
+
+- `source_type` es `NOT NULL` para nuevas filas
+- `direct_purchase`: `original_gift_id IS NULL`, `sender_name` puede ser NULL (comprador anónimo)
+- `gift_expired`: `original_gift_id IS NOT NULL`
+- `gift_manual_conversion`: `original_gift_id IS NOT NULL`
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+### 2. DISEÑO FINAL DE RPC
+
+#### RPC: `canjear_giftcard_v2`
+
+```sql
+CREATE OR REPLACE FUNCTION public.canjear_giftcard_v2(
+  p_code TEXT,
+  p_order_id UUID,
+  p_amount NUMERIC(10,2)
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_card RECORD;
+  v_new_balance NUMERIC(10,2);
+BEGIN
+  -- 1. Lock & validate gift card
+  SELECT id, store_id, code, balance, status, expires_at
+  INTO v_card
+  FROM public.gift_cards
+  WHERE upper(code) = upper(p_code)
+  FOR UPDATE;
+
+  IF v_card.id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Gift Card no encontrada.');
+  END IF;
+
+  IF v_card.status != 'active' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Gift Card no está activa. Estado: ' || v_card.status);
+  END IF;
+
+  IF v_card.expires_at IS NOT NULL AND v_card.expires_at < NOW() THEN
+    UPDATE public.gift_cards
+    SET status = 'expired'
+    WHERE id = v_card.id;
+    RETURN jsonb_build_object('success', false, 'error', 'Gift Card expirada.');
+  END IF;
+
+  IF v_card.balance <= 0 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Gift Card sin saldo disponible.');
+  END IF;
+
+  IF p_amount <= 0 THEN
+    RETURN jsonb_build_object('success', false, 'error', 'El monto a canjear debe ser mayor a 0.');
+  END IF;
+
+  -- 2. Calculate new balance
+  v_new_balance := GREATEST(v_card.balance - p_amount, 0);
+
+  -- 3. Update gift card
+  UPDATE public.gift_cards
+  SET balance = v_new_balance,
+      status = CASE WHEN v_new_balance = 0 THEN 'redeemed' ELSE 'active' END,
+      redeemed_at = CASE WHEN v_new_balance = 0 THEN NOW() ELSE redeemed_at END
+  WHERE id = v_card.id;
+
+  -- 4. Create transaction record
+  INSERT INTO public.gift_card_transactions (gift_card_id, order_id, amount, type)
+  VALUES (v_card.id, p_order_id, p_amount, 'redemption');
+
+  -- 5. Return result
+  RETURN jsonb_build_object(
+    'success', true,
+    'gift_card_id', v_card.id,
+    'amount_used', p_amount,
+    'balance_remaining', v_new_balance,
+    'store_id', v_card.store_id
+  );
+END;
+$$;
+```
+
+**Patrón de seguridad:** idéntico a `convertir_regalo_a_giftcard_v2`, `aprobar_regalo_v2`, `cancelar_regalo_v2`:
+- `FOR UPDATE` lock
+- `SECURITY DEFINER`
+- Validaciones secuenciales con early return
+- Transacción atómica
+- `RETURNS JSONB`
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+### 3. DISEÑO FINAL DE CHECKOUT
+
+#### API: `POST /api/checkout` — cambios
+
+Agregar al body:
+```ts
+giftCardCode?: string  // código opcional de Gift Card
+```
+
+Nuevo paso 3.5 (entre cupón y creación de orden):
+
+```
+PASO 3.5: Aplicar Gift Card
+  SI giftCardCode presente:
+    Llamar canjear_giftcard_v2(p_code, p_order_id, monto_a_aplicar)
+    SI saldo suficiente (balance >= total):
+      total_final = 0
+      notas += "💳 Gift Card {code}: RD${monto} consumido"
+    SI NO (balance < total):
+      total_final = total - balance
+      notas += "💳 Gift Card {code}: RD${balance} consumido. Pendiente: RD${diferencia}"
+    Devolver error SI Gift Card inválida/expirada/sin saldo
+```
+
+**Regla:** La Gift Card NO se crea antes de que el pedido quede confirmado. El RPC se ejecuta en la misma transacción que la creación del pedido (ambas comparten el mismo request).
+
+#### API: `POST /api/gift-card/validate` (NUEVO)
+
+Endpoint de validación previa al checkout (sin consumir saldo):
+
+```ts
+POST /api/gift-card/validate
+Body: { code: string, storeId: string }
+Response: {
+  valid: boolean
+  balance: number
+  code: string
+  error?: string
+}
+```
+
+Propósito: Validar la Gift Card en el frontend (CartDrawer) antes de que el usuario envíe el checkout. NO descuenta saldo.
+
+#### Frontend: CartDrawer.tsx — cambios
+
+1. Nuevo campo "¿Tienes una Gift Card?" debajo del bloque de método de pago
+2. Input para código + botón "Validar"
+3. Llamada a `POST /api/gift-card/validate`
+4. Si válida: mostrar saldo y badge "💳 Gift Card aplicada: RD$X"
+5. Si inválida: mostrar error
+6. Al hacer checkout: enviar `giftCardCode` en el body
+7. 1 Gift Card por pedido (MVP)
+
+#### Página de éxito (`/catalogo/exito`)
+
+- Si se usó Gift Card: mostrar badge "💳 Pagado con Gift Card: RD$X"
+- Si saldo parcial: mostrar "💳 Gift Card: RD$X + Pendiente: RD$Y"
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+### 4. ARCHIVOS AFECTADOS
+
+#### Nuevos
+
+| Archivo | Rol |
+|---------|-----|
+| `supabase/migrations/084_gift_cards_mvp.sql` | source_type, sender_name, purchased_order_id |
+| `src/app/api/gift-card/validate/route.ts` | Validación previa al checkout (sin consumo) |
+
+#### Modificados
+
+| Archivo | Cambio |
+|---------|--------|
+| `src/app/api/checkout/route.ts` | Paso 3.5: canjear_giftcard_v2 RPC + notas |
+| `src/components/cart/CartDrawer.tsx` | Input Gift Card + validación + envío al checkout |
+| `src/components/dashboard/GiftCardsDashboard.tsx` | Mostrar columna source_type (origen) |
+| `src/types/gift-cards.ts` | GiftCardStatus: sin cambios. GiftCard: +source_type, +sender_name, +purchased_order_id |
+| `src/app/api/gift-cards/route.ts` | Devolver source_type en response |
+| `PROJECT_STATE.md` | Agregar sección GIFTCARD-02 |
+
+#### Sin cambios (infraestructura ya lista)
+
+| Componente | Estado |
+|-----------|--------|
+| `gift_cards` table | Ya existe con balance, status, expires_at |
+| `gift_card_transactions` table | Ya existe con order_id, type='redemption' |
+| `canjear_giftcard_v2` RPC | Pendiente de implementar |
+| `gift-card/consulta` API | Sin cambios (consulta pública separada) |
+| `GiftConversionDashboard` | Sin cambios (solo conversión desde regalos) |
+| `convertir_regalo_a_giftcard_v2` RPC | Ya maneja gift_expired y manual_conversion |
+| `procesar_expiracion_reservados_v2` | Ya convierte automáticamente RESERVED expirados a Gift Card |
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+### 5. RIESGOS
+
+| ID | Riesgo | Probabilidad | Impacto | Mitigación |
+|----|--------|-------------|---------|------------|
+| R1 | Race condition: mismo código de Gift Card usado en 2 pedidos simultáneos | Baja | Medio | `FOR UPDATE` lock en `canjear_giftcard_v2` — el segundo caller espera al primero y ve balance actualizado |
+| R2 | Gift Card expira entre validación y checkout | Baja | Bajo | Validar expiración de nuevo en el RPC (no confiar en validación frontend) |
+| R3 | Saldo insuficiente entre validación y checkout (otro pedido consumió) | Baja | Medio | `FOR UPDATE` + re-validación de balance en RPC |
+| R4 | Comprador aplica Gift Card de otra tienda | Baja | Alto | `canjear_giftcard_v2` NO filtra por store_id (la Gift Card tiene store_id intrínseco — el pedido debe coincidir) |
+| R5 | Pedido creado pero Gift Card no se descuenta (fallo en medio del checkout) | Media | Alto | El RPC es atómico: si falla después de descontar Gift Card pero antes de crear el pedido, el balance ya se debitó. **Mitigación:** el RPC se ejecuta ANTES de INSERT pedido. Si el INSERT falla, el Gift Card balance ya se redujo. **Solución:** ejecutar RPC después de crear el pedido exitosamente. |
+| R6 | Gift Card de compra directa tiene `original_gift_id = NULL` — posible confusión en Dashboard | Baja | Bajo | `source_type` columna nueva resuelve ambigüedad |
+
+**Decisión de orden (R5):** El RPC `canjear_giftcard_v2` se ejecuta DESPUÉS de crear el pedido exitosamente. Si falla, el pedido existe pero la Gift Card no se descuenta — se notifica al store owner manualmente. Esto es mejor que descontar la Gift Card y perder el pedido.
+
+#### Orden real en checkout:
+
+```
+1. Validar stock (igual que ahora)
+2. Calcular precios (igual)
+3. Aplicar cupón (igual)
+4. Crear pedido (INSERT)
+5. Aplicar Gift Card (RPC) ← NUEVO
+  - Si falla: pedido existe sin Gift Card. Notificar en notas + push al store owner
+6. Descontar stock (igual)
+7. Crear gift_experiences si aplica (igual)
+```
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+### 6. COMPATIBILIDAD CON REGALOS V3.6
+
+| Feature V3.6 | Compatibilidad | Notas |
+|-------------|---------------|-------|
+| `detalles_pedido` enriquecido (costo_compra, id_producto, etc.) | ✅ Sin cambios | Gift Card solo consume saldo, no afecta productos |
+| gift-purchase crea pedido asociado | ✅ Sin cambios | No afecta flujo de compra de regalos |
+| GiftRedemption eliminado | ✅ Sin cambios | Canje de regalos sigue su propio camino |
+| rejected protegido con `.eq('status', 'pending')` | ✅ Sin cambios | No afecta Gift Cards |
+| delivery section eliminada de GiftPurchaseForm | ✅ Sin cambios | No relacionado |
+| gift_config UI | ✅ Sin cambios | Gift Card expiration ya se controla desde gift_config |
+| WhatsApp approval notification al comprador | ✅ Sin cambios | No afecta Gift Cards |
+| UX-GIFT-01A/01X visual fixes | ✅ Sin cambios | No relacionado |
+
+**Conclusión:** Cero conflictos. Gift Card MVP opera sobre `gift_cards` y `gift_card_transactions`, que son tablas independientes de `gift_experiences`.
+
+#### Compatibilidad con Centro Operativo V1
+
+| Feature OPS | Compatibilidad | Notas |
+|------------|---------------|-------|
+| Método de pago (OPS-05) | ✅ Sin cambios | Gift Card es un descuento/consumo de saldo, no un método de pago |
+| Gestionar Cobro (OPS-06) | ✅ Sin cambios | El pedido se gestiona igual; si queda saldo pendiente, se cobra con metodo_pago |
+| Workflow V2 (OPS-07) | ✅ Sin cambios | Estados de pedido no cambian |
+| Push notification (OPS-08A) | ✅ Sin cambios | No relacionado |
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+### 7. PLAN DE IMPLEMENTACIÓN POR FASES
+
+#### FASE 1 — Infraestructura (084_migration + RPC)
+
+**Duración estimada:** 1 día
+
+**Tareas:**
+1. Crear migración `084_gift_cards_mvp.sql`:
+   - `source_type` + `sender_name` + `purchased_order_id` en `gift_cards`
+   - Backfill para gift cards existentes
+2. Crear RPC `canjear_giftcard_v2()`:
+   - `FOR UPDATE` lock
+   - Validación de status, expiración, balance
+   - Descuento atómico de saldo
+   - Creación de `gift_card_transactions`
+   - Retorno de saldo restante
+3. Actualizar tipos TypeScript (`src/types/gift-cards.ts`)
+4. `tsc --noEmit` PASS
+
+**Verificación:** Llamar RPC manualmente desde SQL Editor con datos de prueba.
+
+#### FASE 2 — API validate + Checkout
+
+**Duración estimada:** 1 día
+
+**Tareas:**
+1. Crear `POST /api/gift-card/validate` (validación sin consumo)
+2. Modificar `POST /api/checkout`:
+   - Aceptar `giftCardCode` en body
+   - Paso 3.5: ejecutar `canjear_giftcard_v2` DESPUÉS de crear el pedido
+   - Manejar errores (fallback: pedido existe sin Gift Card)
+   - Agregar info a `notas`
+3. Pruebas: curl/Postman con casos 1 y 2
+
+#### FASE 3 — Frontend CartDrawer
+
+**Duración estimada:** 1 día
+
+**Tareas:**
+1. Agregar sección "¿Tienes una Gift Card?" en CartDrawer
+2. Input + botón "Validar"
+3. Estados: idle, validating, valid, invalid, error
+4. Badge de Gift Card aplicada con saldo
+5. Enviar `giftCardCode` en el body del checkout
+6. Mostrar resultado en pantalla de éxito
+
+#### FASE 4 — Dashboard + Source Type
+
+**Duración estimada:** 0.5 día
+
+**Tareas:**
+1. Modificar `POST /api/gift-cards` para incluir `source_type`
+2. Modificar `GiftCardsDashboard.tsx`:
+   - Columna "Origen" (Compra directa / Regalo expirado / Conversión manual)
+   - Subtle badge por tipo de origen
+3. Probar con datos existentes y nuevos
+
+#### FASE 5 — Compra Directa de Gift Card (POST-MVP)
+
+**Duración estimada:** 1-2 días
+
+**Tareas:**
+1. Definir dónde vive la UI (Catálogo público, sección Gift Card)
+2. Formulario de compra: monto + destinatario + comprador
+3. API `POST /api/gift-card/purchase`:
+   - Crear pedido con `total = monto_giftcard`
+   - Tras confirmación, crear Gift Card con `source_type = 'direct_purchase'`
+   - La Gift Card NO se crea antes de que el pedido quede confirmado
+4. Página de éxito con código de Gift Card
+5. Push notification al store owner: "Nueva Gift Card comprada"
+
+**Total estimado:** 4.5-6 días hábiles (Fases 1-4: 3.5 días, Fase 5: 1-2 días)
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+### ORDEN DE IMPLEMENTACIÓN RECOMENDADO
+
+```
+1. GIFTCARD-02 Arquitectura (YA APROBADA)
+2. FASE 1 — Infraestructura + RPC         [1 día]
+3. FASE 2 — API validate + Checkout       [1 día]
+4. FASE 3 — Frontend CartDrawer           [1 día]
+5. FASE 4 — Dashboard + Source Type       [0.5 día]
+6. FASE 5 — Compra Directa (post-MVP)     [1-2 días]
+```

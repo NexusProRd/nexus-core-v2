@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { gestionarStock } from '@/lib/stock'
 import { sendPushToTienda } from '@/lib/push'
 import { calcularPrecioLinea, calcularTotalPedido } from '@/lib/precios'
+import { redeemGiftCard } from '@/lib/gift-cards'
 import { NextRequest, NextResponse } from 'next/server'
 
 function idProductoReal(item: any): string | null {
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error }, { status: 500 })
 
   const body = await req.json()
-  const { idTienda, nombreCliente, telefonoCliente, items, isGift, notas, couponCode, giftSender, giftReceiver, giftReceiverPhone, giftMessage, giftDeliveryAddress, giftDeliveryLink, metodoPago } = body
+  const { idTienda, nombreCliente, telefonoCliente, items, isGift, notas, couponCode, giftCardCode, giftSender, giftReceiver, giftReceiverPhone, giftMessage, giftDeliveryAddress, giftDeliveryLink, metodoPago } = body
 
   if (!idTienda || !nombreCliente || !items?.length) {
     return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 })
@@ -186,7 +187,33 @@ export async function POST(req: NextRequest) {
   }
 
   // ───────────────────────────────────────────────
-  // PASO 4: Creación de la orden
+  // PASO 4: Aplicar Gift Card (si se proporcionó)
+  // ───────────────────────────────────────────────
+  let giftcardUsado = 0
+  let giftcardCodigo: string | null = null
+  let giftcardId: string | null = null
+
+  if (giftCardCode && !isGift) {
+    const gcResult = await redeemGiftCard(
+      String(giftCardCode).toUpperCase().trim(),
+      idTienda,
+      total,
+    )
+
+    if (!gcResult.success) {
+      return NextResponse.json({ error: gcResult.error || 'Error al aplicar Gift Card' }, { status: 400 })
+    }
+
+    giftcardUsado = gcResult.consumed || 0
+    giftcardCodigo = String(giftCardCode).toUpperCase().trim()
+    giftcardId = gcResult.giftCardId || null
+    total = Math.round((total - giftcardUsado) * 100) / 100
+
+    if (total < 0) total = 0
+  }
+
+  // ───────────────────────────────────────────────
+  // PASO 5: Creación de la orden
   // ───────────────────────────────────────────────
   const orderId = Array.from(crypto.getRandomValues(new Uint8Array(8)), b =>
     'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[b % 36]
@@ -198,6 +225,9 @@ export async function POST(req: NextRequest) {
   }
   if (cuponAplicado) {
     notasFinales.push(`🎫 Cupón: ${cuponAplicado} - RD$${descuento.toLocaleString('es-DO')} descuento`)
+  }
+  if (giftcardCodigo) {
+    notasFinales.push(`💳 Gift Card: ${giftcardCodigo} - RD$${giftcardUsado.toLocaleString('es-DO')} consumo`)
   }
 
   const { data: pedido, error: pedidoError } = await supabase!
@@ -212,12 +242,23 @@ export async function POST(req: NextRequest) {
       estado: 'pendiente',
       detalles_pedido: detallesPedido,
       metodo_pago: metodoPago || null,
+      giftcard_code: giftcardCodigo,
+      giftcard_used: giftcardUsado,
     })
     .select()
     .single()
 
   if (pedidoError || !pedido) {
     return NextResponse.json({ error: pedidoError?.message || 'Error al crear pedido' }, { status: 500 })
+  }
+
+  if (giftcardId && giftcardUsado > 0 && pedido) {
+    await supabase!
+      .from('gift_card_transactions')
+      .update({ order_id: pedido.id })
+      .eq('gift_card_id', giftcardId)
+      .eq('order_id', null)
+      .eq('type', 'redemption')
   }
 
   const detalles = items.map((item: any) => ({
@@ -234,7 +275,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ───────────────────────────────────────────────
-  // PASO 5: Incrementar uso del cupón
+  // PASO 6: Incrementar uso del cupón
   // ───────────────────────────────────────────────
   // We stored the coupon id in the validation step — look it up and increment
   if (cuponAplicado) {
@@ -254,7 +295,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ───────────────────────────────────────────────
-  // PASO 6: Descontar stock híbrido (centralizado)
+  // PASO 7: Descontar stock híbrido (centralizado)
   // ───────────────────────────────────────────────
   const stockResult = await gestionarStock(
     supabase!,
@@ -279,7 +320,7 @@ export async function POST(req: NextRequest) {
   }).catch((e) => console.error('[API Checkout] push error', e))
 
   // ───────────────────────────────────────────────
-  // PASO 7: Crear gift_experiences si es modo regalo
+  // PASO 8: Crear gift_experiences si es modo regalo
   // ───────────────────────────────────────────────
   if (isGift && giftSender) {
     const giftCode = Array.from(crypto.getRandomValues(new Uint8Array(10)), b =>
