@@ -1,13 +1,12 @@
-import { createClient } from '@supabase/supabase-js'
+import { getSession } from '@/lib/auth/get-session'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 export async function GET(req: Request) {
-  const cookies = req.headers.get('cookie') || ''
-  const sessionMatch = cookies.match(/(?:^|;\s*)nx_session=([^;]*)/)
-  const tiendaId = sessionMatch?.[1]
+  const session = await getSession(req)
 
-  if (tiendaId) {
+  if (session.valid && session.tiendaId) {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -15,7 +14,7 @@ export async function GET(req: Request) {
     const { data } = await supabase
       .from('perfil_tienda')
       .select('logo_url')
-      .eq('id_tienda', tiendaId)
+      .eq('id_tienda', session.tiendaId)
       .maybeSingle()
 
     if (data?.logo_url) {

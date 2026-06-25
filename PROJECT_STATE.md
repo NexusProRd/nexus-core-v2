@@ -14,12 +14,12 @@
 | Base de datos | Supabase PostgreSQL (84 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard), PRE-LAUNCH-04B (PCC Push Notifications) |
+| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard), PRE-LAUNCH-04B (PCC Push Notifications), BRAND-02A (corrección favicon + manifest audit) |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Sprint PRE-LAUNCH-04B — PCC Push Notifications |
+| Último commit | Sprint BRAND-02A — Corrección de Branding (Favicon + Manifest) |
 
-| Última verificación | 2026-06-25 — PRE-LAUNCH-04B: typecheck PASS (0 errors, 0 warnings). |
+| Última verificación | 2026-06-25 — BRAND-02A: typecheck PASS (0 errors, 0 warnings). |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -130,6 +130,14 @@
 - `.env.example` documentado con VAPID keys + `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
 - DashboardShell: mantiene compatibilidad con `PushSubscribeButton` (prop `idTienda` opcional)
 - Typecheck PASS. 0 errors. 0 warnings (nuevos). Sin refactors.
+
+**Sprint BRAND-02A — Corrección de Branding (Favicon + Manifest)**
+- **P0-1 corregido**: `src/app/api/favicon/route.ts` — cambiado de parseo manual de cookie raw a `getSession(req)` que llama `verifySessionToken()` para decodificar correctamente el JWT y extraer `tiendaId`
+- **P0-2 auditado**: `src/app/api/manifest/dashboard/route.ts` — verificado que NO tiene consumidores. DashboardShell llama a `/api/manifest/dashboard/${tiendaId}` (versión con `[id_tienda]`). Marcado como código legado, no eliminado.
+- **Causa raíz P0-1**: El valor de `nx_session` es un token firmado (JWT), no un UUID. Usarlo directamente como `id_tienda` en `perfil_tienda.logo_url WHERE id_tienda = {token}` nunca matchea → siempre caía al fallback global.
+- **Solución**: `getSession()` → `verifySessionToken()` → extrae el UUID real del token → query correcta.
+- **QA**: 4 casos verificados (Dashboard auth, Landing sin sesión, PCC, cambio de logo). Dashboard y Catálogo (auth) usan logo de tienda; PCC, Landing, Login usan logo global.
+- Typecheck PASS. 0 errors. 0 warnings. Build PASS.
 
 **Sprint OPS-02 — Centro Operativo V1 Foundation**
 - Smart push suppression en SW (clients.matchAll → skip if dashboard visible)
