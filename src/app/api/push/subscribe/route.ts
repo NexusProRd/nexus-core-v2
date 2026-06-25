@@ -1,22 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getSession } from '@/lib/auth/get-session'
 
 export async function POST(req: NextRequest) {
+  const session = await getSession(req)
+  if (!session.valid || !session.tiendaId)
+    return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+  const sessionId = session.tiendaId
+
   const { supabase, error } = createAdminClient()
   if (error || !supabase) {
     return NextResponse.json({ error: 'Server config error' }, { status: 500 })
   }
 
   const body = await req.json()
-  const { id_tienda, subscription, user_agent } = body
+  const { subscription, user_agent } = body
 
-  if (!id_tienda || !subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
+  if (!subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
     return NextResponse.json({ error: 'Faltan datos de suscripción' }, { status: 400 })
   }
 
   const { error: upsertError } = await supabase.from('push_subscriptions').upsert(
     {
-      id_tienda,
+      id_tienda: sessionId,
       endpoint: subscription.endpoint,
       p256dh: subscription.keys.p256dh,
       auth: subscription.keys.auth,
@@ -33,6 +39,11 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const session = await getSession(req)
+  if (!session.valid || !session.tiendaId)
+    return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+  const sessionId = session.tiendaId
+
   const { supabase, error } = createAdminClient()
   if (error || !supabase) {
     return NextResponse.json({ error: 'Server config error' }, { status: 500 })
@@ -43,7 +54,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Falta endpoint' }, { status: 400 })
   }
 
-  await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint)
+  await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint).eq('id_tienda', sessionId)
 
   return NextResponse.json({ success: true })
 }

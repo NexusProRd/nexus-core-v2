@@ -22,6 +22,67 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 })
   }
 
+  // ── Tracking de estado para rollback P0 ──
+  let _gcConsumed = false
+  let _pedidoCreado = false
+
+  async function _safeRollback(label: string, fn: () => any) {
+    try {
+      await fn()
+      console.log(`[CHECKOUT ROLLBACK] ${label} OK`)
+    } catch (e: any) {
+      console.error(`[CHECKOUT ROLLBACK] ${label} FALLÓ:`, e.message)
+    }
+  }
+
+  async function _rollbackAll(opts: {
+    hasStock?: boolean; stockItems?: any[];
+    hasPedido?: boolean; pedidoId?: string;
+    gcCode?: string | null; gcAmount?: number; gcId?: string | null;
+  }) {
+    console.log('[CHECKOUT ROLLBACK] Iniciando rollback...')
+
+    if (opts.hasStock && opts.stockItems?.length) {
+      const r = await gestionarStock(supabase!, opts.stockItems, 'restore')
+      console.log('[CHECKOUT ROLLBACK] Rollback Stock', r.ok ? 'OK' : `FALLÓ: ${r.errors.join(', ')}`)
+    }
+
+    if (opts.hasPedido && opts.pedidoId) {
+      await _safeRollback('Detalles Pedido',
+        () => supabase!.from('detalles_pedido').delete().eq('id_pedido', opts.pedidoId!))
+      if (opts.gcId) {
+        await _safeRollback('Gift Card Link',
+          () => supabase!.from('gift_card_transactions')
+            .update({ order_id: null })
+            .eq('gift_card_id', opts.gcId)
+            .eq('order_id', opts.pedidoId!))
+      }
+      await _safeRollback('Pedido',
+        () => supabase!.from('pedidos').delete().eq('id', opts.pedidoId!))
+    }
+
+    if (opts.gcAmount && opts.gcAmount > 0) {
+      let gcId = opts.gcId
+      if (!gcId && opts.gcCode) {
+        const { data: gc } = await supabase!
+          .from('gift_cards')
+          .select('id')
+          .eq('code', opts.gcCode)
+          .maybeSingle()
+        if (gc) gcId = gc.id
+      }
+      if (gcId) {
+        await _safeRollback('Gift Card',
+          () => supabase!.rpc('restaurar_giftcard_v2', {
+            p_gift_card_id: gcId,
+            p_amount: opts.gcAmount,
+          }))
+      }
+    }
+
+    console.log('[CHECKOUT ROLLBACK] Rollback completado')
+  }
+
   // ───────────────────────────────────────────────
   // PASO 1: Validación de stock de todos los productos
   // ───────────────────────────────────────────────
@@ -207,6 +268,7 @@ export async function POST(req: NextRequest) {
     giftcardUsado = gcResult.consumed || 0
     giftcardCodigo = String(giftCardCode).toUpperCase().trim()
     giftcardId = gcResult.giftCardId || null
+    _gcConsumed = giftcardUsado > 0
     total = Math.round((total - giftcardUsado) * 100) / 100
 
     if (total < 0) total = 0
@@ -249,16 +311,25 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (pedidoError || !pedido) {
+    await _rollbackAll({ gcCode: giftcardCodigo, gcAmount: _gcConsumed ? giftcardUsado : 0, gcId: giftcardId })
     return NextResponse.json({ error: pedidoError?.message || 'Error al crear pedido' }, { status: 500 })
   }
+  _pedidoCreado = true
 
   if (giftcardId && giftcardUsado > 0 && pedido) {
-    await supabase!
+    const { error: linkError } = await supabase!
       .from('gift_card_transactions')
       .update({ order_id: pedido.id })
       .eq('gift_card_id', giftcardId)
       .eq('order_id', null)
       .eq('type', 'redemption')
+    if (linkError) {
+      await _rollbackAll({
+        hasPedido: true, pedidoId: pedido.id,
+        gcCode: giftcardCodigo, gcAmount: _gcConsumed ? giftcardUsado : 0, gcId: giftcardId,
+      })
+      return NextResponse.json({ error: linkError.message }, { status: 500 })
+    }
   }
 
   const detalles = items.map((item: any) => ({
@@ -271,6 +342,10 @@ export async function POST(req: NextRequest) {
 
   const { error: detError } = await supabase!.from('detalles_pedido').insert(detalles)
   if (detError) {
+    await _rollbackAll({
+      hasPedido: true, pedidoId: pedido.id,
+      gcCode: giftcardCodigo, gcAmount: _gcConsumed ? giftcardUsado : 0, gcId: giftcardId,
+    })
     return NextResponse.json({ error: detError.message }, { status: 500 })
   }
 
@@ -297,20 +372,24 @@ export async function POST(req: NextRequest) {
   // ───────────────────────────────────────────────
   // PASO 7: Descontar stock híbrido (centralizado)
   // ───────────────────────────────────────────────
-  const stockResult = await gestionarStock(
-    supabase!,
-    items
-      .filter((i: any) => !i.isGift && i.precio !== 0 && idProductoReal(i))
-      .map((i: any) => ({
-        id_producto: idProductoReal(i),
-        nombre: i.nombre,
-        cantidad: i.cantidad,
-        variante_seleccionada: i.variante_seleccionada,
-      })),
-    'deduct'
-  )
+  const stockItems = items
+    .filter((i: any) => !i.isGift && i.precio !== 0 && idProductoReal(i))
+    .map((i: any) => ({
+      id_producto: idProductoReal(i),
+      nombre: i.nombre,
+      cantidad: i.cantidad,
+      variante_seleccionada: i.variante_seleccionada,
+    }))
+
+  const stockResult = await gestionarStock(supabase!, stockItems, 'deduct')
   if (!stockResult.ok) {
-    console.error('[API Checkout] Errores al descontar stock:', stockResult.errors)
+    console.error('[API Checkout] Error al descontar stock, ejecutando rollback completo:', stockResult.errors)
+    await _rollbackAll({
+      hasStock: true, stockItems,
+      hasPedido: true, pedidoId: pedido.id,
+      gcCode: giftcardCodigo, gcAmount: _gcConsumed ? giftcardUsado : 0, gcId: giftcardId,
+    })
+    return NextResponse.json({ error: 'Error al procesar el pedido. Intenta de nuevo.' }, { status: 500 })
   }
 
   sendPushToTienda(idTienda, {

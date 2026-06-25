@@ -11,15 +11,15 @@
 | Atributo | Valor |
 |----------|-------|
 | Stack | Next.js 16.2.6, React 19.2.4, Supabase, Tailwind v4 |
-| Base de datos | Supabase PostgreSQL (83 migraciones) |
+| Base de datos | Supabase PostgreSQL (84 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01) |
+| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01 (auditoría completa de cupones) |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Sprint GC-01 — Gift Card redención en checkout |
+| Último commit | Sprint PRE-LAUNCH-01A — Atomicidad checkout P0 + CUPONES-01 auditoría |
 
-| Última verificación | 2026-06-24 — GC-01: build PASS, typecheck PASS. 0 errors. |
+| Última verificación | 2026-06-24 — PRE-LAUNCH-01A: build PASS (0 errors, 0 warnings), typecheck PASS. CUPONES-01: 62/100, NO APTO sin fix P0 race condition. |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -36,7 +36,7 @@
 | Auth (login/register) | ✅ Funcional | Crítica |
 | Canje de regalos | ✅ Funcional (redemption unificada vía RPC) | Media |
 | Landing pública | ✅ Funcional | Baja |
-| Cupones | ⚠️ No auditado | Baja |
+| Cupones | ⚠️ Auditado — 62/100, P0 race condition, NO APTO para producción sin fix | Media |
 | Marketing | ⚠️ No auditado | Baja |
 
 ---
@@ -58,7 +58,25 @@
 - Caso B: Gift Card insuficiente → saldo se consume, método de pago requerido para el resto
 - 4 archivos creados, 4 modificados. Build PASS. Typecheck PASS.
 
-**Sprint REGALOS-V2-03H — Regalos V2 Sprint 3H: Consulta pública Gift Cards**
+**Sprint PRE-LAUNCH-01A — Atomicidad de Checkout (P0)**
+- Auditoría de atomicidad: identificados 3 P0 (GC consumida sin pedido, over-selling por stock no descontado, stock parcial en loop)
+- Migración 084: RPC `restaurar_giftcard_v2()` con FOR UPDATE, idempotente — reversa la última transacción de redención y restaura balance+status
+- `src/app/api/checkout/route.ts`: rollback helpers `_safeRollback()` y `_rollbackAll()` — compensa en orden inverso (stock → pedido → GC)
+- Tracking de estado `_gcConsumed`, `_pedidoCreado` para saber qué deshacer
+- 4 puntos de rollback: pedido fail (restaura GC), link fail (borra pedido + restaura GC), detalles fail (borra pedido + restaura GC), stock fail (restaura stock + borra pedido + restaura GC)
+- Error silencioso de `gestionarStock()` (L312-314 legacy) reemplazado: si `ok: false` → rollback completo + return 500
+- Build PASS. Typecheck PASS. 0 errors, 0 warnings.
+- **Riesgo residual**: `gestionarStock('restore')` no es idempotente (doble llamada duplica stock). Mitigado: `_rollbackAll` se ejecuta exactamente 1 vez por request.
+
+**Sprint CUPONES-01 — Auditoría Completa del Módulo de Cupones**
+- Auditoría integral: tabla, migraciones, APIs, dashboard, integración checkout, seguridad
+- **Score: 62/100 — NO APTO para producción sin fix**
+- **🔴 P0**: Race condition en `usage_count` — SELECT + UPDATE sin FOR UPDATE, dos clientes simultáneos exceden `usage_limit`
+- **🟡 P1**: Sin fecha de expiración (cupones eternos), sin límite por cliente, sin input de cupón en frontend (los 3 flujos checkout nunca envían `couponCode`)
+- **🟡 P2**: Falta validación server-side de `value > 0`, sin DELETE endpoint, sin restauración de `usage_count` al cancelar pedido, RLS policies sin store-scope
+- Multi-tenant: 5/5 puntos correctos
+- Integridad matemática: 20/20 — cálculos precisos
+- Solo auditoría — sin cambios de código
 - API `POST /api/gift-card/consulta` con rate limiting, validación trim/uppercase/regex
 - Página `/{slug}/gift-card` con formulario, badges de estado, resultados
 - Enlace 💳 Gift Card en nav del catálogo público (desktop + mobile)
@@ -589,7 +607,10 @@ Todos los sprints de seguridad, hardening, data integrity, gift unification y co
 5. **Configuración de expiración por tienda** — 24h/48h/72h/7d configurable para gifts
 6. **B7 — Gift quantity > 1** — agregar `cantidad` a `items_list`
 7. **Rotar AUTH_SECRET** — Dev secret (`nexus-super-secret-2026-ultra-secure`) debe reemplazarse antes de producción real
-8. **Quick-buy stock failure UX** — Mostrar error al usuario cuando `gestionarStock()` falla (actualmente solo console.error)
+8. **🔴 P0 Cupones: Race condition en usage_count** — SELECT + UPDATE sin FOR UPDATE permite N+1 usos. Corregir antes de producción.
+9. **🟡 P1 Cupones: Input de cupón en checkout** — Los 3 flujos no envían `couponCode`.
+10. **🟡 P1 Cupones: Fecha de expiración** — Agregar columna `expires_at` y validar en checkout.
+11. **🟡 P2 Cupones: Validación server-side value ≤ 0** — POST /api/cupones acepta descuento negativo.
 
 ### Issues de auditoría comercial resueltos
 
