@@ -395,7 +395,7 @@ export async function POST(req: NextRequest) {
   if (!stockResult.ok) {
     console.error('[API Checkout] Error al descontar stock, ejecutando rollback completo:', stockResult.errors)
     await _rollbackAll({
-      hasStock: true, stockItems,
+      hasStock: true, stockItems: stockResult.deductedItems || [],
       hasPedido: true, pedidoId: pedido.id,
       gcCode: giftcardCodigo, gcAmount: _gcConsumed ? giftcardUsado : 0, gcId: giftcardId,
       hasCoupon: !!cuponAplicado, couponCode: cuponAplicado, storeId: idTienda,

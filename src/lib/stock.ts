@@ -8,6 +8,7 @@ export interface StockItem {
 interface StockResult {
   ok: boolean
   errors: string[]
+  deductedItems: StockItem[]
 }
 
 export async function gestionarStock(
@@ -16,6 +17,7 @@ export async function gestionarStock(
   accion: 'deduct' | 'restore' | 'reserve' | 'unreserve'
 ): Promise<StockResult> {
   const errors: string[] = []
+  const deductedItems: StockItem[] = []
   const multiplicador = accion === 'deduct' ? -1 : 1
 
   for (const item of items) {
@@ -112,6 +114,8 @@ export async function gestionarStock(
 
         if (!updatedV || updatedV.length === 0) {
           errors.push(`Conflicto de concurrencia al ${accion === 'deduct' ? 'descontar' : 'restaurar'} stock de ${item.nombre} (variante ${item.variante_seleccionada}). Intenta de nuevo.`)
+        } else if (accion === 'deduct') {
+          deductedItems.push(item)
         }
       } else {
         const nuevoStock = (prod.stock || 0) + multiplicador * item.cantidad
@@ -135,6 +139,8 @@ export async function gestionarStock(
 
         if (!updatedS || updatedS.length === 0) {
           errors.push(`Conflicto de concurrencia al ${accion === 'deduct' ? 'descontar' : 'restaurar'} stock de ${item.nombre}. Intenta de nuevo.`)
+        } else if (accion === 'deduct') {
+          deductedItems.push(item)
         }
       }
     } catch (e: any) {
@@ -148,7 +154,7 @@ export async function gestionarStock(
     }
   }
 
-  return { ok: errors.length === 0, errors }
+  return { ok: errors.length === 0, errors, deductedItems }
 }
 
 export function extraerItemsPedido(detallesPedido: any): StockItem[] {
