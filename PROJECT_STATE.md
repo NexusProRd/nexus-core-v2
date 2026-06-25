@@ -14,12 +14,12 @@
 | Base de datos | Supabase PostgreSQL (84 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard), PRE-LAUNCH-04B (PCC Push Notifications), BRAND-02A (corrección favicon + manifest audit) |
+| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard), PRE-LAUNCH-04B (PCC Push Notifications), BRAND-02A (corrección favicon + manifest audit), BRAND-02C (consistencia branding catálogo completo) |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Sprint BRAND-02A — Corrección de Branding (Favicon + Manifest) |
+| Último commit | Sprint BRAND-02C — Consistencia de Branding en todo el Catálogo |
 
-| Última verificación | 2026-06-25 — BRAND-02A: typecheck PASS (0 errors, 0 warnings). |
+| Última verificación | 2026-06-25 — BRAND-02C: typecheck PASS (0 errors, 0 warnings), build PASS. |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -137,6 +137,15 @@
 - **Causa raíz P0-1**: El valor de `nx_session` es un token firmado (JWT), no un UUID. Usarlo directamente como `id_tienda` en `perfil_tienda.logo_url WHERE id_tienda = {token}` nunca matchea → siempre caía al fallback global.
 - **Solución**: `getSession()` → `verifySessionToken()` → extrae el UUID real del token → query correcta.
 - **QA**: 4 casos verificados (Dashboard auth, Landing sin sesión, PCC, cambio de logo). Dashboard y Catálogo (auth) usan logo de tienda; PCC, Landing, Login usan logo global.
+- Typecheck PASS. 0 errors. 0 warnings. Build PASS.
+
+**Sprint BRAND-02C — Consistencia de Branding en todo el Catálogo**
+- Auditoría BRAND-02B reveló que sub-páginas del catálogo (`producto/[slug]`, `cart`, `tickets`) no definían `metadata.icons` → heredaban root layout `/api/favicon` → logo global del PCC
+- **Helper creado**: `src/lib/perfil-tienda.ts` — función `getPerfilTienda(id_tienda)` que consulta `perfil_tienda.logo_url` y `nombre_comercial` usando `createPublicClient()` (sin autenticación)
+- **Corregido**: `catalogo/[id_tienda]/producto/[producto_slug]/page.tsx` — `generateMetadata` ahora consulta `getPerfilTienda()` y agrega `icons: { icon: perfil?.logo_url || '/favicon.svg' }` en ambas rutas de retorno
+- **Refactorizado**: `catalogo/[id_tienda]/page.tsx` — `generateMetadata` ahora usa `getPerfilTienda()` en vez de la query inline (mismo comportamiento, zero diff funcional)
+- **No corregido** (fuera de alcance): `cart/page.tsx` y `tickets/page.tsx` son client components que redirigen inmediatamente — sin `generateMetadata` nativo; `exito/page.tsx` no tiene `generateMetadata`; cambios requerirían convertir a server components (refactor mayor).
+- **QA**: 5 casos verificados (ruta principal, producto, carrito, branding consistente, instalación PWA). Catálogo principal y producto usan mismo logo de tienda. Cart es redirect instantáneo. PWA install funciona desde cualquier página.
 - Typecheck PASS. 0 errors. 0 warnings. Build PASS.
 
 **Sprint OPS-02 — Centro Operativo V1 Foundation**

@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import StoreProvider from '@/components/store/StoreProvider'
 import ProductDetailClient from './ProductDetailClient'
+import { getPerfilTienda } from '@/lib/perfil-tienda'
 
 interface PageProps {
   params: Promise<{ id_tienda: string; producto_slug: string }>
@@ -21,6 +22,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     .maybeSingle()
   if (!tienda) return { title: 'Producto no encontrado' }
 
+  const perfil = await getPerfilTienda(id_tienda)
+
   const { data: productoPorSlug } = await supabase
     .from('productos')
     .select('nombre, descripcion, imagen_url')
@@ -31,6 +34,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return {
       title: `${productoPorSlug.nombre} | ${tienda.nombre_tienda}`,
       description: productoPorSlug.descripcion || '',
+      icons: { icon: perfil?.logo_url || '/favicon.svg' },
       openGraph: productoPorSlug.imagen_url ? { images: [{ url: productoPorSlug.imagen_url }] } : undefined,
       alternates: { canonical: `/catalogo/${id_tienda}/producto/${producto_slug}` },
     }
@@ -48,6 +52,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${productoPorId.nombre} | ${tienda.nombre_tienda}`,
     description: productoPorId.descripcion || '',
+    icons: { icon: perfil?.logo_url || '/favicon.svg' },
     openGraph: productoPorId.imagen_url ? { images: [{ url: productoPorId.imagen_url }] } : undefined,
     alternates: { canonical: `/catalogo/${id_tienda}/producto/${producto_slug}` },
   }

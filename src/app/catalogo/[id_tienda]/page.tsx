@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import StoreProvider from '@/components/store/StoreProvider'
 import CatalogContent from '@/components/store/CatalogContent'
+import { getPerfilTienda } from '@/lib/perfil-tienda'
 import type { TallaVariant } from '@/types/database'
 
 interface Producto {
@@ -53,11 +54,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id_tienda
     .eq('id', id_tienda)
     .maybeSingle()
 
-  const { data: perfil } = await supabase
-    .from('perfil_tienda')
-    .select('logo_url, nombre_comercial')
-    .eq('id_tienda', id_tienda)
-    .maybeSingle()
+  const perfil = await getPerfilTienda(id_tienda)
 
   const nombre = perfil?.nombre_comercial || tienda?.nombre_tienda || 'Tienda'
 
