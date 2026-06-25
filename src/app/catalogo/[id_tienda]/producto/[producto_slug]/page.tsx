@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import StoreProvider from '@/components/store/StoreProvider'
 import ProductDetailClient from './ProductDetailClient'
 import { getPerfilTienda } from '@/lib/perfil-tienda'
+import { resolveOgImage } from '@/lib/og-images'
 
 interface PageProps {
   params: Promise<{ id_tienda: string; producto_slug: string }>
@@ -31,11 +32,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     .eq('id_tienda', id_tienda)
     .maybeSingle()
   if (productoPorSlug) {
+    const ogImage = resolveOgImage(perfil, productoPorSlug.imagen_url)
     return {
       title: `${productoPorSlug.nombre} | ${tienda.nombre_tienda}`,
       description: productoPorSlug.descripcion || '',
       icons: { icon: perfil?.logo_url || '/favicon.svg' },
-      openGraph: productoPorSlug.imagen_url ? { images: [{ url: productoPorSlug.imagen_url }] } : undefined,
+      openGraph: { images: [{ url: ogImage }], siteName: 'Nexus' },
+      twitter: { card: 'summary_large_image', images: [{ url: ogImage }] },
       alternates: { canonical: `/catalogo/${id_tienda}/producto/${producto_slug}` },
     }
   }
@@ -49,11 +52,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!productoPorId) return { title: 'Producto no encontrado' }
 
+  const ogImage = resolveOgImage(perfil, productoPorId.imagen_url)
   return {
     title: `${productoPorId.nombre} | ${tienda.nombre_tienda}`,
     description: productoPorId.descripcion || '',
     icons: { icon: perfil?.logo_url || '/favicon.svg' },
-    openGraph: productoPorId.imagen_url ? { images: [{ url: productoPorId.imagen_url }] } : undefined,
+    openGraph: { images: [{ url: ogImage }], siteName: 'Nexus' },
+    twitter: { card: 'summary_large_image', images: [{ url: ogImage }] },
     alternates: { canonical: `/catalogo/${id_tienda}/producto/${producto_slug}` },
   }
 }

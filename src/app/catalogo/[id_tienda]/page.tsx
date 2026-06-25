@@ -4,6 +4,7 @@ import Link from 'next/link'
 import StoreProvider from '@/components/store/StoreProvider'
 import CatalogContent from '@/components/store/CatalogContent'
 import { getPerfilTienda } from '@/lib/perfil-tienda'
+import { resolveOgImage, storeDescription } from '@/lib/og-images'
 import type { TallaVariant } from '@/types/database'
 
 interface Producto {
@@ -58,10 +59,23 @@ export async function generateMetadata({ params }: { params: Promise<{ id_tienda
 
   const nombre = perfil?.nombre_comercial || tienda?.nombre_tienda || 'Tienda'
 
+  const ogImage = resolveOgImage(perfil)
   return {
     title: `${nombre} | Catálogo Oficial`,
     icons: { icon: perfil?.logo_url || '/favicon.svg' },
     alternates: { canonical: `/catalogo/${id_tienda}` },
+    openGraph: {
+      title: nombre,
+      description: storeDescription(perfil, nombre),
+      siteName: 'Nexus',
+      images: [{ url: ogImage }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: nombre,
+      description: storeDescription(perfil, nombre),
+      images: [{ url: ogImage }],
+    },
   }
 }
 

@@ -1,9 +1,28 @@
 import { createPublicClient } from '@/lib/supabase/public'
 import type { Metadata } from 'next'
+import { resolveOgImage } from '@/lib/og-images'
 import GiftCardConsultaClient from './consulta-client'
 
 interface Props {
   params: Promise<{ slug: string }>
+}
+
+function storeGcMetadata(storeName: string, ogImage: string): Metadata {
+  return {
+    title: `${storeName} | Consultar Gift Card`,
+    openGraph: {
+      title: `${storeName} | Gift Card`,
+      description: `Consulta el saldo de tu Gift Card en ${storeName}. Canjéala en tu próxima compra.`,
+      siteName: 'Nexus',
+      images: [{ url: ogImage }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${storeName} | Gift Card`,
+      description: `Consulta el saldo de tu Gift Card en ${storeName}. Canjéala en tu próxima compra.`,
+      images: [{ url: ogImage }],
+    },
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -12,23 +31,34 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const { data: tienda } = await supabase
     .from('tiendas')
-    .select('nombre_tienda')
+    .select('id, nombre_tienda')
     .eq('slug', slug)
     .maybeSingle()
 
   if (!tienda) {
     const { data: tiendaById } = await supabase
       .from('tiendas')
-      .select('nombre_tienda')
+      .select('id, nombre_tienda')
       .eq('id', slug)
       .maybeSingle()
-    if (tiendaById) {
-      return { title: `${tiendaById.nombre_tienda} | Consultar Gift Card` }
-    }
-    return { title: 'Gift Card — Tienda no encontrada' }
+    if (!tiendaById) return { title: 'Gift Card — Tienda no encontrada' }
+
+    const { data: perfil } = await supabase
+      .from('perfil_tienda')
+      .select('logo_url, banner_url, nombre_comercial')
+      .eq('id_tienda', tiendaById.id)
+      .maybeSingle()
+    const nombre = perfil?.nombre_comercial || tiendaById.nombre_tienda
+    return storeGcMetadata(nombre, resolveOgImage(perfil))
   }
 
-  return { title: `${tienda.nombre_tienda} | Consultar Gift Card` }
+  const { data: perfil } = await supabase
+    .from('perfil_tienda')
+    .select('logo_url, banner_url, nombre_comercial')
+    .eq('id_tienda', tienda.id)
+    .maybeSingle()
+  const nombre = perfil?.nombre_comercial || tienda.nombre_tienda
+  return storeGcMetadata(nombre, resolveOgImage(perfil))
 }
 
 export default async function GiftCardPage({ params }: Props) {

@@ -3,6 +3,8 @@ import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import StoreProvider from '@/components/store/StoreProvider'
 import CatalogContent from '@/components/store/CatalogContent'
+import { getPerfilTienda } from '@/lib/perfil-tienda'
+import { resolveOgImage, storeDescription } from '@/lib/og-images'
 import type { TallaVariant } from '@/types/database'
 
 interface PageProps {
@@ -49,9 +51,26 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!tienda) return { title: 'Tienda no encontrada' }
 
+  const perfil = await getPerfilTienda(tienda.id)
+  const nombre = perfil?.nombre_comercial || tienda.nombre_tienda
+  const ogImage = resolveOgImage(perfil)
+
   return {
-    title: tienda.nombre_tienda,
+    title: nombre,
     manifest: `/api/manifest/catalogo/${tienda.id}`,
+    alternates: { canonical: `/c/${slug}` },
+    openGraph: {
+      title: nombre,
+      description: storeDescription(perfil, nombre),
+      siteName: 'Nexus',
+      images: [{ url: ogImage }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: nombre,
+      description: storeDescription(perfil, nombre),
+      images: [{ url: ogImage }],
+    },
   }
 }
 

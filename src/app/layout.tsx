@@ -56,11 +56,13 @@ export const metadata: Metadata = {
     title: 'Nexus — Tu negocio merece estar online',
     description: 'Crea tu catálogo digital en minutos, sin saber de tecnología. Solo subes tus fotos y compartes tu link.',
     locale: 'es_DO',
+    images: [{ url: '/pwa-icon-512.png' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Nexus — Tu negocio merece estar online',
     description: 'Crea tu catálogo digital en minutos, sin saber de tecnología.',
+    images: [{ url: '/pwa-icon-512.png' }],
   },
 };
 

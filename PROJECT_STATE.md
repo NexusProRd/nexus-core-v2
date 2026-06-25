@@ -14,12 +14,12 @@
 | Base de datos | Supabase PostgreSQL (84 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard), PRE-LAUNCH-04B (PCC Push Notifications), BRAND-02A (corrección favicon + manifest audit), BRAND-02C (consistencia branding catálogo completo) |
+| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard), PRE-LAUNCH-04B (PCC Push Notifications), BRAND-02A (corrección favicon + manifest audit), BRAND-02C (consistencia branding catálogo completo), SOCIAL-01 (Open Graph + Twitter Cards completos en todas las páginas públicas) |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Sprint BRAND-02C — Consistencia de Branding en todo el Catálogo |
+| Último commit | Sprint SOCIAL-01 — OG + Twitter Cards completos: Landing, Catálogo, Producto, Short Links, Gift Cards |
 
-| Última verificación | 2026-06-25 — BRAND-02C: typecheck PASS (0 errors, 0 warnings), build PASS. |
+| Última verificación | 2026-06-25 — SOCIAL-01: typecheck PASS (0 errors, 0 warnings), build PASS. |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -146,6 +146,21 @@
 - **Refactorizado**: `catalogo/[id_tienda]/page.tsx` — `generateMetadata` ahora usa `getPerfilTienda()` en vez de la query inline (mismo comportamiento, zero diff funcional)
 - **No corregido** (fuera de alcance): `cart/page.tsx` y `tickets/page.tsx` son client components que redirigen inmediatamente — sin `generateMetadata` nativo; `exito/page.tsx` no tiene `generateMetadata`; cambios requerirían convertir a server components (refactor mayor).
 - **QA**: 5 casos verificados (ruta principal, producto, carrito, branding consistente, instalación PWA). Catálogo principal y producto usan mismo logo de tienda. Cart es redirect instantáneo. PWA install funciona desde cualquier página.
+- Typecheck PASS. 0 errors. 0 warnings. Build PASS.
+
+**Sprint SOCIAL-01 — Open Graph y Twitter Cards completos en todas las páginas públicas**
+- **Helper creado**: `src/lib/og-images.ts` — `resolveOgImage(storeImages, overrideImage?)` con cadena de fallback: imagen producto → banner tienda → logo tienda → imagen Nexus; `storeDescription(perfil, nombre)` para descripción amigable.
+- **getPerfilTienda extendido**: ahora retorna `banner_url` y `mensaje_bienvenida`.
+- **PARTE 1 — Landing**: Root layout `layout.tsx` — `openGraph.images` + `twitter.images` con `/pwa-icon-512.png` (imagen Nexus). Landing (client component) hereda.
+- **PARTE 2 — Catálogo**: `catalogo/[id_tienda]/page.tsx` — `openGraph.title` = nombre tienda, `description` = `mensaje_bienvenida` o fallback, `siteName: 'Nexus'`, `images` = banner → logo → Nexus. Twitter mirror.
+- **PARTE 3 — Producto**: `producto/[slug]/page.tsx` y `catalogo/[id_tienda]/producto/[slug]/page.tsx` — cadena completa: imagen producto → banner → logo → Nexus. `siteName: 'Nexus'`. Twitter mirror. Nunca vacío.
+- **PARTE 4 — Short Links**: `c/[slug]/page.tsx` — mismo OG que catálogo principal: nombre + descripción + fallback banner/logo + siteName Nexus.
+- **PARTE 5 — Gift Card**: `[slug]/gift-card/page.tsx` — `openGraph.title` = "{store} | Gift Card", descripción gift-card específica, imagen fallback logo/banner, siteName Nexus.
+- **PARTE 6 — Éxito**: Página transitoria (`catalogo/exito`), no se comparte típicamente. Sin metadata específica. Hereda root layout.
+- **PARTE 7 — Twitter Cards**: Todas las páginas públicas con OG también tienen `twitter: { card: 'summary_large_image', images: [...] }`.
+- **QA**: 6 casos verificados (Landing → imagen Nexus; Catálogo → banner/logo + nombre comercio + descripción + siteName Nexus; Producto → imagen producto → banner → logo → Nexus; Short Link → mismo preview catálogo; Gift Card → branding correcto; Validación WhatsApp/Facebook/X — estructura OG correcta en todas).
+- **No modificado**: favicons, PWAs, manifests, Service Workers, branding aprobado.
+- **Riesgo residual**: OG image `/pwa-icon-512.png` es 512×512 (no 1200×630 ideal). Facebook/WhatsApp la renderizan bien pero la calidad en vista previa grande es subóptima. Crear `/public/og-default.png` 1200×630 queda como mejora futura.
 - Typecheck PASS. 0 errors. 0 warnings. Build PASS.
 
 **Sprint OPS-02 — Centro Operativo V1 Foundation**
