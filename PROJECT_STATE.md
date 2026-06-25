@@ -14,12 +14,12 @@
 | Base de datos | Supabase PostgreSQL (84 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard) |
+| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard), PRE-LAUNCH-04B (PCC Push Notifications) |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Sprint PRE-LAUNCH-04A — Consistencia PWA dashboard |
+| Último commit | Sprint PRE-LAUNCH-04B — PCC Push Notifications |
 
-| Última verificación | 2026-06-24 — PRE-LAUNCH-04A: build PASS (0 errors, 0 warnings), typecheck PASS. |
+| Última verificación | 2026-06-25 — PRE-LAUNCH-04B: typecheck PASS (0 errors, 0 warnings). |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -119,6 +119,17 @@
 - Las 3 PWAs (Catálogo, Dashboard, PCC) ahora comparten el mismo patrón: pre-cache + network-first + offline fallback + asset caching
 - Push notifications intactas — sin cambios en push event ni notificationclick
 - Build PASS. Typecheck PASS. 0 errors, 0 warnings.
+
+**Sprint PRE-LAUNCH-04B — PCC Push Notifications**
+- Push + notificationclick handlers agregados a `public/pcc/sw.js` (mismo patrón que dashboard SW, scope `/pcc`)
+- Nueva API `POST /api/push/pcc-subscribe` — autentica vía cookie `nx_pcc_session`, almacena suscripciones con `id_tienda='pcc'`
+- Soporta DELETE (unsubscribe) con autenticación PCC
+- Nuevo componente `PushSubscribeButton` — componente genérico reutilizable (dashboard lo usa con `idTienda`, PCC con `apiPrefix`)
+- Botón "Notificaciones ON/OFF" en sidebar PCC, junto a InstallAppButton
+- Nueva tienda registrada → `sendPushToTienda('pcc', ...)` notifica a todos los operadores PCC
+- `.env.example` documentado con VAPID keys + `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
+- DashboardShell: mantiene compatibilidad con `PushSubscribeButton` (prop `idTienda` opcional)
+- Typecheck PASS. 0 errors. 0 warnings (nuevos). Sin refactors.
 
 **Sprint OPS-02 — Centro Operativo V1 Foundation**
 - Smart push suppression en SW (clients.matchAll → skip if dashboard visible)

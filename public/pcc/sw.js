@@ -54,3 +54,53 @@ self.addEventListener('fetch', (e) => {
 
   e.respondWith(fetch(req))
 })
+
+self.addEventListener('push', (e) => {
+  console.log('[PCC SW] push received')
+  const data = e.data?.json() ?? {}
+
+  e.waitUntil((async () => {
+    const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true })
+    const pccOpen = clientList.some(c =>
+      c.url.includes('/pcc') && c.visibilityState === 'visible'
+    )
+    if (pccOpen) {
+      console.log('[PCC SW] PCC already visible → suppressing push notification')
+      return
+    }
+    await self.registration.showNotification(data.title || 'Nexus PCC', {
+      body: data.body,
+      icon: data.icon || '/pwa-icon-192.png',
+      badge: '/pwa-icon-192.png',
+      data: { url: data.url || '/pcc' },
+      vibrate: [200, 100, 200],
+    })
+    console.log('[PCC SW] notification shown')
+  })())
+})
+
+self.addEventListener('notificationclick', (e) => {
+  console.log('[PCC SW] notification click')
+  e.notification.close()
+
+  const url = e.notification.data?.url || '/pcc'
+
+  e.waitUntil((async () => {
+    const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true })
+    console.log('[PCC SW] clients found:', clientList.length)
+    for (const c of clientList) {
+      console.log('[PCC SW] client url:', c.url, 'focused:', c.focused, 'visibilityState:', c.visibilityState)
+    }
+    for (const client of clientList) {
+      if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+        console.log('[PCC SW] focusing existing client')
+        await client.focus()
+        console.log('[PCC SW] navigate pcc')
+        await client.navigate(url)
+        return
+      }
+    }
+    console.log('[PCC SW] no matching client found, opening new window')
+    await clients.openWindow(self.location.origin + url)
+  })().catch((error) => console.error('[PCC SW] notification click error', error)))
+})

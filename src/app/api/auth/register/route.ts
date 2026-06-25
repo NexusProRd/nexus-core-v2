@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs'
 import { getDefaultLimit } from '@/lib/commercial'
 import { createSessionToken } from '@/lib/auth/session'
 import { slugify, slugDisponible } from '@/lib/slug'
+import { sendPushToTienda } from '@/lib/push'
 
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString('hex')
@@ -125,6 +126,15 @@ export async function POST(req: Request) {
         categoria: null,
       }))
       await supabase!.from('productos').insert(productosSemilla)
+    } catch {}
+
+    // Non-blocking: notify PCC operators
+    try {
+      sendPushToTienda('pcc', {
+        title: 'Nueva tienda registrada',
+        body: `${nombre_tienda.trim()} — ${whatsapp.trim()}`,
+        data: { url: '/pcc/tiendas' },
+      })
     } catch {}
 
     const token = await createSessionToken(nuevaTienda.id)
