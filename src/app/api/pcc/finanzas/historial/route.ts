@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { ESTADOS_INCLUIDOS } from '@/app/dashboard/dashboard-metrics'
 
 export async function GET(request: Request) {
   const { supabase, error: adminError } = createAdminClient()
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
   const { data: pedidos } = await supabase
     .from('pedidos')
     .select('total, creado_at')
-    .eq('estado', 'confirmado')
+    .in('estado', ESTADOS_INCLUIDOS)
 
   const { data: tokens } = await supabase
     .from('nexus_logs')

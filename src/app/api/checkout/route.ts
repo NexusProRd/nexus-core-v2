@@ -338,6 +338,7 @@ export async function POST(req: NextRequest) {
     producto: item.nombre,
     cantidad: item.cantidad,
     precio_unitario: item.precio,
+    variante_seleccionada: item.variante_seleccionada || null,
   }))
 
   const { error: detError } = await supabase!.from('detalles_pedido').insert(detalles)
@@ -350,22 +351,17 @@ export async function POST(req: NextRequest) {
   }
 
   // ───────────────────────────────────────────────
-  // PASO 6: Incrementar uso del cupón
+  // PASO 6: Incrementar uso del cupón (atómico via RPC)
   // ───────────────────────────────────────────────
-  // We stored the coupon id in the validation step — look it up and increment
   if (cuponAplicado) {
-    const { data: cuponActual } = await supabase!
-      .from('coupons')
-      .select('usage_count')
-      .eq('code', cuponAplicado)
-      .eq('store_id', idTienda)
-      .maybeSingle()
-    if (cuponActual) {
-      await supabase!
-        .from('coupons')
-        .update({ usage_count: (cuponActual.usage_count || 0) + 1 })
-        .eq('code', cuponAplicado)
-        .eq('store_id', idTienda)
+    const { data: rpcResult, error: rpcError } = await supabase!
+      .rpc('incrementar_uso_cupon', {
+        p_code: cuponAplicado,
+        p_store_id: idTienda,
+      })
+
+    if (rpcError || !rpcResult?.success) {
+      console.error('[Checkout] Error al incrementar uso del cupón:', rpcError?.message || rpcResult?.error)
     }
   }
 

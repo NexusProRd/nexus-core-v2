@@ -31,6 +31,12 @@ function parseGiftDetails(notas: string | null): { sender_name: string; recipien
   }
 }
 
+function extraerCodigoCupon(notas: string | null): string | null {
+  if (!notas) return null
+  const match = notas.match(/🎫 Cupón:\s*(\S+)/)
+  return match?.[1] ?? null
+}
+
 export async function actualizarEstado(formData: FormData) {
   const admin = createAdminClient()
   const supabase = admin.supabase || await createClient()
@@ -48,7 +54,7 @@ export async function actualizarEstado(formData: FormData) {
 
   const { data: pedido } = await supabase
     .from('pedidos')
-    .select('id_tienda, is_gift, notas, cliente_telefono, cliente_nombre, detalles_pedido')
+    .select('id_tienda, is_gift, notas, cliente_telefono, cliente_nombre, detalles_pedido, giftcard_code, giftcard_used')
     .eq('id', pedidoId)
     .eq('id_tienda', sessionId)
     .single()
@@ -65,6 +71,50 @@ export async function actualizarEstado(formData: FormData) {
     .eq('id_pedido', pedidoId)
 
   if (nuevoEstado === 'rechazado' || nuevoEstado === 'cancelado' || nuevoEstado === 'devuelto') {
+    console.log(`[ORDER CANCEL] Pedido ${pedidoId} → ${nuevoEstado}`)
+
+    // Gift Card restoration
+    if (pedido?.giftcard_code && (pedido?.giftcard_used || 0) > 0) {
+      const { data: gc } = await supabase
+        .from('gift_cards')
+        .select('id')
+        .eq('code', pedido.giftcard_code)
+        .maybeSingle()
+
+      if (gc) {
+        const { data: gcResult, error: gcError } = await supabase
+          .rpc('restaurar_giftcard_v2', {
+            p_gift_card_id: gc.id,
+            p_amount: pedido.giftcard_used,
+          })
+
+        if (gcError || !gcResult?.success) {
+          console.error('[ORDER CANCEL] Error al restaurar Gift Card:', gcError?.message || gcResult?.error)
+        } else {
+          console.log('[ORDER CANCEL] Gift Card restaurada:', pedido.giftcard_code, '- Monto:', pedido.giftcard_used)
+        }
+      } else {
+        console.error('[ORDER CANCEL] Gift Card no encontrada:', pedido.giftcard_code)
+      }
+    }
+
+    // Coupon usage_count decrement
+    const codigoCupon = extraerCodigoCupon(pedido?.notas ?? null)
+    if (codigoCupon) {
+      const { data: cuponResult, error: cuponError } = await supabase
+        .rpc('decrementar_uso_cupon', {
+          p_code: codigoCupon,
+          p_store_id: sessionId,
+        })
+
+      if (cuponError) {
+        console.error('[ORDER CANCEL] Error al decrementar uso del cupón:', cuponError.message)
+      } else if (cuponResult?.success) {
+        console.log('[ORDER CANCEL] Cupón restaurado:', codigoCupon, '- usage_count:', cuponResult.usage_count)
+      }
+    }
+
+    // Stock restoration
     if (detalles && detalles.length > 0) {
       const items = detalles.map(d => ({
         id_producto: d.id_producto,
@@ -74,9 +124,13 @@ export async function actualizarEstado(formData: FormData) {
       }))
       const result = await gestionarStock(supabase, items, 'restore')
       if (!result.ok) {
-        console.error('[actualizarEstado] Errores al restaurar stock:', result.errors)
+        console.error('[ORDER CANCEL] Errores al restaurar inventario:', result.errors)
+      } else {
+        console.log('[ORDER CANCEL] Inventario restaurado')
       }
     }
+
+    console.log('[ORDER CANCEL] Pedido cancelado:', pedidoId)
   }
 
   if (nuevoEstado === 'confirmado' || nuevoEstado === 'entregado') {

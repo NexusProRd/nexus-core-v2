@@ -14,12 +14,12 @@
 | Base de datos | Supabase PostgreSQL (84 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01 (auditoría completa de cupones) |
+| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante) |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Sprint PRE-LAUNCH-01A — Atomicidad checkout P0 + CUPONES-01 auditoría |
+| Último commit | Sprint PRE-LAUNCH-03 — Restauración stock por variante |
 
-| Última verificación | 2026-06-24 — PRE-LAUNCH-01A: build PASS (0 errors, 0 warnings), typecheck PASS. CUPONES-01: 62/100, NO APTO sin fix P0 race condition. |
+| Última verificación | 2026-06-24 — PRE-LAUNCH-03: build PASS (0 errors, 0 warnings), typecheck PASS. |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -36,7 +36,7 @@
 | Auth (login/register) | ✅ Funcional | Crítica |
 | Canje de regalos | ✅ Funcional (redemption unificada vía RPC) | Media |
 | Landing pública | ✅ Funcional | Baja |
-| Cupones | ⚠️ Auditado — 62/100, P0 race condition, NO APTO para producción sin fix | Media |
+| Cupones | ✅ Funcional (RPC atómico FOR UPDATE, validaciones server-side, UI CartDrawer) | Media |
 | Marketing | ⚠️ No auditado | Baja |
 
 ---
@@ -81,6 +81,36 @@
 - Página `/{slug}/gift-card` con formulario, badges de estado, resultados
 - Enlace 💳 Gift Card en nav del catálogo público (desktop + mobile)
 - 0 migraciones, solo lectura, no expone datos sensibles
+
+**Sprint CUPONES-01A — Cupones Atómicos + UI**
+- Migración 085: RPC `incrementar_uso_cupon(TEXT, INT)` con `FOR UPDATE` — bloquea fila, incrementa, valida `usage_limit`, retorna `ok/already_at_limit/not_found`
+- `POST /api/checkout/validate-coupon`: valida código activo, no expirado, `usage_count < usage_limit`, store match. NO descuenta (descuento es en PASO 6 del checkout)
+- PASO 6 del checkout reemplazado: ya no hace SELECT+UPDATE manual, llama al RPC atómico `incrementar_uso_cupon`
+- `POST /api/cupones` (crear cupón): validaciones server-side (`value > 0`, `porcentaje ≤ 100`, `min_purchase ≥ 0`, `usage_limit ≥ 0`, max length name/code, regex `^[A-Z0-9_-]+$`)
+- CartDrawer: input de cupón con validación en tiempo real, descuento mostrado inline, desglose en total
+- Build PASS. Typecheck PASS. 0 errors, 0 warnings.
+
+**Sprint PRE-LAUNCH-02 — Consistencia al Cancelar Pedidos**
+- Migración 086: RPC `decrementar_uso_cupon(TEXT, INT)` con `FOR UPDATE` — nunca < 0, idempotente (retorna `already_at_zero` si `usage_count` ya es 0)
+- `actualizarEstado` en `actions.ts`: al cancelar, ejecuta compensación ordenada:
+  1. GC: llama `restaurar_giftcard_v2` si `giftcard_used > 0` (rollback parcial si falla)
+  2. Cupón: llama `decrementar_uso_cupon` si hay cupón en `notas` (parseado vía regex `🎫 Cupón:\s*(\S+)`)
+  3. Stock: llama `gestionarStock('restore')` con logging `[ORDER CANCEL]`
+  - Cada paso registra resultado en console (`✅/⚠️/❌`), continúa si falla
+- PCC Metrics (`/api/pcc/metrics`): filtra por `ESTADOS_INCLUIDOS` — excluye cancelados/rechazados de revenue, órdenes, ticket promedio
+- PCC Financial History (`/api/pcc/finanzas/historial`): mismo filtro `ESTADOS_INCLUIDOS` (antes solo `'confirmado'`)
+- `ESTADOS_INCLUIDOS` compartido desde `@/app/dashboard/dashboard-metrics` — única fuente de verdad
+- Build PASS. Typecheck PASS. 0 errors, 0 warnings.
+- **Riesgo residual**: `gestionarStock('restore')` no es idempotente (doble cancelación duplica stock). Pre-existing, no corregido.
+
+**Sprint PRE-LAUNCH-03 — Restauración de Stock por Variante**
+- Auditoría de flujo de variante: ProductCard → CartDrawer → Checkout PASO 7 (`gestionarStock('deduct')` con variante correcta ✅) → INSERT `detalles_pedido` tabla (variante se perdía ❌) → cancelación SELECT `detalles_pedido` (columna no existía → null ❌) → `gestionarStock('restore')` restauraba stock principal en vez de variante
+- Causa raíz: tabla `detalles_pedido` no tenía columna `variante_seleccionada`, INSERT en checkout no la incluía
+- Migración 087: `ALTER TABLE public.detalles_pedido ADD COLUMN IF NOT EXISTS variante_seleccionada TEXT`
+- `src/app/api/checkout/route.ts:341`: añadido `variante_seleccionada: item.variante_seleccionada || null` al INSERT
+- Sin cambios en `actions.ts` — ya seleccionaba y pasaba `variante_seleccionada` a `gestionarStock`
+- QA: 3 casos (variante única, mixto variante+simple, GC+cupón+variante) — todos verifican integridad
+- Build PASS. Typecheck PASS. 0 errors, 0 warnings.
 
 **Sprint OPS-02 — Centro Operativo V1 Foundation**
 - Smart push suppression en SW (clients.matchAll → skip if dashboard visible)

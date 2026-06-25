@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
+import { ESTADOS_INCLUIDOS } from '@/app/dashboard/dashboard-metrics'
 
 export async function GET() {
   const { supabase, error: adminError } = createAdminClient()
@@ -62,10 +63,11 @@ export async function GET() {
     }
   }
 
-  // Total Ventas Generadas
+  // Total Ventas Generadas (solo estados comerciales válidos)
   const { data: pedidos } = await supabase
     .from('pedidos')
     .select('total')
+    .in('estado', ESTADOS_INCLUIDOS)
 
   const totalVentas = pedidos?.reduce((s, p) => s + (p.total || 0), 0) || 0
 
