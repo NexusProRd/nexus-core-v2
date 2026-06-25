@@ -14,12 +14,12 @@
 | Base de datos | Supabase PostgreSQL (84 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante) |
+| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard) |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Sprint PRE-LAUNCH-03 — Restauración stock por variante |
+| Último commit | Sprint PRE-LAUNCH-04A — Consistencia PWA dashboard |
 
-| Última verificación | 2026-06-24 — PRE-LAUNCH-03: build PASS (0 errors, 0 warnings), typecheck PASS. |
+| Última verificación | 2026-06-24 — PRE-LAUNCH-04A: build PASS (0 errors, 0 warnings), typecheck PASS. |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -110,6 +110,14 @@
 - `src/app/api/checkout/route.ts:341`: añadido `variante_seleccionada: item.variante_seleccionada || null` al INSERT
 - Sin cambios en `actions.ts` — ya seleccionaba y pasaba `variante_seleccionada` a `gestionarStock`
 - QA: 3 casos (variante única, mixto variante+simple, GC+cupón+variante) — todos verifican integridad
+- Build PASS. Typecheck PASS. 0 errors, 0 warnings.
+
+**Sprint PRE-LAUNCH-04A — Consistencia PWA Dashboard**
+- Auditoría PRE-LAUNCH-05 identificó que el dashboard SW no precacheaba contenido, dejando pantalla en blanco sin conexión
+- Único cambio: `public/dashboard/sw.js:4-9` — agregado `cache.addAll([SCOPE, '/offline.html'])` en install event, idéntico a `catalogo/sw.js` y `pcc/sw.js`
+- Manifest dinámico ya estaba linkeado (`DashboardShell.tsx:1147` pasa `manifestUrl` a `PwaRegister`)
+- Las 3 PWAs (Catálogo, Dashboard, PCC) ahora comparten el mismo patrón: pre-cache + network-first + offline fallback + asset caching
+- Push notifications intactas — sin cambios en push event ni notificationclick
 - Build PASS. Typecheck PASS. 0 errors, 0 warnings.
 
 **Sprint OPS-02 — Centro Operativo V1 Foundation**

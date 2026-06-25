@@ -1,7 +1,10 @@
 const CACHE = 'nexus-dashboard-v1'
 const SCOPE = '/dashboard'
 
-self.addEventListener('install', () => {
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches.open(CACHE).then((cache) => cache.addAll([SCOPE, '/offline.html']))
+  )
   self.skipWaiting()
 })
 
