@@ -30,9 +30,12 @@ export async function GET(req: NextRequest) {
     de: g.sender_name,
     para: g.receiver_name,
     mensaje: g.personal_message || '',
-    estado: g.is_redeemed ? 'canjeado' as const
+    estado: g.is_redeemed ? 'reclamado' as const
       : g.status === 'pending' ? 'pendiente' as const
       : g.status === 'approved' ? 'activo' as const
+      : g.status === 'RESERVED' ? 'reservado' as const
+      : g.status === 'CLAIMED' ? 'reclamado' as const
+      : g.status === 'DELIVERED' ? 'entregado' as const
       : g.status === 'expired' ? 'vencido' as const
       : g.status === 'cancelled' ? 'cancelado' as const
       : 'rechazado' as const,

@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
     hasStock?: boolean; stockItems?: any[];
     hasPedido?: boolean; pedidoId?: string;
     gcCode?: string | null; gcAmount?: number; gcId?: string | null;
+    hasCoupon?: boolean; couponCode?: string; storeId?: string;
   }) {
     console.log('[CHECKOUT ROLLBACK] Iniciando rollback...')
 
@@ -78,6 +79,14 @@ export async function POST(req: NextRequest) {
             p_amount: opts.gcAmount,
           }))
       }
+    }
+
+    if (opts.hasCoupon && opts.couponCode && opts.storeId) {
+      await _safeRollback('Cupón',
+        () => supabase!.rpc('decrementar_uso_cupon', {
+          p_code: opts.couponCode,
+          p_store_id: opts.storeId,
+        }))
     }
 
     console.log('[CHECKOUT ROLLBACK] Rollback completado')
@@ -362,6 +371,11 @@ export async function POST(req: NextRequest) {
 
     if (rpcError || !rpcResult?.success) {
       console.error('[Checkout] Error al incrementar uso del cupón:', rpcError?.message || rpcResult?.error)
+      await _rollbackAll({
+        hasPedido: true, pedidoId: pedido.id,
+        gcCode: giftcardCodigo, gcAmount: _gcConsumed ? giftcardUsado : 0, gcId: giftcardId,
+      })
+      return NextResponse.json({ error: 'Error al procesar el cupón. Intenta de nuevo.' }, { status: 500 })
     }
   }
 
@@ -384,6 +398,7 @@ export async function POST(req: NextRequest) {
       hasStock: true, stockItems,
       hasPedido: true, pedidoId: pedido.id,
       gcCode: giftcardCodigo, gcAmount: _gcConsumed ? giftcardUsado : 0, gcId: giftcardId,
+      hasCoupon: !!cuponAplicado, couponCode: cuponAplicado, storeId: idTienda,
     })
     return NextResponse.json({ error: 'Error al procesar el pedido. Intenta de nuevo.' }, { status: 500 })
   }

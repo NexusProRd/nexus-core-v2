@@ -14,12 +14,12 @@
 | Base de datos | Supabase PostgreSQL (84 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard), PRE-LAUNCH-04B (PCC Push Notifications), BRAND-02A (corrección favicon + manifest audit), BRAND-02C (consistencia branding catálogo completo), SOCIAL-01 (Open Graph + Twitter Cards completos en todas las páginas públicas) |
+| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard), PRE-LAUNCH-04B (PCC Push Notifications), BRAND-02A (corrección favicon + manifest audit), BRAND-02C (consistencia branding catálogo completo), SOCIAL-01 (Open Graph + Twitter Cards completos en todas las páginas públicas), PRE-LAUNCH-06E (atomicidad checkout cupón: rollback + error handling) |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Sprint SOCIAL-01 — OG + Twitter Cards completos: Landing, Catálogo, Producto, Short Links, Gift Cards |
+| Último commit | Sprint PRE-LAUNCH-06E — atomicidad checkout cupón: rollback + error handling |
 
-| Última verificación | 2026-06-25 — SOCIAL-01: typecheck PASS (0 errors, 0 warnings), build PASS. |
+| Última verificación | 2026-06-25 — PRE-LAUNCH-06E: typecheck PASS (0 errors, 0 warnings), build PASS. |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -161,6 +161,16 @@
 - **QA**: 6 casos verificados (Landing → imagen Nexus; Catálogo → banner/logo + nombre comercio + descripción + siteName Nexus; Producto → imagen producto → banner → logo → Nexus; Short Link → mismo preview catálogo; Gift Card → branding correcto; Validación WhatsApp/Facebook/X — estructura OG correcta en todas).
 - **No modificado**: favicons, PWAs, manifests, Service Workers, branding aprobado.
 - **Riesgo residual**: OG image `/pwa-icon-512.png` es 512×512 (no 1200×630 ideal). Facebook/WhatsApp la renderizan bien pero la calidad en vista previa grande es subóptima. Crear `/public/og-default.png` 1200×630 queda como mejora futura.
+- Typecheck PASS. 0 errors. 0 warnings. Build PASS.
+
+**Sprint PRE-LAUNCH-06E — Atomicidad Checkout Cupón (Bug 6 P0)**
+- Bug 6 confirmado: PASO 6 del checkout ignoraba fallo de `incrementar_uso_cupon` (pedido se creaba con descuento pero cupón no se consumía) y `_rollbackAll` no restauraba `usage_count` (cupón quedaba consumido sin pedido)
+- **Corrección 1**: `_rollbackAll` extendido con `hasCoupon`, `couponCode`, `storeId` — ejecuta `decrementar_uso_cupon` dentro de `_safeRollback`, mismo patrón que GC/stock/pedido
+- **Corrección 2**: PASO 6 ahora detiene checkout + ejecuta rollback + retorna HTTP 500 si `incrementar_uso_cupon` falla (antes solo `console.error`)
+- **Corrección 3**: PASO 7 rollback pasa `hasCoupon: true` para que `decrementar_uso_cupon` se ejecute
+- QA: 6 casos simulados (normal, RPC fail, stock fail, sin cupón, GC sin cupón, regalo) — todos OK
+- 1 archivo modificado (`src/app/api/checkout/route.ts`), 0 migraciones, 0 nuevas dependencias
+- Sin cambios en Gift Cards, Inventario, Regalos, Dashboard, PCC
 - Typecheck PASS. 0 errors. 0 warnings. Build PASS.
 
 **Sprint OPS-02 — Centro Operativo V1 Foundation**
