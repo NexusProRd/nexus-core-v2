@@ -89,6 +89,14 @@ export default function PccConfiguracionPage() {
 
     const results = await Promise.all(ops)
     if (!results.some(r => r.error)) {
+      if (landingLogo && logoFinalUrl) {
+        fetch('/api/pwa-icons', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ logoUrl: logoFinalUrl, tiendaId: 'pcc' }),
+        }).catch(() => {})
+      }
+
       setGuardado(true)
       setLandingLogoUrl(logoFinalUrl)
       setLandingLogo(null)

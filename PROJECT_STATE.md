@@ -14,12 +14,12 @@
 | Base de datos | Supabase PostgreSQL (84 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard), PRE-LAUNCH-04B (PCC Push Notifications), BRAND-02A (corrección favicon + manifest audit), BRAND-02C (consistencia branding catálogo completo), SOCIAL-01 (Open Graph + Twitter Cards completos en todas las páginas públicas), PRE-LAUNCH-06E (atomicidad checkout cupón: rollback + error handling) |
+| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard), PRE-LAUNCH-04B (PCC Push Notifications), BRAND-02A (corrección favicon + manifest audit), BRAND-02C (consistencia branding catálogo completo), SOCIAL-01 (Open Graph + Twitter Cards completos en todas las páginas públicas), PRE-LAUNCH-06E (atomicidad checkout cupón: rollback + error handling), PRE-LAUNCH-09C (PWA branding final: manifest resiliencia + maskable + PCC logos_pwa) |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Sprint PRE-LAUNCH-06E — atomicidad checkout cupón: rollback + error handling |
+| Último commit | Sprint PRE-LAUNCH-09C — PWA branding final: manifest resiliencia, maskable, PCC logos_pwa |
 
-| Última verificación | 2026-06-25 — PRE-LAUNCH-06E: typecheck PASS (0 errors, 0 warnings), build PASS. |
+| Última verificación | 2026-06-26 — PRE-LAUNCH-09C: typecheck PASS (0 errors, 0 warnings), build PASS. |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -171,6 +171,20 @@
 - QA: 6 casos simulados (normal, RPC fail, stock fail, sin cupón, GC sin cupón, regalo) — todos OK
 - 1 archivo modificado (`src/app/api/checkout/route.ts`), 0 migraciones, 0 nuevas dependencias
 - Sin cambios en Gift Cards, Inventario, Regalos, Dashboard, PCC
+- Typecheck PASS. 0 errors. 0 warnings. Build PASS.
+
+**Sprint PRE-LAUNCH-09C — PWA Branding Final: Manifest Resiliencia + Maskable + PCC logos_pwa**
+- **Objetivo**: Cerrar los 4 P0 de branding PWA identificados en PRE-LAUNCH-09 (SVG guard, PCC sin logos_pwa, PCC Config sin generatePwaIcons, bolsa morada como primer candidato)
+- **PRE-LAUNCH-09A** (análisis): Confirmó que el guard `!logoUrl.endsWith('.svg')` es código muerto — `optimizarImagen()` convierte todo a WebP antes de subir
+- **PRE-LAUNCH-09B** (análisis): Determinó que el manifest puede publicar logos_pwa inexistentes (Chrome maneja 404 gracefulmente) y que la fuente de verdad debe ser «confianza en pipeline con fallback multi-nivel»
+- **SVG guard eliminado**: `if (supabaseUrl && !logoUrl.endsWith('.svg'))` → `if (supabaseUrl)` en manifests dashboard y catálogo
+- **Maskable icon**: `generatePwaIcons()` ahora sube `maskable-192.png` (reusa buffer 192×192). Los 3 manifests lo referencian con `purpose: 'maskable'` para Android 8+ adaptive icons
+- **PCC logos_pwa**: `pcc/configuracion/page.tsx` ahora invoca `POST /api/pwa-icons` tras guardar logo (mismo patrón que Dashboard), generando `logos_pwa/pcc/192.png`, `512.png`, `maskable-192.png`
+- **PCC manifest**: Refactorizado a `icons[]` dinámico — incluye `logos_pwa/pcc/` con prioridad máxima + fallbacks idénticos a Dashboard/Catálogo
+- **Consistencia**: Los 3 manifests (Dashboard, Catálogo, PCC) producen arrays de iconos estructuralmente idénticos
+- **QA (PRE-LAUNCH-09D)** : 10 casos validados (Dashboard, PCC, Catálogo, fallos, sin logo, multi-logo, Android, iOS, filosofía, regresiones) — 0 hallazgos, 0 regresiones
+- 5 archivos modificados: `src/lib/pwa-icons.ts`, `manifest/dashboard/route.ts`, `manifest/catalogo/route.ts`, `manifest/pcc/route.ts`, `pcc/configuracion/page.tsx`
+- 0 migraciones, 0 nuevas dependencias
 - Typecheck PASS. 0 errors. 0 warnings. Build PASS.
 
 **Sprint OPS-02 — Centro Operativo V1 Foundation**

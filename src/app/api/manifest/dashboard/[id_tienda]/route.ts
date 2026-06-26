@@ -33,9 +33,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id_tien
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const icons: Array<{ src: string; sizes: string; type: string; purpose?: string }> = []
 
-  if (supabaseUrl && !logoUrl.endsWith('.svg')) {
+  if (supabaseUrl) {
     icons.push({ src: `${supabaseUrl}/storage/v1/object/public/img_products/logos_pwa/${id_tienda}/192.png`, sizes: '192x192', type: 'image/png' })
     icons.push({ src: `${supabaseUrl}/storage/v1/object/public/img_products/logos_pwa/${id_tienda}/512.png`, sizes: '512x512', type: 'image/png' })
+    icons.push({ src: `${supabaseUrl}/storage/v1/object/public/img_products/logos_pwa/${id_tienda}/maskable-192.png`, sizes: '192x192', type: 'image/png', purpose: 'maskable' })
   }
 
   icons.push(

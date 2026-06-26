@@ -21,6 +21,25 @@ export async function GET() {
 
   const iconType = logoUrl.endsWith('.svg') ? 'image/svg+xml' : logoUrl.endsWith('.png') ? 'image/png' : 'image/webp'
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const icons: Array<{ src: string; sizes: string; type: string; purpose?: string }> = []
+
+  if (supabaseUrl) {
+    icons.push(
+      { src: `${supabaseUrl}/storage/v1/object/public/img_products/logos_pwa/pcc/192.png`, sizes: '192x192', type: 'image/png' },
+      { src: `${supabaseUrl}/storage/v1/object/public/img_products/logos_pwa/pcc/512.png`, sizes: '512x512', type: 'image/png' },
+      { src: `${supabaseUrl}/storage/v1/object/public/img_products/logos_pwa/pcc/maskable-192.png`, sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+    )
+  }
+
+  icons.push(
+    { src: logoUrl, sizes: '192x192', type: iconType },
+    { src: logoUrl, sizes: '512x512', type: iconType },
+    { src: '/pwa-icon.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'monochrome' },
+    { src: '/pwa-icon-192.png', sizes: '192x192', type: 'image/png' },
+    { src: '/pwa-icon-512.png', sizes: '512x512', type: 'image/png' },
+  )
+
   const manifest = {
     name: 'Nexus PCC - Panel de Control',
     short_name: 'Nexus PCC',
@@ -32,13 +51,7 @@ export async function GET() {
     background_color: '#0f172a',
     theme_color: color,
     prefer_related_applications: false,
-    icons: [
-      { src: logoUrl, sizes: '192x192', type: iconType },
-      { src: logoUrl, sizes: '512x512', type: iconType },
-      { src: '/pwa-icon.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'monochrome' },
-      { src: '/pwa-icon-192.png', sizes: '192x192', type: 'image/png' },
-      { src: '/pwa-icon-512.png', sizes: '512x512', type: 'image/png' },
-    ],
+    icons,
   }
 
   return NextResponse.json(manifest, {

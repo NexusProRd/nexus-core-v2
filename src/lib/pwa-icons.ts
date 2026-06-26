@@ -22,6 +22,7 @@ export async function generatePwaIcons(logoUrl: string, tiendaId: string): Promi
 
     await supabase.storage.from('img_products').upload(`logos_pwa/${tiendaId}/192.png`, png192, { upsert: true, contentType: 'image/png' })
     await supabase.storage.from('img_products').upload(`logos_pwa/${tiendaId}/512.png`, png512, { upsert: true, contentType: 'image/png' })
+    await supabase.storage.from('img_products').upload(`logos_pwa/${tiendaId}/maskable-192.png`, png192, { upsert: true, contentType: 'image/png' })
 
     const { data: url192 } = supabase.storage.from('img_products').getPublicUrl(`logos_pwa/${tiendaId}/192.png`)
     const { data: url512 } = supabase.storage.from('img_products').getPublicUrl(`logos_pwa/${tiendaId}/512.png`)
