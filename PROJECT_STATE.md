@@ -14,12 +14,12 @@
 | Base de datos | Supabase PostgreSQL (84 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard), PRE-LAUNCH-04B (PCC Push Notifications), BRAND-02A (corrección favicon + manifest audit), BRAND-02C (consistencia branding catálogo completo), SOCIAL-01 (Open Graph + Twitter Cards completos en todas las páginas públicas), PRE-LAUNCH-06E (atomicidad checkout cupón: rollback + error handling), PRE-LAUNCH-09C (PWA branding final: manifest resiliencia + maskable + PCC logos_pwa) |
+| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard), PRE-LAUNCH-04B (PCC Push Notifications), BRAND-02A (corrección favicon + manifest audit), BRAND-02C (consistencia branding catálogo completo), SOCIAL-01 (Open Graph + Twitter Cards completos en todas las páginas públicas), PRE-LAUNCH-06E (atomicidad checkout cupón: rollback + error handling), PRE-LAUNCH-09C (PWA branding final: manifest resiliencia + maskable + PCC logos_pwa), PRE-LAUNCH-09F (OG branding landing — WhatsApp/Facebook/X ya no muestran bolsa morada) |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | Sprint PRE-LAUNCH-09C — PWA branding final: manifest resiliencia, maskable, PCC logos_pwa |
+| Último commit | Sprint PRE-LAUNCH-09F — OG branding landing: WhatsApp/Facebook/X ya no muestran bolsa morada |
 
-| Última verificación | 2026-06-26 — PRE-LAUNCH-09C: typecheck PASS (0 errors, 0 warnings), build PASS. |
+| Última verificación | 2026-06-26 — PRE-LAUNCH-09F: typecheck PASS (0 errors, 0 warnings), build PASS. |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -185,6 +185,17 @@
 - **QA (PRE-LAUNCH-09D)** : 10 casos validados (Dashboard, PCC, Catálogo, fallos, sin logo, multi-logo, Android, iOS, filosofía, regresiones) — 0 hallazgos, 0 regresiones
 - 5 archivos modificados: `src/lib/pwa-icons.ts`, `manifest/dashboard/route.ts`, `manifest/catalogo/route.ts`, `manifest/pcc/route.ts`, `pcc/configuracion/page.tsx`
 - 0 migraciones, 0 nuevas dependencias
+- Typecheck PASS. 0 errors. 0 warnings. Build PASS.
+
+**Sprint PRE-LAUNCH-09F — OG Branding Landing: WhatsApp/Facebook/X ya no muestran bolsa morada**
+- **Problema**: Auditoría PRE-LAUNCH-09D descubrió que root layout (`layout.tsx:59`) hardcodeaba `openGraph.images = '/pwa-icon-512.png'` → WhatsApp, Facebook, X, Telegram, LinkedIn e Instagram mostraban la bolsa morada al compartir `https://nexusrd.do`
+- **Causa raíz**: La landing page es `'use client'` — no puede tener `generateMetadata` propio. La única metadata posible es la del root layout estático
+- **Solución**: `openGraph.images` y `twitter.images` cambiaron de `'/pwa-icon-512.png'` a `'/api/favicon?variant=og'` — el endpoint de favicon ahora acepta `variant=og` y cuando no hay logo configurado, redirige a `/pwa-icon-512.png` (PNG real, no SVG), garantizando compatibilidad con todas las plataformas sociales
+- **Comportamiento**: Si existe `landing_logo_url` en `nexus_config` → crawlers reciben el logo global de Nexus. Si no existe → reciben `/pwa-icon-512.png` (purple bag, fallback correcto)
+- **Sin regresión**: `icons.icon` sigue siendo `/api/favicon` (sin `variant`) → navegadores usan SVG como antes
+- **QA**: 7 casos (favicon navegador, landing sin logo, landing con logo, dashboard, PCC, catálogo, productos) — todos OK
+- 2 archivos modificados: `src/app/layout.tsx`, `src/app/api/favicon/route.ts`
+- 0 migraciones, 0 refactors, layout sigue siendo `export const metadata` estático
 - Typecheck PASS. 0 errors. 0 warnings. Build PASS.
 
 **Sprint OPS-02 — Centro Operativo V1 Foundation**

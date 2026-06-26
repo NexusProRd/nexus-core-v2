@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server'
 
 export async function GET(req: Request) {
   const session = await getSession(req)
+  const isOg = new URL(req.url).searchParams.get('variant') === 'og'
 
   if (session.valid && session.tiendaId) {
     const supabase = createClient(
@@ -35,5 +36,8 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.redirect(new URL('/favicon.svg', req.url), 302)
+  return NextResponse.redirect(
+    new URL(isOg ? '/pwa-icon-512.png' : '/favicon.svg', req.url),
+    302
+  )
 }
