@@ -21,6 +21,7 @@ import PwaRegister from '@/components/PwaRegister'
 import InstallAppButton from '@/components/InstallAppButton'
 import PushSubscribeButton from '@/components/PushSubscribeButton'
 import PushBanner from '@/components/PushBanner'
+import { usePushStatus } from '@/lib/hooks/usePushStatus'
 import { SessionProvider, usePermisos } from '@/context/PermisosContext'
 import ToastProvider, { useToast } from '@/components/Toast'
 import { DashboardContext } from './DashboardContext'
@@ -72,7 +73,7 @@ export function useOrderAlert() {
   return useContext(OrderAlertContext)
 }
 
-function SidebarDesktop({ tiendaId }: { tiendaId?: string }) {
+function SidebarDesktop({ tiendaId, pushState }: { tiendaId?: string; pushState: ReturnType<typeof usePushStatus> }) {
   const { esDueno, nombreColaborador, permisos } = usePermisos()
   const pathname = usePathname()
   const [marketingExpanded, setMarketingExpanded] = useState(true)
@@ -211,7 +212,7 @@ function SidebarDesktop({ tiendaId }: { tiendaId?: string }) {
         </nav>
         <div className="px-3 pb-3 space-y-1">
           <InstallAppButton variant="sidebar" />
-          {tiendaId && <PushSubscribeButton idTienda={tiendaId} />}
+          {tiendaId && <PushSubscribeButton pushState={pushState} />}
         </div>
     </aside>
   )
@@ -391,6 +392,7 @@ function DashboardLayoutInner({
   children: React.ReactNode
 }) {
   const [tiendaId, setTiendaId] = useState<string | null>(null)
+  const pushState = usePushStatus(tiendaId ?? undefined)
   const [nombreTienda, setNombreTienda] = useState('')
   const [loading, setLoading] = useState(true)
   const [pedidosPendientes, setPedidosPendientes] = useState<Pedido[]>([])
@@ -786,7 +788,7 @@ function DashboardLayoutInner({
     <OrderAlertContext.Provider value={{ showAlert }}>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-[#0a0a0d] dark:via-[#0c0c10] dark:to-[#0e0e14]">
         {/* MOTION SYSTEM PASS: Animations moved to globals.css — no inline style block needed */}
-        <SidebarDesktop tiendaId={tiendaId ?? undefined} />
+        <SidebarDesktop tiendaId={tiendaId ?? undefined} pushState={pushState} />
         {/* Top header */}
         <header className="fixed top-0 left-0 right-0 z-40 bg-[#0c0c10]/80 backdrop-blur-2xl border-b border-white/[0.06] px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
@@ -843,7 +845,7 @@ function DashboardLayoutInner({
               </div>
             )
           })}
-          <PushBanner idTienda={tiendaId} />
+          <PushBanner pushState={pushState} />
           {/* MOTION SYSTEM PASS: Page enter with spring easing */}
           <div key={pathname} className="max-w-7xl mx-auto animate-page-enter content-visibility-auto">
             {children}
@@ -895,7 +897,7 @@ function DashboardLayoutInner({
                   Configuración Avanzada
                 </Link>
                 <InstallAppButton variant="sidebar" />
-                {tiendaId && <PushSubscribeButton idTienda={tiendaId} />}
+          {tiendaId && <PushSubscribeButton pushState={pushState} />}
                 <div className="border-t border-white/30 dark:border-white/[0.06] my-1" />
                 <button onClick={async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.href = '/login' }}
                   className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-rose-500/10 text-sm font-medium text-rose-600 hover:text-rose-700 transition-all press-scale-sm">

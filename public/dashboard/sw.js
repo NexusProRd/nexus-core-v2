@@ -50,22 +50,26 @@ self.addEventListener('push', (e) => {
   const data = e.data?.json() ?? {}
 
   e.waitUntil((async () => {
-    const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true })
-    const dashboardOpen = clientList.some(c =>
-      c.url.includes('/dashboard') && c.visibilityState === 'visible'
-    )
-    if (dashboardOpen) {
-      console.log('[SW] dashboard already visible → suppressing push notification')
-      return
+    try {
+      const clientList = await clients.matchAll({ type: 'window', includeUncontrolled: true })
+      const dashboardOpen = clientList.some(c =>
+        c.url.includes('/dashboard') && c.visibilityState === 'visible'
+      )
+      if (dashboardOpen) {
+        console.log('[SW] dashboard already visible → suppressing push notification')
+        return
+      }
+      await self.registration.showNotification(data.title || 'Nuevo pedido', {
+        body: data.body,
+        icon: data.icon || '/pwa-icon-192.png',
+        badge: '/pwa-icon-192.png',
+        data: { url: data.url || '/dashboard/pedidos' },
+        vibrate: [200, 100, 200],
+      })
+      console.log('[SW] notification shown')
+    } catch (err) {
+      console.error('[SW] push handler error:', err)
     }
-    await self.registration.showNotification(data.title || 'Nuevo pedido', {
-      body: data.body,
-      icon: data.icon || '/pwa-icon-192.png',
-      badge: '/pwa-icon-192.png',
-      data: { url: data.url || '/dashboard/pedidos' },
-      vibrate: [200, 100, 200],
-    })
-    console.log('[SW] notification shown')
   })())
 })
 

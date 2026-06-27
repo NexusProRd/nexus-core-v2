@@ -9,6 +9,7 @@ import LoginVigiladoModal from './LoginVigiladoModal'
 import PwaRegister from '@/components/PwaRegister'
 import InstallAppButton from '@/components/InstallAppButton'
 import PushSubscribeButton from '@/components/PushSubscribeButton'
+import { usePushStatus } from '@/lib/hooks/usePushStatus'
 
 const navItems = [
   {
@@ -77,6 +78,8 @@ export default function PccLayout({ children }: { children: React.ReactNode }) {
       } catch {}
     })()
   }, [])
+
+  const pushState = usePushStatus(undefined, { apiPrefix: '/api/push/pcc-subscribe', scopePath: '/pcc/' })
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -169,7 +172,7 @@ export default function PccLayout({ children }: { children: React.ReactNode }) {
             {theme === 'light' ? 'Modo Oscuro' : 'Modo Claro'}
           </button>
           <InstallAppButton variant="sidebar" />
-          <PushSubscribeButton apiPrefix="/api/push/pcc-subscribe" />
+          <PushSubscribeButton pushState={pushState} />
           <button onClick={handleLogout}
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-rose-500 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-900/20 border border-transparent transition-all duration-200 mt-1">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50 dark:bg-rose-900/20 text-rose-400">
