@@ -33,6 +33,7 @@ export function usePushStatus(idTienda?: string, options?: { apiPrefix?: string;
   const mountedRef = useRef(true)
 
   useEffect(() => {
+    mountedRef.current = true
     return () => { mountedRef.current = false }
   }, [])
 
