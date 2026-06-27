@@ -14,12 +14,12 @@
 | Base de datos | Supabase PostgreSQL (84 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard), PRE-LAUNCH-04B (PCC Push Notifications), BRAND-02A (corrección favicon + manifest audit), BRAND-02C (consistencia branding catálogo completo), SOCIAL-01 (Open Graph + Twitter Cards completos en todas las páginas públicas), PRE-LAUNCH-06E (atomicidad checkout cupón: rollback + error handling), PRE-LAUNCH-09C (PWA branding final: manifest resiliencia + maskable + PCC logos_pwa), PRE-LAUNCH-09F (OG branding landing — WhatsApp/Facebook/X ya no muestran bolsa morada), PRE-LAUNCH-08C+08G (Push state unification + correcciones finales: PCC scopePath, timeouts, fetch AbortSignal, SW try/catch) |
+| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard), PRE-LAUNCH-04B (PCC Push Notifications), BRAND-02A (corrección favicon + manifest audit), BRAND-02C (consistencia branding catálogo completo), SOCIAL-01 (Open Graph + Twitter Cards completos en todas las páginas públicas), PRE-LAUNCH-06E (atomicidad checkout cupón: rollback + error handling), PRE-LAUNCH-09C (PWA branding final: manifest resiliencia + maskable + PCC logos_pwa), PRE-LAUNCH-09F (OG branding landing — WhatsApp/Facebook/X ya no muestran bolsa morada), PRE-LAUNCH-08C+08G (Push state unification + correcciones finales: PCC scopePath, timeouts, fetch AbortSignal, SW try/catch), PRE-LAUNCH-08I (mountedRef bug: isLoading stuck por Strict Mode remount) |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | `abc0589` — PRE-LAUNCH-08C+08G — Push state unification + correcciones finales |
+| Último commit | `837a968` — PRE-LAUNCH-08I — mountedRef.current = true on mount |
 
-| Última verificación | 2026-06-27 — PRE-LAUNCH-08G: typecheck PASS (0 errors, 0 warnings), build PASS. |
+| Última verificación | 2026-06-27 — PRE-LAUNCH-08I: typecheck PASS (0 errors, 0 warnings), build PASS. |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -206,6 +206,11 @@
 - **08G — Corrección 3 (Fetch timeouts)**: 3 fetch calls en `usePushStatus.ts` con `AbortSignal.timeout()` — 5s para VAPID key, 8s para POST subscribe, 8s para DELETE unsubscribe. Si timeout, error capturado por catch → `setIsLoading(false)` + error visible.
 - **08G — Corrección 4 (SW try/catch)**: `public/dashboard/sw.js` — bloque `push` handler envuelto en try/catch. Si payload inválido o error en `showNotification`, se loggea y el SW continúa funcionando. Lógica de supresión (dashboard visible) intacta.
 - **QA**: typecheck 0 errors, build PASS, 6 files modificados, 141/+130/-. Commit `abc0589`.
+
+**Sprint PRE-LAUNCH-08I — mountedRef Bug: isLoading stuck por Strict Mode**
+- **Auditoría forense (08H)**: Análisis completo de PushBanner. Conclusión: PushBanner no tiene el bug. Causa raíz en `usePushStatus.ts:128` — `mountedRef.current` queda `false` tras re-mount en Strict Mode, impidiendo que `finally { setIsLoading(false) }` se ejecute.
+- **Corrección (08I)**: Agregado `mountedRef.current = true` en el setup del efecto (antes solo tenía cleanup `= false`). El ref se setea explícitamente en cada mount, no solo en `useRef(true)` inicial.
+- **QA**: typecheck 0 errors, build PASS, 1 archivo modificado, +1 línea. Commit `837a968`.
 
 **Sprint OPS-02 — Centro Operativo V1 Foundation**
 - Smart push suppression en SW (clients.matchAll → skip if dashboard visible)
