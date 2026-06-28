@@ -25,22 +25,46 @@ export async function POST(req: NextRequest) {
 
   const noDisponibles = stockCheck?.filter(p => {
     if (!p.in_stock) return true
-    if (Array.isArray(p.tallas) && p.tallas.length > 0) return true
+    const matchingItem = items.find((i: any) => i.product_id === p.id)
+    const varianteSeleccionada = matchingItem?.variante_seleccionada
+
+    if (Array.isArray(p.tallas) && p.tallas.length > 0) {
+      if (varianteSeleccionada) {
+        const variant = p.tallas.find((t: any) =>
+          typeof t === 'object' && t.talla === varianteSeleccionada
+        )
+        if (!variant) return true
+        const disponible = (variant.stock || 0) - (p.stock_reservado || 0)
+        return disponible <= 0
+      }
+      return true
+    }
     const disponible = (p.stock || 0) - (p.stock_reservado || 0)
     return disponible <= 0
   }) || []
   if (noDisponibles.length > 0) {
-    return NextResponse.json({ error: 'Algunos productos seleccionados ya no están disponibles o tienen variantes.' }, { status: 409 })
+    return NextResponse.json({ error: 'Algunos productos seleccionados ya no están disponibles.' }, { status: 409 })
   }
 
-  const costMap = new Map<string, number>()
-  stockCheck?.forEach(p => costMap.set(p.id, p.costo_compra || 0))
+  const costMap = new Map<string, { costo: number; varianteCosto?: number }>()
+  stockCheck?.forEach(p => {
+    const baseCosto = p.costo_compra || 0
+    if (Array.isArray(p.tallas)) {
+      p.tallas.forEach((t: any) => {
+        if (typeof t === 'object' && t.talla) {
+          costMap.set(`${p.id}-${t.talla}`, { costo: baseCosto, varianteCosto: t.costo || baseCosto })
+        }
+      })
+    }
+    costMap.set(p.id, { costo: baseCosto })
+  })
 
   const itemsList = items.map((p: any) => ({
     product_id: p.product_id,
     nombre: p.nombre,
     precio: p.precio,
     imagen_url: p.imagen_url,
+    variante_seleccionada: p.variante_seleccionada || null,
   }))
 
   const { data: newGift, error: insertError } = await supabase!
@@ -77,18 +101,23 @@ export async function POST(req: NextRequest) {
       estado: 'pendiente',
       notas: '🎁 Modo Regalo',
       metodo_pago: metodoPago || null,
-      detalles_pedido: items.map((p: any) => ({
-        id_producto: p.product_id,
-        producto: p.nombre,
-        cantidad: 1,
-        precio_unitario: p.precio,
-        costo_real: costMap.get(p.product_id) || 0,
-        subtotal: p.precio,
-        total: p.precio,
-        impuesto: 0,
-        aplica_impuesto: false,
-        porcentaje_impuesto: null,
-      })),
+      detalles_pedido: items.map((p: any) => {
+        const costKey = p.variante_seleccionada ? `${p.product_id}-${p.variante_seleccionada}` : p.product_id
+        const costInfo = costMap.get(costKey) || costMap.get(p.product_id) || { costo: 0 }
+        return {
+          id_producto: p.product_id,
+          producto: p.nombre,
+          cantidad: 1,
+          precio_unitario: p.precio,
+          costo_real: costInfo.varianteCosto ?? costInfo.costo ?? 0,
+          variante_seleccionada: p.variante_seleccionada || null,
+          subtotal: p.precio,
+          total: p.precio,
+          impuesto: 0,
+          aplica_impuesto: false,
+          porcentaje_impuesto: null,
+        }
+      }),
       order_id: crypto.randomUUID(),
     })
 

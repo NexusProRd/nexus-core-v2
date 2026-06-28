@@ -1462,6 +1462,15 @@ Se implementó `ProductoForm.tsx` que maneja ambos modos (`create` / `edit`) con
 | **Motivo** | Cero código compartido entre subsistemas. Subsistema B carece de status intermedio, expiración server-side, y atomicidad en canje. Mantener ambos duplica ~500 líneas en 8 archivos. Riesgo aceptable: datos no financieros, volumen bajo. |
 | **Impacto** | Se agregan 2 migraciones (055 backfill, 056 drop tickets). `tickets` table eliminada. `pedidos.is_gift` preservada (defer). `/tickets?code=` redirige a `/canje?gift=`. Backup/Restore actualizado. |
 
+### D020 — Inventario de variantes duplicado entre TypeScript y SQL RPCs (BUG 2)
+
+| Campo | Valor |
+|-------|-------|
+| **Fecha** | Junio 2026 (Sprint BUG 2) |
+| **Decisión** | Mantener lógica de inventario de variantes duplicada entre TypeScript (`src/lib/stock.ts`) y SQL RPCs (`aprobar_regalo_v2`, `entregar_regalo_v2`, `revertir_entrega_regalo_v2`). No unificar. |
+| **Motivo** | La duplicación es estructural, no accidental. Checkout V2 usa optimistic locking desde TypeScript con `gestionarStock()` para descuento/restauración en compras normales. El Gift Lifecycle necesita `FOR UPDATE` en PostgreSQL para atomicidad transaccional en aprobar/entregar/revertir, lo que requiere RPCs SQL. Ambos lados implementan exactamente el mismo algoritmo: localizar variante por talla, actualizar `tallas[].stock`, recalcular stock global, validar `variant.stock - stock_reservado >= cantidad`. Cualquier intento de unificar rompería la atomicidad del Gift Lifecycle o forzaría un refactor masivo de Checkout V2. |
+| **Impacto** | 3 RPCs variant-aware reemplazados vía `CREATE OR REPLACE FUNCTION` en migración `088_gift_variante_stock_rpc.sql`. Cero cambios en Checkout V2, CartContext, gift-cards, descuentos, impuestos, Quick Buy, Centro Operativo. La función `stock.ts:44-48` (bloqueo de variantes en reserve/unreserve) sigue siendo código muerto pre-existente, nunca llamado. BUG 2 no introduce deuda técnica nueva. |
+
 ---
 
 ## Flujo de Usuario
@@ -4263,3 +4272,126 @@ Propósito: Validar la Gift Card en el frontend (CartDrawer) antes de que el usu
 5. FASE 4 — Dashboard + Source Type       [0.5 día]
 6. FASE 5 — Compra Directa (post-MVP)     [1-2 días]
 ```
+
+---
+
+# RELEASE CANDIDATE 1 (RC1)
+
+## Estado
+
+RC1 cerrado exitosamente.
+
+## Resultado
+
+🟢 Nexus aprobado para Fase Piloto.
+
+## Fecha
+
+27 Junio 2026.
+
+---
+
+## Resumen de RC1
+
+- Auditoría integral completada (73 pruebas, 69 exitosas, 4 fallidas — 3 por test obsoleto, 1 por schema drift).
+- Todos los P0 corregidos (PCC Logs 500 — schema drift reparado vía migración 089).
+- Todos los módulos críticos verificados (autenticación, checkout, inventario, pedidos, regalos v3, gift cards, variantes, push, PWA, PCC, catálogo).
+- Arquitectura validada sin deuda técnica nueva.
+- Build exitoso (`npm run build` sin errores).
+- TypeScript sin errores (`tsc --noEmit`).
+- QA automatizada completada (Playwright 6/9, API 42/42, páginas 22/22).
+- QA funcional completada (8 casos simulados Regalos V3, API endpoints, PCC, SEO, PWA).
+- Sin regresiones críticas detectadas.
+
+---
+
+## Bugs críticos corregidos durante RC1
+
+- **Rollback de inventario** (Bug 4 P0) — atomicidad en restauración de stock tras fallo de checkout.
+- **Rollback de cupones** (Bug 6 P0) — atomicidad en incremento/decremento de uso de cupón.
+- **Flujo completo Regalos V3** — aprobar, cancelar, reclamar, entregar, revertir con RPCs atómicos.
+- **Integración completa de Gift Cards** — validación, aplicación en checkout, saldo restante, compra directa.
+- **Soporte completo de variantes en Gift Purchase** (BUG 2) — VariantPicker, validación de stock por talla, costo específico por variante.
+- **Push Notifications** — unificación de estado, corrección de permiso, granularidad de logs.
+- **Branding PWA** — logos_pwa centralizado, manifests resilientes, maskable icons, scoped service workers.
+- **Favicon / Open Graph** — favicon API, OG tags completos en Landing, Catálogo, Producto, Gift Cards.
+- **Reparación de schema drift** — migración 089 agrega columnas faltantes (`accion`, `detalle`, `metadata`, `id_usuario`) a `nexus_logs`.
+- **Corrección definitiva del módulo PCC Logs** — de 500 Internal Server Error a 200 OK.
+
+---
+
+## Decisiones arquitectónicas consolidadas
+
+Quedaron oficialmente establecidas:
+
+- **Checkout V2** como flujo principal de compra.
+- **Gift Cards integradas al Checkout** mediante RPC atómico `canjear_giftcard_v2`.
+- **Regalos V3** como implementación definitiva del ciclo de vida de regalos.
+- **Inventario de variantes con separación estratégica**: TypeScript (`gestionarStock` en `stock.ts`) para Checkout V2 (optimistic locking), RPC PostgreSQL (`FOR UPDATE`) para Gift Lifecycle (atomicidad transaccional en aprobar/entregar/revertir).
+- **Push unificado** mediante un único estado compartido (`usePushStatus`).
+- **Branding PWA centralizado** mediante `logos_pwa` en storage de Supabase.
+- **PROJECT_STATE.md** continúa siendo la fuente oficial de decisiones técnicas.
+
+---
+
+## Estado actual del sistema
+
+| Módulo | Estado |
+|--------|--------|
+| Autenticación | 🟢 Estable |
+| Checkout | 🟢 Estable |
+| Inventario | 🟢 Estable |
+| Pedidos | 🟢 Estable |
+| Gift Cards | 🟢 Estable |
+| Regalos V3 | 🟢 Estable |
+| Variantes | 🟢 Estable |
+| PWA | 🟢 Estable |
+| Push | 🟢 Estable |
+| PCC | 🟢 Estable |
+| Catálogo | 🟢 Estable |
+
+---
+
+# FASE PILOTO
+
+A partir de este momento cambia la estrategia del proyecto.
+
+| Prioridad | Área |
+|-----------|------|
+| **Prioridad 1** | Corrección de incidencias provenientes de comercios reales |
+| **Prioridad 2** | Mejoras de experiencia de usuario |
+| **Prioridad 3** | Performance |
+| **Prioridad 4** | Observabilidad |
+| **Prioridad 5** | Escalabilidad |
+
+No iniciar desarrollos grandes sin evidencia obtenida durante el piloto.
+
+---
+
+## Congelación del Core
+
+El Core funcional de Nexus queda congelado al cierre de RC1.
+
+No se realizarán refactors generales.
+No se modificarán componentes críticos salvo por:
+
+- Bugs reales.
+- Seguridad.
+- Rendimiento.
+- Compatibilidad.
+
+Toda nueva funcionalidad deberá justificarse con evidencia obtenida durante la Fase Piloto.
+
+---
+
+# ROADMAP — PILOT 01
+
+Pendientes prioritarios:
+
+- Incorporar primeros comercios.
+- Monitorear estabilidad durante las primeras semanas.
+- Implementar observabilidad del sistema.
+- Implementar métricas de negocio.
+- Implementar monitoreo de errores.
+- Validar comportamiento bajo uso real.
+- Priorizar mejoras basadas en feedback de los comercios.
