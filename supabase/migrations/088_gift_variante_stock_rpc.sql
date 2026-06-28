@@ -34,10 +34,12 @@ DECLARE
   v_variante TEXT;
   v_tallas JSONB;
   v_variant_stock INTEGER;
+  v_store_id UUID;
+  v_expires_days INT;
   v_error_name TEXT;
 BEGIN
-  SELECT status, items_list, sender_phone
-  INTO v_status, v_items, v_sender_phone
+  SELECT status, items_list, sender_phone, store_id
+  INTO v_status, v_items, v_sender_phone, v_store_id
   FROM public.gift_experiences
   WHERE id = p_gift_id
   FOR UPDATE;
@@ -84,14 +86,14 @@ BEGIN
             'Variante "' || v_variante || '" no encontrada para "' || COALESCE(v_error_name, v_product_id::TEXT) || '".');
         END IF;
 
-        IF v_variant_stock - COALESCE(v_reserved, 0) < 1 THEN
+        IF v_variant_stock - COALESCE(v_reserved, 0) < COALESCE((v_item->>'cantidad')::INTEGER, 1) THEN
           v_error_name := v_item->>'nombre';
           RETURN jsonb_build_object('success', false, 'error',
             'Stock insuficiente para la variante "' || v_variante || '" de "' || COALESCE(v_error_name, v_product_id::TEXT) || '". Disponible: ' || GREATEST(v_variant_stock - COALESCE(v_reserved, 0), 0));
         END IF;
       ELSE
         -- No variant: use product-level stock
-        IF v_stock - COALESCE(v_reserved, 0) < 1 THEN
+        IF v_stock - COALESCE(v_reserved, 0) < COALESCE((v_item->>'cantidad')::INTEGER, 1) THEN
           v_error_name := v_item->>'nombre';
           RETURN jsonb_build_object('success', false, 'error',
             'Stock insuficiente para "' || COALESCE(v_error_name, v_product_id::TEXT) || '". Disponible: ' || GREATEST(v_stock - COALESCE(v_reserved, 0), 0));
@@ -99,7 +101,7 @@ BEGIN
       END IF;
     ELSE
       -- V1 flow: direct stock check
-      IF v_stock < 1 THEN
+      IF v_stock < COALESCE((v_item->>'cantidad')::INTEGER, 1) THEN
         v_error_name := v_item->>'nombre';
         RETURN jsonb_build_object('success', false, 'error',
           'Stock insuficiente para "' || COALESCE(v_error_name, v_product_id::TEXT) || '". Stock actual: ' || v_stock);
@@ -115,7 +117,7 @@ BEGIN
 
     IF v_is_v2 THEN
       UPDATE public.productos
-      SET stock_reservado = COALESCE(stock_reservado, 0) + 1
+      SET stock_reservado = COALESCE(stock_reservado, 0) + COALESCE((v_item->>'cantidad')::INTEGER, 1)
       WHERE id = v_product_id;
     ELSE
       UPDATE public.productos
@@ -125,10 +127,21 @@ BEGIN
     END IF;
   END LOOP;
 
-  -- Update gift status
+  -- Update gift status + set reserved_expires_at for V2
   IF v_is_v2 THEN
+    v_expires_days := 7;
+    BEGIN
+      SELECT COALESCE((t.gift_config->>'reserved_expires_days')::INT, 7)
+      INTO v_expires_days
+      FROM public.tiendas t
+      WHERE t.id = v_store_id;
+    EXCEPTION WHEN OTHERS THEN
+      v_expires_days := 7;
+    END;
+
     UPDATE public.gift_experiences
-    SET status = 'RESERVED'
+    SET status = 'RESERVED',
+        reserved_expires_at = NOW() + (v_expires_days || ' days')::INTERVAL
     WHERE id = p_gift_id;
   ELSE
     UPDATE public.gift_experiences
@@ -161,6 +174,7 @@ DECLARE
   v_tallas JSONB;
   v_tallas_actualizadas JSONB;
   v_stock_sum INTEGER;
+  v_cantidad INTEGER;
   v_elem JSONB;
 BEGIN
   SELECT status, delivery_address, items_list
@@ -188,6 +202,7 @@ BEGIN
     v_stock := 0;
     v_reserved := 0;
     v_variante := v_item->>'variante_seleccionada';
+    v_cantidad := COALESCE((v_item->>'cantidad')::INTEGER, 1);
 
     SELECT stock, stock_reservado, tallas
     INTO v_stock, v_reserved, v_tallas
@@ -206,13 +221,13 @@ BEGIN
         FOR v_elem IN SELECT * FROM jsonb_array_elements(v_tallas)
         LOOP
           IF jsonb_typeof(v_elem) = 'object' AND v_elem->>'talla' = v_variante THEN
-            IF (v_elem->>'stock')::INTEGER < 1 THEN
-              RAISE EXCEPTION 'Stock insuficiente para la variante "%" del producto "%": disponible %, requerido 1',
-                v_variante, v_product_id, (v_elem->>'stock')::INTEGER;
+            IF (v_elem->>'stock')::INTEGER < v_cantidad THEN
+              RAISE EXCEPTION 'Stock insuficiente para la variante "%" del producto "%": disponible %, requerido %',
+                v_variante, v_product_id, (v_elem->>'stock')::INTEGER, v_cantidad;
             END IF;
             v_tallas_actualizadas := v_tallas_actualizadas || jsonb_build_object(
               'talla', v_variante,
-              'stock', GREATEST((v_elem->>'stock')::INTEGER - 1, 0),
+              'stock', GREATEST((v_elem->>'stock')::INTEGER - v_cantidad, 0),
               'precio', v_elem->>'precio',
               'costo', v_elem->>'costo',
               'sku', v_elem->>'sku'
@@ -228,46 +243,46 @@ BEGIN
         FROM jsonb_array_elements(v_tallas_actualizadas) AS elem
         WHERE jsonb_typeof(elem) = 'object';
 
-        IF v_reserved < 1 THEN
-          RAISE EXCEPTION 'stock_reservado insuficiente para el producto "%": reservado %, requerido 1',
-            v_product_id, v_reserved;
+        IF v_reserved < v_cantidad THEN
+          RAISE EXCEPTION 'stock_reservado insuficiente para el producto "%": reservado %, requerido %',
+            v_product_id, v_reserved, v_cantidad;
         END IF;
 
         UPDATE public.productos
         SET tallas = v_tallas_actualizadas,
             stock = v_stock_sum,
-            stock_reservado = GREATEST(stock_reservado - 1, 0),
+            stock_reservado = GREATEST(stock_reservado - v_cantidad, 0),
             in_stock = v_stock_sum > 0
         WHERE id = v_product_id;
       ELSE
         -- Variant specified but tallas are legacy strings (no per-variant stock tracking)
         -- Fall through to standard product-level stock deduction
-        IF v_stock < 1 THEN
-          RAISE EXCEPTION 'Stock insuficiente para el producto "%": disponible %, requerido 1', v_product_id, v_stock;
+        IF v_stock < v_cantidad THEN
+          RAISE EXCEPTION 'Stock insuficiente para el producto "%": disponible %, requerido %', v_product_id, v_stock, v_cantidad;
         END IF;
-        IF v_reserved < 1 THEN
-          RAISE EXCEPTION 'stock_reservado insuficiente para el producto "%": reservado %, requerido 1', v_product_id, v_reserved;
+        IF v_reserved < v_cantidad THEN
+          RAISE EXCEPTION 'stock_reservado insuficiente para el producto "%": reservado %, requerido %', v_product_id, v_reserved, v_cantidad;
         END IF;
         UPDATE public.productos
-        SET stock = stock - 1,
-            stock_reservado = GREATEST(stock_reservado - 1, 0),
-            in_stock = (stock - 1) > 0
+        SET stock = stock - v_cantidad,
+            stock_reservado = GREATEST(stock_reservado - v_cantidad, 0),
+            in_stock = (stock - v_cantidad) > 0
         WHERE id = v_product_id;
       END IF;
     ELSE
       -- No variant: standard stock deduction
-      IF v_stock < 1 THEN
-        RAISE EXCEPTION 'Stock insuficiente para el producto "%": disponible %, requerido 1', v_product_id, v_stock;
+      IF v_stock < v_cantidad THEN
+        RAISE EXCEPTION 'Stock insuficiente para el producto "%": disponible %, requerido %', v_product_id, v_stock, v_cantidad;
       END IF;
 
-      IF v_reserved < 1 THEN
-        RAISE EXCEPTION 'stock_reservado insuficiente para el producto "%": reservado %, requerido 1', v_product_id, v_reserved;
+      IF v_reserved < v_cantidad THEN
+        RAISE EXCEPTION 'stock_reservado insuficiente para el producto "%": reservado %, requerido %', v_product_id, v_reserved, v_cantidad;
       END IF;
 
       UPDATE public.productos
-      SET stock = stock - 1,
-          stock_reservado = GREATEST(stock_reservado - 1, 0),
-          in_stock = (stock - 1) > 0
+      SET stock = stock - v_cantidad,
+          stock_reservado = GREATEST(stock_reservado - v_cantidad, 0),
+          in_stock = (stock - v_cantidad) > 0
       WHERE id = v_product_id;
     END IF;
   END LOOP;
@@ -298,6 +313,7 @@ DECLARE
   v_tallas JSONB;
   v_tallas_actualizadas JSONB;
   v_stock_sum INTEGER;
+  v_cantidad INTEGER;
   v_elem JSONB;
 BEGIN
   SELECT status, items_list
@@ -319,6 +335,7 @@ BEGIN
   LOOP
     v_product_id := (v_item->>'product_id')::UUID;
     v_variante := v_item->>'variante_seleccionada';
+    v_cantidad := COALESCE((v_item->>'cantidad')::INTEGER, 1);
 
     SELECT tallas INTO v_tallas
     FROM public.productos
@@ -338,7 +355,7 @@ BEGIN
           IF jsonb_typeof(v_elem) = 'object' AND v_elem->>'talla' = v_variante THEN
             v_tallas_actualizadas := v_tallas_actualizadas || jsonb_build_object(
               'talla', v_variante,
-              'stock', ((v_elem->>'stock')::INTEGER) + 1,
+              'stock', ((v_elem->>'stock')::INTEGER) + v_cantidad,
               'precio', v_elem->>'precio',
               'costo', v_elem->>'costo',
               'sku', v_elem->>'sku'
@@ -357,22 +374,22 @@ BEGIN
         UPDATE public.productos
         SET tallas = v_tallas_actualizadas,
             stock = v_stock_sum,
-            stock_reservado = COALESCE(stock_reservado, 0) + 1,
+            stock_reservado = COALESCE(stock_reservado, 0) + v_cantidad,
             in_stock = v_stock_sum > 0
         WHERE id = v_product_id;
       ELSE
         -- Variant specified but tallas are legacy strings: standard stock restoration
         UPDATE public.productos
-        SET stock = stock + 1,
-            stock_reservado = COALESCE(stock_reservado, 0) + 1,
+        SET stock = stock + v_cantidad,
+            stock_reservado = COALESCE(stock_reservado, 0) + v_cantidad,
             in_stock = true
         WHERE id = v_product_id;
       END IF;
     ELSE
       -- No variant: standard stock restoration
       UPDATE public.productos
-      SET stock = stock + 1,
-          stock_reservado = COALESCE(stock_reservado, 0) + 1,
+      SET stock = stock + v_cantidad,
+          stock_reservado = COALESCE(stock_reservado, 0) + v_cantidad,
           in_stock = true
       WHERE id = v_product_id;
     END IF;

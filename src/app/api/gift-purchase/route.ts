@@ -18,9 +18,14 @@ export async function POST(req: NextRequest) {
     .from('productos')
     .select('id, stock, stock_reservado, in_stock, tallas, costo_compra')
     .in('id', productIds)
+    .eq('id_tienda', idTienda)
 
   if (stockCheckError) {
     return NextResponse.json({ error: stockCheckError.message }, { status: 500 })
+  }
+
+  if (!stockCheck || stockCheck.length !== productIds.length) {
+    return NextResponse.json({ error: 'Uno o más productos no pertenecen a esta tienda o no existen' }, { status: 400 })
   }
 
   const noDisponibles = stockCheck?.filter(p => {
@@ -63,6 +68,7 @@ export async function POST(req: NextRequest) {
     product_id: p.product_id,
     nombre: p.nombre,
     precio: p.precio,
+    cantidad: p.cantidad || 1,
     imagen_url: p.imagen_url,
     variante_seleccionada: p.variante_seleccionada || null,
   }))
@@ -89,7 +95,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: insertError.message }, { status: 500 })
   }
 
-  const total = items.reduce((sum: number, p: any) => sum + Number(p.precio || 0), 0)
+  const total = items.reduce((sum: number, p: any) => sum + Number(p.precio || 0) * Number(p.cantidad || 1), 0)
 
   const { error: pedidoError } = await supabase!
     .from('pedidos')
@@ -104,15 +110,16 @@ export async function POST(req: NextRequest) {
       detalles_pedido: items.map((p: any) => {
         const costKey = p.variante_seleccionada ? `${p.product_id}-${p.variante_seleccionada}` : p.product_id
         const costInfo = costMap.get(costKey) || costMap.get(p.product_id) || { costo: 0 }
+        const cantidad = p.cantidad || 1
         return {
           id_producto: p.product_id,
           producto: p.nombre,
-          cantidad: 1,
+          cantidad,
           precio_unitario: p.precio,
           costo_real: costInfo.varianteCosto ?? costInfo.costo ?? 0,
           variante_seleccionada: p.variante_seleccionada || null,
-          subtotal: p.precio,
-          total: p.precio,
+          subtotal: (p.precio || 0) * cantidad,
+          total: (p.precio || 0) * cantidad,
           impuesto: 0,
           aplica_impuesto: false,
           porcentaje_impuesto: null,

@@ -74,7 +74,7 @@ BEGIN
       IF v_product_id IS NULL THEN CONTINUE; END IF;
 
       UPDATE public.productos
-      SET stock_reservado = GREATEST(COALESCE(stock_reservado, 0) - 1, 0)
+      SET stock_reservado = GREATEST(COALESCE(stock_reservado, 0) - COALESCE((v_item->>'cantidad')::INTEGER, 1), 0)
       WHERE id = v_product_id;
     END LOOP;
 
@@ -90,7 +90,7 @@ BEGIN
     BEGIN
       v_precio := (v_item->>'precio')::NUMERIC;
       IF v_precio IS NOT NULL AND v_precio > 0 THEN
-        v_total := v_total + v_precio;
+        v_total := v_total + (v_precio * COALESCE((v_item->>'cantidad')::INTEGER, 1));
       END IF;
     EXCEPTION WHEN OTHERS THEN
       NULL;

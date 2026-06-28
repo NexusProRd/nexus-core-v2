@@ -14,12 +14,12 @@
 | Base de datos | Supabase PostgreSQL (84 migraciones) |
 | Auth | Custom (JWT firmado con HMAC-SHA256, sin Supabase Auth) |
 | Sesión | Cookie `nx_session` (token firmado o legacy UUID) |
-| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard), PRE-LAUNCH-04B (PCC Push Notifications), BRAND-02A (corrección favicon + manifest audit), BRAND-02C (consistencia branding catálogo completo), SOCIAL-01 (Open Graph + Twitter Cards completos en todas las páginas públicas), PRE-LAUNCH-06E (atomicidad checkout cupón: rollback + error handling), PRE-LAUNCH-09C (PWA branding final: manifest resiliencia + maskable + PCC logos_pwa), PRE-LAUNCH-09F (OG branding landing — WhatsApp/Facebook/X ya no muestran bolsa morada), PRE-LAUNCH-08C+08G (Push state unification + correcciones finales: PCC scopePath, timeouts, fetch AbortSignal, SW try/catch), PRE-LAUNCH-08I (mountedRef bug: isLoading stuck por Strict Mode remount) |
+| Estado | **Beta Ready** — módulos funcionales, stock hardening completo, gift audit corregido, Subsistema B migrado a A, production readiness auditado, Gift Cards público (Sprint 3H), push notifications + receiver_phone (Sprint 3I-A), Regalos V3.5 (delivery_step, terminal canje, WhatsApp store name), Regalos V3.6 (R1, D1+D8, gift_config UI, P0s cerrados, UX-GIFT-01A, UX-GIFT-01X), Centro Operativo V1 (OPS-02), Gift Card Redención en Checkout (GC-01), PRE-LAUNCH-01A (atomicidad checkout P0), CUPONES-01A (cupones atómicos + UI), PRE-LAUNCH-02 (consistencia cancelación: GC/cupón/stock + PCC metrics), PRE-LAUNCH-03 (restauración stock por variante), PRE-LAUNCH-04A (consistencia PWA dashboard), PRE-LAUNCH-04B (PCC Push Notifications), BRAND-02A (corrección favicon + manifest audit), BRAND-02C (consistencia branding catálogo completo), SOCIAL-01 (Open Graph + Twitter Cards completos en todas las páginas públicas), PRE-LAUNCH-06E (atomicidad checkout cupón: rollback + error handling), PRE-LAUNCH-09C (PWA branding final: manifest resiliencia + maskable + PCC logos_pwa), PRE-LAUNCH-09F (OG branding landing — WhatsApp/Facebook/X ya no muestran bolsa morada), PRE-LAUNCH-08C+08G (Push state unification + correcciones finales: PCC scopePath, timeouts, fetch AbortSignal, SW try/catch), PRE-LAUNCH-08I (mountedRef bug: isLoading stuck por Strict Mode remount), RC-FIX-03 (CartContext sync, checkout/gift-purchase multi-tenant, gift-convert ownership, migrations 073/077/088 cantidad-aware), RC-UAT-04 (simulación post-deploy: 088/080 verificadas, data fix tallas identificado) |
 | Hosting | Vercel (proyecto conectado vía GitHub) |
 | Moneda | DOP/USD — migrado a formatCurrency() + currencyCode vía context |
-| Último commit | `837a968` — PRE-LAUNCH-08I — mountedRef.current = true on mount |
+| Último commit | `PENDING` — RC-FIX-03 + RC-UAT-04 — CartContext sync, multi-tenant checkout, cantidad-aware migrations, simulación post-deploy 088/080 |
 
-| Última verificación | 2026-06-27 — PRE-LAUNCH-08I: typecheck PASS (0 errors, 0 warnings), build PASS. |
+| Última verificación | 2026-06-28 — RC-UAT-04: 080 y 088 verificadas post-deploy. aprobar/entregar/revertir usan cantidad. reclamar sin PGRST203. Bug P2: tallas como string JSON en 59 productos (requiere data fix). |
 ### Módulos
 
 | Módulo | Estado | Prioridad QA |
@@ -211,6 +211,27 @@
 - **Auditoría forense (08H)**: Análisis completo de PushBanner. Conclusión: PushBanner no tiene el bug. Causa raíz en `usePushStatus.ts:128` — `mountedRef.current` queda `false` tras re-mount en Strict Mode, impidiendo que `finally { setIsLoading(false) }` se ejecute.
 - **Corrección (08I)**: Agregado `mountedRef.current = true` en el setup del efecto (antes solo tenía cleanup `= false`). El ref se setea explícitamente en cada mount, no solo en `useRef(true)` inicial.
 - **QA**: typecheck 0 errors, build PASS, 1 archivo modificado, +1 línea. Commit `837a968`.
+
+**Sprint RC-FIX-03 — CartContext sync + Multi-tenant checkout + Gift cantidad > 1**
+- **Objetivo**: Sincronizar CartContext con storeId vía `usePathname()`, forzar multi-tenant en checkout/gift-purchase/gift-convert, cerrar 3 bugs de regalos (cantidad en items_list, gift-convert ownership, checkout cantidad>1)
+- **CartContext.tsx**: `storeId` extraído de `usePathname()` (path `/catalogo/{id}/`) en vez de `process.env.NEXT_PUBLIC_STORE_ID` hardcodeado. Actualiza `CartProvider` en checkout/links para forzar re-sync al navegar. Garantiza que carrito de Tienda A no se cargue en Tienda B usando `cart-{storeId}` como localStorage key.
+- **checkout/route.ts**: Agregado `.eq('id_tienda', idTienda)` en todas las queries de productos (evita que multi-tenant sirva producto equivocado).
+- **gift-purchase/route.ts**: Filtro `.eq('id_tienda', idTienda)` en validación de productos + validación `items_list.length` (evita crear regalos sin items).
+- **gift-convert/route.ts**: Ownership check `gift.store_id !== session.tiendaId` — rechaza 403 si store_id no coincide con sesión (evita que socio A convierta regalo de socio B).
+- **Migrations 073, 077, 088 parcheadas**: Reemplazan `+ 1` / `- 1` hardcodeados por `COALESCE((v_item->>\'cantidad\')::INTEGER, 1)` en cancelar/convertir/aprobar/entregar/revertir. `v_total := v_total + v_precio` cambiado a `v_total := v_total + (v_precio * COALESCE((v_item->>\'cantidad\')::INTEGER, 1))` en convertir.
+- **QA**: typecheck 0 errors, build PASS. Commit `PENDING`.
+
+**Sprint RC-UAT-04 — Simulación post-deploy migraciones 080 + 088**
+- **Escenario 1 (aprobar_regalo_v2)**: PASA — stock_reservado += 3 (NO +1). Mig 088 confirmada.
+- **Escenario 2 (entregar_regalo_v2)**: PASA — stock -= 3, reservado -= 3. Cantidad correcta.
+- **Escenario 3 (revertir_entrega_regalo_v2)**: PASA — stock += 3, reservado += 3. Restauración completa.
+- **Escenario 4 (variantes Talla M, cantidad=4)**: FALLA (P2) — tallas M no se actualiza. Causa: 59 productos tienen `tallas` como JSON string en vez de JSONB array (`jsonb_typeof = \'string\'`). La función v088 detecta correctamente y cae al path estándar (stock global OK). Requiere data fix: `UPDATE productos SET tallas = (tallas #>> \'{}\')::JSONB WHERE jsonb_typeof(tallas) = \'string\'`
+- **Escenario 5 (convertir gift card)**: PASA — 500×3 + 600×2 = 2700. v077 confirmada.
+- **Escenario 6 (cancelar regalo)**: PASA — reservado liberado correctamente.
+- **Escenario 7 (reclamar_regalo_v2)**: PASA — sin PGRST203. Mig 080 confirmada.
+- **Escenario 8 (regresión)**: PASA — todas las tablas y RPCs operativas.
+- **Escenario 9 (consistencia)**: PASA — sin stock negativo, ni GC inválidas, ni gifts huérfanos.
+- **Conclusión**: A) Las migraciones aplicadas quedaron correctamente instaladas y el sistema usa las nuevas RPCs. Único hallazgo: data fix de `tallas` pendiente. Commit `PENDING`.
 
 **Sprint OPS-02 — Centro Operativo V1 Foundation**
 - Smart push suppression en SW (clients.matchAll → skip if dashboard visible)

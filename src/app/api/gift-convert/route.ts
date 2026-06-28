@@ -16,6 +16,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'giftId es requerido' }, { status: 400 })
   }
 
+  const { data: gift, error: giftError } = await supabase!
+    .from('gift_experiences')
+    .select('store_id')
+    .eq('id', giftId)
+    .single()
+
+  if (giftError || !gift) {
+    return NextResponse.json({ error: 'Regalo no encontrado' }, { status: 404 })
+  }
+
+  if (gift.store_id !== session.tiendaId) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
+
   const { data, error } = await supabase!
     .rpc('convertir_regalo_a_giftcard_v2', { p_gift_id: giftId })
 

@@ -109,9 +109,19 @@ export async function POST(req: NextRequest) {
       .from('productos')
       .select('id, tallas, stock, stock_reservado, in_stock, precio, precio_oferta, costo_compra, aplica_impuesto, porcentaje_impuesto')
       .in('id', allProductIds)
+      .eq('id_tienda', idTienda)
 
     if (prods) {
       for (const p of prods) productosMap[p.id] = p
+    }
+
+    const foundIds = Object.keys(productosMap)
+    const missingIds = allProductIds.filter(id => !foundIds.includes(id))
+    if (missingIds.length > 0) {
+      return NextResponse.json({
+        error: 'Uno o más productos no pertenecen a esta tienda o no existen',
+        items: missingIds,
+      }, { status: 400 })
     }
   }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react'
+import { usePathname } from 'next/navigation'
 
 export interface CartItem {
   id: string
@@ -73,6 +74,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     itemsRef.current = items
   }, [items])
+
+  const pathname = usePathname()
+
+  useEffect(() => {
+    const match = pathname?.match(/^\/catalogo\/([^\/]+)/)
+    if (match) {
+      const catalogStoreId = match[1]
+      if (catalogStoreId !== storeId) {
+        if (storeId && itemsRef.current.length > 0) {
+          const oldKey = `nexus-cart-${storeId}`
+          localStorage.setItem(oldKey, JSON.stringify(itemsRef.current))
+        }
+        setStoreId(catalogStoreId)
+        setItems([])
+      }
+    }
+  }, [pathname])
 
   useEffect(() => {
     const key = storeId ? `nexus-cart-${storeId}` : 'nexus-cart'
