@@ -27,8 +27,9 @@ function CanjeContent() {
   const [error, setError] = useState(false)
   const [isRedeemed, setIsRedeemed] = useState(false)
   const [isV2, setIsV2] = useState(false)
-  const [debugMsg, setDebugMsg] = useState('')
   const [redeemed, setRedeemed] = useState(false)
+  const [formCode, setFormCode] = useState('')
+  const [showForm, setShowForm] = useState(false)
   const fetched = useRef(false)
 
   useEffect(() => {
@@ -36,15 +37,14 @@ function CanjeContent() {
     setError(false)
     const code = (searchParams.get('gift') || '').trim().toUpperCase()
     const storeId = searchParams.get('id') || ''
-    const urlGiftParam = searchParams.get('gift')
 
     if (!code) {
-      setDebugMsg(`Parámetros recibidos: gift="${urlGiftParam || 'vacío'}", id="${storeId}"`)
-      setError(true)
       setLoading(false)
+      setShowForm(true)
       return
     }
 
+    setShowForm(false)
     fetched.current = true
     const supabase = createClient()
     const query = supabase
@@ -55,13 +55,11 @@ function CanjeContent() {
     query.maybeSingle().then(({ data, error: fetchError }) => {
       if (fetchError) {
         console.error('[canje] Supabase error:', fetchError)
-        setDebugMsg(`Error Supabase: ${fetchError.message} (code: ${fetchError.code})`)
         setError(true)
         setLoading(false)
         return
       }
       if (!data) {
-        setDebugMsg(`Código "${code}" no encontrado en la base de datos.`)
         setError(true)
         setLoading(false)
         return
@@ -97,19 +95,16 @@ function CanjeContent() {
         return
       }
       if (data.status === 'cancelled') {
-        setDebugMsg('Este regalo fue cancelado.')
         setError(true)
         setLoading(false)
         return
       }
       if (data.status === 'pending') {
-        setDebugMsg('Este regalo está pendiente de pago.')
         setError(true)
         setLoading(false)
         return
       }
       if (data.status !== 'approved' && data.status !== 'RESERVED') {
-        setDebugMsg(`El regalo existe pero su estado es: ${data.status}`)
         setError(true)
         setLoading(false)
         return
@@ -182,6 +177,57 @@ function CanjeContent() {
     }
   }, [gift])
 
+  if (showForm) {
+    return (
+      <main className="min-h-screen bg-slate-50 px-4 py-12">
+        <div className="mx-auto max-w-md">
+          <div className="text-center mb-8">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-pink-500 shadow-lg shadow-violet-200">
+              <span className="text-3xl">🎁</span>
+            </div>
+            <h1 className="text-2xl font-bold text-slate-900">Canjear regalo</h1>
+            <p className="mt-2 text-sm text-slate-500">Ingresa el código que recibiste para canjear tu regalo.</p>
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              const trimmed = formCode.trim().toUpperCase()
+              if (!trimmed) return
+              window.location.href = `/canje?gift=${encodeURIComponent(trimmed)}`
+            }}
+            className="space-y-4"
+          >
+            <div>
+              <label htmlFor="gift-code" className="block text-sm font-semibold text-slate-700 mb-1.5">
+                Código del regalo
+              </label>
+              <input
+                id="gift-code"
+                type="text"
+                value={formCode}
+                onChange={(e) => setFormCode(e.target.value)}
+                placeholder="Ej: ABC123"
+                className="w-full px-4 py-3 text-[16px] text-center text-slate-900 bg-white placeholder:text-slate-400 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500 transition-shadow uppercase tracking-widest"
+                required
+                autoComplete="off"
+                inputMode="text"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full px-6 py-3 bg-gradient-to-r from-violet-600 to-pink-600 text-white font-bold rounded-xl hover:brightness-110 transition-all shadow-lg shadow-violet-200"
+            >
+              Canjear regalo
+            </button>
+          </form>
+          <p className="text-center mt-6">
+            <a href="/" className="text-sm text-slate-500 hover:text-slate-700 underline underline-offset-2">Volver al inicio</a>
+          </p>
+        </div>
+      </main>
+    )
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -232,12 +278,7 @@ function CanjeContent() {
           <h1 className="text-2xl font-bold text-[#0f172a]">Código no disponible</h1>
           <p className="mt-2 text-sm text-slate-600">Este código no existe, ya fue usado o no está disponible para canje.</p>
           <Link href="/" className="mt-6 inline-block text-sm font-medium text-violet-600 hover:underline">Volver al inicio</Link>
-          {debugMsg && (
-            <details className="mt-4 text-left">
-              <summary className="cursor-pointer text-xs text-slate-400 hover:text-slate-600">Debug</summary>
-              <pre className="mt-2 whitespace-pre-wrap break-all rounded-lg bg-slate-100 p-3 text-xs text-slate-600">{debugMsg}</pre>
-            </details>
-          )}
+          
         </div>
       </main>
     )

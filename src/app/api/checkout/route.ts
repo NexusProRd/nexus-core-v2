@@ -7,7 +7,11 @@ import { NextRequest, NextResponse } from 'next/server'
 
 function idProductoReal(item: any): string | null {
   if (item.isGift) return null
-  if (item.variante_seleccionada) return item.id.replace(/-[^-]+$/, '')
+  if (item.variante_seleccionada) {
+    const suffix = '-' + item.variante_seleccionada
+    if (item.id.endsWith(suffix)) return item.id.slice(0, -suffix.length)
+    return item.id
+  }
   return item.id
 }
 

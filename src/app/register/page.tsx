@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Link from 'next/link'
 import { slugify } from '@/lib/slug'
@@ -8,6 +9,7 @@ import { slugify } from '@/lib/slug'
 const WHATSAPP_FALLBACK = '18299999999'
 
 export default function RegisterPage() {
+  const router = useRouter()
   const [nombreSocio, setNombreSocio] = useState('')
   const [nombreTienda, setNombreTienda] = useState('')
   const [telefono, setTelefono] = useState('')
@@ -96,6 +98,8 @@ export default function RegisterPage() {
     setRedirectTo(data.redirectTo || '/onboarding')
     setExito(true)
     setLoading(false)
+    router.push(data.redirectTo || '/onboarding')
+    return
   }
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'https://nexusrd.do')

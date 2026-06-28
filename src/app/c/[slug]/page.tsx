@@ -85,7 +85,24 @@ export default async function CatalogoSlugPage({ params }: PageProps) {
     .eq('slug', slug)
     .maybeSingle()
 
-  if (!tienda) return notFound()
+  if (!tienda) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center p-8 max-w-md">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
+            <svg className="h-7 w-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 mb-2">Tienda no encontrada</h1>
+          <p className="text-sm text-slate-500 mb-6">El enlace que buscas no es válido o la tienda ya no está disponible.</p>
+          <a href="/" className="inline-block px-6 py-3 bg-slate-800 text-white font-semibold rounded-xl hover:bg-slate-700 transition-colors">
+            Volver al inicio
+          </a>
+        </div>
+      </div>
+    )
+  }
   if (!tienda.tienda_abierta) redirect('/catalogo/cerrado')
 
   const id_tienda = tienda.id

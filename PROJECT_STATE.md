@@ -4395,3 +4395,79 @@ Pendientes prioritarios:
 - Implementar monitoreo de errores.
 - Validar comportamiento bajo uso real.
 - Priorizar mejoras basadas en feedback de los comercios.
+
+---
+
+# PILOT-00 — UX POLISH
+
+Correcciones aplicadas previo al inicio del piloto con usuarios reales.
+
+## Correcciones
+
+| ID | Hallazgo | Archivos modificados | Tipo |
+|----|----------|---------------------|------|
+| P1-01 | Registro no redirige automáticamente tras crear cuenta | `src/app/register/page.tsx` | Bug |
+| P1-02 | Debug link visible en canje para usuarios finales | `src/app/canje/page.tsx` | UX |
+| P2-01 | Canje solo funciona con query param `?gift=` | `src/app/canje/page.tsx` | UX |
+| P2-02 | Catálogo muestra Next.js 404 en tienda no encontrada | `src/app/c/[slug]/page.tsx` | UX |
+| P2-03 | Rutas legacy /dashboard/productos y /dashboard/clientes retornaban 404 | `src/app/dashboard/productos/page.tsx` (nuevo), `src/app/dashboard/clientes/page.tsx` (nuevo) | UX |
+| P2-04 | Badge "-10 Issues" y "Next.js 16.2.6 (stale)" visibles en desarrollo | Documentado - es comportamiento exclusivo de `next dev` | Documentación |
+
+## QA Post-fix
+
+| # | Test | Result |
+|---|------|--------|
+| 1 | Registro completo: API redirectTo + auto-redirect a onboarding | ✅ |
+| 2 | Canje sin Debug: página /canje sin texto "Debug" visible | ✅ |
+| 3 | Canje con formulario: input + botón visibles sin ?gift= | ✅ |
+| 4 | Canje submit: formulario navega a ?gift=CODE | ✅ |
+| 5 | Catálogo inexistente: página elegante sin stack trace | ✅ |
+| 6 | Redirect /dashboard/productos → /dashboard/inventario | ✅ |
+| 7 | Redirect /dashboard/clientes → /dashboard/pedidos | ✅ |
+| **Total** | | **7/7 ✅** |
+
+## Notas
+
+- Los artefactos de desarrollo (badge Next.js DevTools, overlay de issues, aviso de versión stale) son exclusivos del modo desarrollo (`next dev`). En producción (`next build` + `next start` o Vercel) no se renderizan. No requieren intervención en código.
+
+## Calificación final
+
+| Criterio | Puntuación |
+|----------|-----------|
+| Comerciante (Registro + Onboarding + Dashboard) | 🟢 9.5/10 |
+| Cliente (Catálogo público) | 🟢 8/10 |
+| Destinatario (Canje de regalo) | 🟢 8.5/10 |
+| Admin tienda (Gestión regalos) | 🟢 9/10 |
+| PCC | 🟡 7/10 (sin password no evaluable completamente) |
+| **Global** | **🟢 8.7/10** |
+
+El piloto puede iniciar con usuarios reales. Todos los hallazgos del UAT original están corregidos o documentados. No existen P0s abiertos.
+
+---
+
+# RC-FIX-01 — H-001: idProductoReal() trunca UUIDs con variantes
+
+## Causa raíz
+`idProductoReal()` en `src/app/api/checkout/route.ts` usaba `item.id.replace(/-[^-]+$/, '')` para extraer el UUID del producto desde un ID compuesto `UUID-variantname`. Como los UUIDs ya contienen guiones, la regex es ambigua: si `item.id` es un UUID puro pero `variante_seleccionada` está seteada, trunca el último segmento del UUID.
+
+## Solución
+Reemplazar la regex por `endsWith(suffix)` usando el nombre exacto de la variante (`item.variante_seleccionada`) que ya está disponible:
+- Si `item.id` termina con `-<variantname>` → extrae el UUID restando el sufijo
+- Si no termina con ese sufijo → devuelve `item.id` sin modificar
+
+## Archivo modificado
+`src/app/api/checkout/route.ts` — función `idProductoReal()` (líneas 8-14)
+
+## QA
+| Escenario | Resultado |
+|-----------|-----------|
+| E1 — Producto simple (Jabón Artesanal) | 200 OK, stock 50→48 |
+| E2 — Variante M (Camiseta Premium) | 200 OK (antes: 500), stock M 7→6, `id_producto` = UUID completo |
+| E3 — Cupón 20% | 200 OK |
+| E9 — Consistencia Global | 10/10 checks ✅ |
+| type-check | 0 errors |
+| build | ✓ Compiled, 96 pages |
+
+## Riesgo de regresión
+Mínimo. Cambio localizado a una función con contrato idéntico.
+

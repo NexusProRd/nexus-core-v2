@@ -10,6 +10,20 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/dashboard/productos',
+        destination: '/dashboard/inventario',
+        permanent: true,
+      },
+      {
+        source: '/dashboard/clientes',
+        destination: '/dashboard/pedidos',
+        permanent: true,
+      },
+    ]
+  },
 };
 
 export default nextConfig;
