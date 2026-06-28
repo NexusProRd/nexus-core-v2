@@ -15,6 +15,16 @@ interface CartDrawerProps {
   hideCheckout?: boolean
 }
 
+function idProductoReal(item: CartItem): string | null {
+  if (item.isGift) return null
+  if (item.variante_seleccionada) {
+    const suffix = '-' + item.variante_seleccionada
+    if (item.id.endsWith(suffix)) return item.id.slice(0, -suffix.length)
+    return item.id
+  }
+  return item.id
+}
+
 function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerProps) {
   const router = useRouter()
   const { toast } = useToast()
@@ -25,10 +35,8 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
   const [notas, setNotas] = useState('')
   const [giftToRemove, setGiftToRemove] = useState<CartItem | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [giftSender, setGiftSender] = useState('')
-  const [giftReceiver, setGiftReceiver] = useState('')
-  const [giftReceiverPhone, setGiftReceiverPhone] = useState('')
-  const [giftMessage, setGiftMessage] = useState('')
+  const [giftSubmitting, setGiftSubmitting] = useState(false)
+  const [giftError, setGiftError] = useState<string | null>(null)
   const [giftModalOpen, setGiftModalOpen] = useState(false)
   const [giftCardCode, setGiftCardCode] = useState<string | null>(null)
   const [giftCardBalance, setGiftCardBalance] = useState<number | null>(null)
@@ -42,7 +50,6 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
   const [metodoPago, setMetodoPago] = useState<'transferencia' | 'contra_entrega' | null>(null)
   const [datosTouched, setDatosTouched] = useState(false)
   const hasGiftItems = items.some(i => i.isGift)
-  const giftConfigurado = giftSender.trim() && giftReceiver.trim()
   const nombreValido = nombreCliente.trim().length > 0
   const telefonoValido = telefonoCliente.replace(/\D/g, '').length >= 10
   const totalAntesDescuento = totalPrice + totalImpuesto
@@ -135,11 +142,6 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
         const add = '🎁 Regalo canjeado — Entrega coordinada por la tienda.'
         notaEnvio = notaEnvio ? `${notaEnvio} | ${add}` : add
       }
-      if (giftSender.trim()) {
-        let add = `🎁 Modo Regalo — De: ${giftSender.trim()}, Para: ${giftReceiver.trim() || '—'}`
-        if (giftMessage.trim()) add += `, Msj: "${giftMessage.trim()}"`
-        notaEnvio = notaEnvio ? `${notaEnvio} | ${add}` : add
-      }
 
       const res = await fetch('/api/checkout', {
         method: 'POST',
@@ -149,15 +151,10 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
           nombreCliente: nombreCliente.trim(),
           telefonoCliente: telefonoCliente.trim() || null,
           items: itemsParaInsertar,
-          isGift: !!giftSender.trim(),
           metodoPago: necesitaMetodoPago ? metodoPago : null,
           notas: notaEnvio,
           couponCode: couponCode,
           giftCardCode: giftCardCode,
-          giftSender: giftSender.trim() || null,
-          giftReceiver: giftReceiver.trim() || null,
-          giftReceiverPhone: giftReceiverPhone.trim() || null,
-          giftMessage: giftMessage.trim() || null,
         }),
       })
 
@@ -172,10 +169,6 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
       localStorage.setItem(`nexus-last-order-${idTienda}`, pedido.id)
 
       clearCart()
-      setGiftSender('')
-      setGiftReceiver('')
-      setGiftReceiverPhone('')
-      setGiftMessage('')
       setGiftCardCode(null)
       setGiftCardBalance(null)
       setCouponCode(null)
@@ -305,6 +298,14 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
             </div>
 
             <button
+              onClick={() => setGiftModalOpen(true)}
+              disabled={giftSubmitting}
+              className="w-full py-3 mb-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 font-semibold text-sm hover:bg-amber-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              🎁 Comprar como regalo
+            </button>
+
+            <button
               onClick={handleCheckout}
               disabled={isSubmitting}
               className="w-full bg-[var(--primary)] text-white py-3.5 rounded-xl font-bold hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed native-press elevation-2"
@@ -327,25 +328,6 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
 
             {datosAccordionOpen && (
               <>
-                <div className="mb-3">
-                  {!giftConfigurado ? (
-                    <button onClick={() => setGiftModalOpen(true)}
-                      className="w-full py-2.5 px-4 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs font-semibold text-left hover:bg-amber-100 transition-colors">
-                      🎁 Comprar como regalo
-                    </button>
-                  ) : (
-                    <div className="flex items-center justify-between py-2.5 px-4 bg-amber-50 border border-amber-200 rounded-xl">
-                      <span className="text-xs font-semibold text-amber-800">
-                        🎁 {giftSender.trim()} → {giftReceiver.trim()}
-                      </span>
-                      <button onClick={() => setGiftModalOpen(true)}
-                        className="text-[11px] font-semibold text-amber-700 underline hover:text-amber-900 transition-colors">
-                        Editar
-                      </button>
-                    </div>
-                  )}
-                </div>
-
                 <div className="mb-4">
                   <GiftCardInput
                     storeId={idTienda}
@@ -547,19 +529,69 @@ function CartDrawerInner({ idTienda, whatsappNumber, hideCheckout }: CartDrawerP
       )}
       <GiftModal
         open={giftModalOpen}
-        initialSender={giftSender}
-        initialReceiver={giftReceiver}
-        initialReceiverPhone={giftReceiverPhone}
-        initialMessage={giftMessage}
-        onSave={(sender, receiver, receiverPhone, message) => {
-          setGiftSender(sender)
-          setGiftReceiver(receiver)
-          setGiftReceiverPhone(receiverPhone)
-          setGiftMessage(message)
-          setGiftModalOpen(false)
+        initialSender=""
+        initialReceiver=""
+        initialReceiverPhone=""
+        initialMessage=""
+        initialSenderPhone={telefonoCliente}
+        onSave={async (sender, receiver, receiverPhone, message, senderPhone) => {
+          setGiftSubmitting(true)
+          setGiftError(null)
+          try {
+            const itemsList = items
+              .filter(i => !i.isGift && i.precio !== 0)
+              .map(i => ({
+                product_id: idProductoReal(i) || i.id,
+                nombre: i.nombre,
+                precio: Number(i.precio) || 0,
+                cantidad: i.cantidad || 1,
+                imagen_url: i.imagen_url || null,
+                variante_seleccionada: i.variante_seleccionada || null,
+              }))
+
+            const giftCode = Array.from(crypto.getRandomValues(new Uint8Array(10)), b =>
+              'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[b % 36]
+            ).join('')
+
+            const res = await fetch('/api/gift-purchase', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                idTienda,
+                sender,
+                senderPhone,
+                receiver,
+                receiverPhone: receiverPhone || null,
+                message: message || null,
+                items: itemsList,
+                giftCode,
+                whatsappNumber,
+              }),
+            })
+
+            if (!res.ok) {
+              const errData = await res.json()
+              setGiftError(errData.error || 'Error al procesar el regalo')
+              setGiftSubmitting(false)
+              return
+            }
+
+            clearCart()
+            setGiftModalOpen(false)
+            setIsOpen(false)
+            toast('🎁 Regalo enviado con éxito', 'success')
+          } catch (e: any) {
+            setGiftError(e.message || 'Error al procesar el regalo')
+          }
+          setGiftSubmitting(false)
         }}
         onCancel={() => setGiftModalOpen(false)}
       />
+      {giftError && (
+        <div className="mt-2 p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700">
+          {giftError}
+        </div>
+      )}
     </div>
     </>
   )

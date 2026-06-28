@@ -8,26 +8,29 @@ interface GiftModalProps {
   initialReceiver: string
   initialReceiverPhone: string
   initialMessage: string
-  onSave: (sender: string, receiver: string, receiverPhone: string, message: string) => void
+  initialSenderPhone?: string
+  onSave: (sender: string, receiver: string, receiverPhone: string, message: string, senderPhone: string) => void
   onCancel: () => void
 }
 
-export default function GiftModal({ open, initialSender, initialReceiver, initialReceiverPhone, initialMessage, onSave, onCancel }: GiftModalProps) {
+export default function GiftModal({ open, initialSender, initialReceiver, initialReceiverPhone, initialMessage, initialSenderPhone, onSave, onCancel }: GiftModalProps) {
   const [sender, setSender] = useState(initialSender)
+  const [senderPhone, setSenderPhone] = useState(initialSenderPhone || '')
   const [receiver, setReceiver] = useState(initialReceiver)
   const [receiverPhone, setReceiverPhone] = useState(initialReceiverPhone)
   const [message, setMessage] = useState(initialMessage)
 
   useEffect(() => {
     setSender(initialSender)
+    setSenderPhone(initialSenderPhone || '')
     setReceiver(initialReceiver)
     setReceiverPhone(initialReceiverPhone)
     setMessage(initialMessage)
-  }, [initialSender, initialReceiver, initialReceiverPhone, initialMessage])
+  }, [initialSender, initialSenderPhone, initialReceiver, initialReceiverPhone, initialMessage])
 
   if (!open) return null
 
-  const canSave = sender.trim().length > 0 && receiver.trim().length > 0 && receiverPhone.trim().length > 0
+  const canSave = sender.trim().length > 0 && senderPhone.trim().length > 0 && receiver.trim().length > 0 && receiverPhone.trim().length > 0
 
   return (
     <div className="fixed inset-0 z-[70]">
@@ -41,6 +44,12 @@ export default function GiftModal({ open, initialSender, initialReceiver, initia
               <label className="block text-xs font-semibold text-slate-700 mb-1">De parte de <span className="text-rose-500">*</span></label>
               <input type="text" value={sender} onChange={e => setSender(e.target.value)}
                 placeholder="¿Quién envía el regalo?"
+                className="w-full px-4 py-3 text-[16px] border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Tu WhatsApp <span className="text-rose-500">*</span></label>
+              <input type="tel" value={senderPhone} onChange={e => setSenderPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                placeholder="809 123 4567"
                 className="w-full px-4 py-3 text-[16px] border border-slate-200 rounded-xl focus:ring-2 focus:ring-[var(--primary)] outline-none text-slate-900" />
             </div>
             <div>
@@ -72,10 +81,10 @@ export default function GiftModal({ open, initialSender, initialReceiver, initia
               className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors native-press">
               Cancelar
             </button>
-            <button onClick={() => onSave(sender.trim(), receiver.trim(), receiverPhone.trim(), message.trim())}
+            <button onClick={() => onSave(sender.trim(), receiver.trim(), receiverPhone.trim(), message.trim(), senderPhone.trim())}
               disabled={!canSave}
               className="flex-1 px-4 py-2.5 bg-[var(--primary)] text-white rounded-xl text-sm font-medium hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed native-press elevation-1">
-              Guardar regalo
+              Comprar Regalo
             </button>
           </div>
         </div>

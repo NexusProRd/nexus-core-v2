@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from 'react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
 import { useCart } from '@/context/CartContext'
 import { useConfig } from '@/context/ConfigProvider'
 import { formatCurrency } from '@/lib/utils'
@@ -61,18 +60,16 @@ interface Props {
 }
 
 export default function ProductCard({ producto, compact, trendingIds, onQuickView, index, layout = 'grid' }: Props) {
-  const router = useRouter()
-  const { addToCart } = useCart()
+  const { addToCart, setIsOpen } = useCart()
   const { idTienda, whatsappNumber, nombreTienda, tipoNegocio, currencyCode } = useConfig()
   const [quantity, setQuantity] = useState(1)
   const [showQuickView, setShowQuickView] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
-  const [feedback, setFeedback] = useState<'idle' | 'cart' | 'buy'>('idle')
-  const [buying, setBuying] = useState(false)
+  const [feedback, setFeedback] = useState<'idle' | 'cart'>('idle')
 
   // Estado para Modal de Tallas (ropa)
   const [showSizeModal, setShowSizeModal] = useState(false)
-  const [pendingAction, setPendingAction] = useState<'cart' | 'quickbuy' | null>(null)
+  const [pendingAction, setPendingAction] = useState<'cart' | 'buy' | null>(null)
   const [selectedSize, setSelectedSize] = useState<string | undefined>(undefined)
   const [selectedPrecioVariant, setSelectedPrecioVariant] = useState<number | null | undefined>(undefined)
 
@@ -82,10 +79,7 @@ export default function ProductCard({ producto, compact, trendingIds, onQuickVie
   // const [selectedPeso, setSelectedPeso] = useState<number | undefined>(undefined)
 
   // Estados para el Modal de Compra Rápida Directa
-  const [showQuickBuyModal, setShowQuickBuyModal] = useState(false)
-  const [quickBuyName, setQuickBuyName] = useState('')
-  const [quickBuyPhone, setQuickBuyPhone] = useState('')
-  const [quickBuyMetodoPago, setQuickBuyMetodoPago] = useState<'transferencia' | 'contra_entrega' | null>(null)
+  // (eliminado en RC-ARCH-UNIFIED-GIFT-01 — Comprar va al carrito)
 
   const rating = useMemo(() => hashRating(producto.id), [producto.id])
   const isTrending = useMemo(() => trendingIds.has(producto.id), [trendingIds, producto.id])
@@ -137,69 +131,8 @@ export default function ProductCard({ producto, compact, trendingIds, onQuickVie
     setTimeout(() => setFeedback('idle'), 1200)
   }
 
-  const handleQuickBuyConfirm = async () => {
-    if (!quickBuyName.trim() || !quickBuyPhone.trim() || buying) return
-
-    if (!producto.in_stock || producto.stock <= 0) {
-      alert('Este producto no está disponible actualmente.')
-      return
-    }
-
-    if (selectedSize && Array.isArray(producto.tallas)) {
-      const variant: any = producto.tallas.find((t: any) =>
-        typeof t === 'object' && t.talla === selectedSize
-      )
-      if (variant && (variant.stock || 0) < quantity) {
-        alert(`Stock insuficiente para la talla (${selectedSize}). Disponible: ${variant.stock || 0}`)
-        return
-      }
-    } else if ((producto.stock || 0) < quantity) {
-      alert(`Stock insuficiente. Disponible: ${producto.stock || 0}`)
-      return
-    }
-
-    setBuying(true)
-
-    const precioFinal = selectedPrecioVariant ?? precioActivo
-    const nombreConSize = selectedSize ? `${producto.nombre} (Talla: ${selectedSize})` : producto.nombre
-
-    const res = await fetch('/api/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        idTienda,
-        nombreCliente: quickBuyName.trim(),
-        telefonoCliente: quickBuyPhone.trim(),
-        items: [{
-          id: selectedSize ? `${producto.id}-${selectedSize}` : producto.id,
-          nombre: nombreConSize,
-          precio: precioFinal,
-          cantidad: quantity,
-          variante_seleccionada: selectedSize || null,
-        }],
-        isGift: false,
-        notas: `Compra rápida directa: ${nombreConSize} x${quantity}`,
-        metodoPago: quickBuyMetodoPago,
-      }),
-    })
-
-    if (!res.ok) {
-      const errData = await res.json()
-      console.error('[ProductCard] checkout error:', errData.error)
-      setBuying(false)
-      alert('Error al procesar el pedido. Inténtalo de nuevo.')
-      return
-    }
-
-    const { pedido } = await res.json()
-
-    localStorage.setItem(`nexus-last-order-${idTienda}`, pedido.id)
-
-    setBuying(false)
-    setShowQuickBuyModal(false)
-
-    window.location.href = `/catalogo/exito?pedido=${pedido.id}&tienda=${idTienda}`
-  }
+  // handleQuickBuyConfirm eliminado en RC-ARCH-UNIFIED-GIFT-01
+  // La compra ahora va al carrito en vez de checkout directo
 
   return (
     <>
@@ -298,10 +231,11 @@ export default function ProductCard({ producto, compact, trendingIds, onQuickVie
                 <button onClick={e => {
                   e.stopPropagation();
                   if (tipoNegocio === 'ropa' && producto.tallas && producto.tallas.length > 0) {
-                    setPendingAction('quickbuy')
+                    setPendingAction('buy')
                     setShowSizeModal(true)
                   } else {
-                    setShowQuickBuyModal(true)
+                    doAddToCart()
+                    setIsOpen(true)
                   }
                 }} className="flex-1 h-8 rounded-lg bg-[var(--primary)] text-white font-semibold text-[10px] hover:brightness-110 transition-all native-press flex items-center justify-center gap-1">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -414,10 +348,11 @@ export default function ProductCard({ producto, compact, trendingIds, onQuickVie
                 <button onClick={e => {
                   e.stopPropagation();
                   if (tipoNegocio === 'ropa' && producto.tallas && producto.tallas.length > 0) {
-                    setPendingAction('quickbuy')
+                    setPendingAction('buy')
                     setShowSizeModal(true)
                   } else {
-                    setShowQuickBuyModal(true)
+                    doAddToCart()
+                    setIsOpen(true)
                   }
                 }} className="flex-1 h-10 rounded-xl bg-[var(--primary)] text-white font-semibold text-[11px] hover:brightness-110 transition-all native-press elevation-2 shadow-[var(--primary)]/20 flex items-center justify-center gap-1.5">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
@@ -432,84 +367,8 @@ export default function ProductCard({ producto, compact, trendingIds, onQuickVie
       </div>
       )}
 
-      {/* Modal de Compra Rápida Directa */}
-      {/* MOTION SYSTEM PASS: Modal entrance with scale-in */}
-      {showQuickBuyModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-backdrop-in" onClick={(e) => { e.stopPropagation(); setShowQuickBuyModal(false); }}>
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl text-slate-900 animate-scale-in" onClick={e => e.stopPropagation()}>
-            <h3 className="text-sm font-bold text-slate-900 mb-2">⚡ Compra Rápida Directa</h3>
-            <p className="text-xs text-slate-500 mb-4">Estás comprando: <span className="font-semibold text-slate-700">{producto.nombre}{selectedSize ? ` (Talla: ${selectedSize})` : ''} (x{quantity})</span></p>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Nombre Completo</label>
-                <input type="text" value={quickBuyName} onChange={e => setQuickBuyName(e.target.value)} placeholder="Tu nombre" className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-slate-900 text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">WhatsApp</label>
-                <input type="tel" value={quickBuyPhone} onChange={e => setQuickBuyPhone(e.target.value)} placeholder="Ej: 809-555-1234" className="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary)] text-slate-900 text-sm" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Método de pago</label>
-                <div className="flex gap-2">
-                  <button onClick={() => setQuickBuyMetodoPago('transferencia')}
-                    className={`flex-1 py-2 rounded-xl border-2 text-xs font-semibold text-left transition-all ${
-                      quickBuyMetodoPago === 'transferencia'
-                        ? 'border-[var(--primary)] bg-[var(--primary)]/5 text-[var(--primary)]'
-                        : 'border-slate-200 text-slate-600'
-                    }`}>
-                    <span className="block text-xs">🏦</span>
-                    Transferencia
-                  </button>
-                  <button onClick={() => setQuickBuyMetodoPago('contra_entrega')}
-                    className={`flex-1 py-2 rounded-xl border-2 text-xs font-semibold text-left transition-all ${
-                      quickBuyMetodoPago === 'contra_entrega'
-                        ? 'border-[var(--primary)] bg-[var(--primary)]/5 text-[var(--primary)]'
-                        : 'border-slate-200 text-slate-600'
-                    }`}>
-                    <span className="block text-xs">🚚</span>
-                    Contra entrega
-                  </button>
-                </div>
-              </div>
-
-              {!quickBuyMetodoPago && (
-                <div className="p-2.5 rounded-xl border border-slate-200 bg-slate-50/50">
-                  <p className="text-[11px] font-semibold text-slate-700 mb-1">📱 ¿Qué sucede después?</p>
-                  <ol className="text-[10px] text-slate-500 space-y-0.5 list-decimal list-inside">
-                    <li>Envías tu pedido.</li>
-                    <li>La tienda revisa la disponibilidad.</li>
-                    <li>Te contactará por WhatsApp para coordinar el pago y la entrega.</li>
-                  </ol>
-                </div>
-              )}
-
-              {quickBuyMetodoPago === 'transferencia' && (
-                <div className="p-2.5 rounded-xl border border-sky-200 bg-sky-50/70">
-                  <p className="text-[11px] font-semibold text-sky-800 mb-0.5">ℹ️ Transferencia bancaria</p>
-                  <p className="text-[10px] text-sky-700/80 leading-relaxed">
-                    No necesitas realizar ninguna transferencia ahora. La tienda se comunicará contigo por WhatsApp para compartir las instrucciones de pago.
-                  </p>
-                </div>
-              )}
-
-              {quickBuyMetodoPago === 'contra_entrega' && (
-                <div className="p-2.5 rounded-xl border border-orange-200 bg-orange-50/70">
-                  <p className="text-[11px] font-semibold text-orange-800 mb-0.5">ℹ️ Contra entrega</p>
-                  <p className="text-[10px] text-orange-700/80 leading-relaxed">
-                    El pago se realizará al recibir tu pedido. La tienda se comunicará contigo por WhatsApp para coordinar la entrega.
-                  </p>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2 mt-5">
-              <button type="button" onClick={() => { setShowQuickBuyModal(false); setQuickBuyMetodoPago(null) }} className="flex-1 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold text-xs hover:bg-slate-50 native-press">Cancelar</button>
-              <button type="button" onClick={handleQuickBuyConfirm} disabled={!quickBuyName.trim() || !quickBuyPhone.trim() || !quickBuyMetodoPago || buying} className="flex-1 py-2 rounded-xl bg-[var(--primary)] text-white font-semibold text-xs hover:brightness-110 disabled:opacity-50 native-press flex items-center justify-center">
-                {buying ? 'Procesando...' : 'Confirmar Pedido'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modal de Compra Rápida Directa eliminado en RC-ARCH-UNIFIED-GIFT-01
+          La compra ahora agrega al carrito y abre CartDrawer */}
 
       {/* // Modal de Selección de Peso (colmado/libra) — Fase 2 */}
       {/* {showPesoModal && (
@@ -541,9 +400,10 @@ export default function ProductCard({ producto, compact, trendingIds, onQuickVie
             if (pendingAction === 'cart') {
               setPendingAction(null)
               doAddToCart(variante, precioVariant)
-            } else if (pendingAction === 'quickbuy') {
+            } else if (pendingAction === 'buy') {
               setPendingAction(null)
-              setShowQuickBuyModal(true)
+              doAddToCart(variante, precioVariant)
+              setIsOpen(true)
             }
           }}
           onClose={() => { setShowSizeModal(false); setPendingAction(null) }}
