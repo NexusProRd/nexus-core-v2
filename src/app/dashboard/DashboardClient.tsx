@@ -14,6 +14,7 @@ import { usePermisos } from '@/context/PermisosContext'
 import TicketButton from './TicketButton'
 import { formatCurrency } from '@/lib/utils'
 import PrimerosPasos from '@/components/dashboard/PrimerosPasos'
+import EmptyState from '@/components/EmptyState'
 import { useDashboard } from './DashboardContext'
 
 interface Pedido {
@@ -268,10 +269,10 @@ export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero
             <div className="w-1.5 h-6 rounded-full bg-blue-400/60" />
             <h2 className="text-xs font-bold text-slate-500 dark:text-slate-500 uppercase tracking-widest">Ventas Históricas</h2>
           </div>
-          <div className="flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+          <div className="flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
             {([7, 30, 90] as const).map(d => (
               <button key={d} onClick={() => setChartRange(d)}
-                className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                className={`flex-1 min-w-0 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
                   chartRange === d
                     ? 'bg-white dark:bg-slate-700 text-[var(--primary)] dark:text-white shadow-sm'
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
@@ -518,15 +519,11 @@ export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-3 py-10 text-center">
-              <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">Sin ventas todavía</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Los productos más vendidos aparecerán aquí</p>
-              </div>
-            </div>
+            <EmptyState
+              icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>}
+              title="Sin ventas todavía"
+              description="Los productos más vendidos aparecerán aquí"
+            />
           )}
         </div>
       </section>
@@ -625,12 +622,13 @@ export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero
                   </div>
                   <div className="flex items-center gap-4 ml-4">
                     <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{formatCurrency(p.total, currencyCode)}</span>
-                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
-                      p.estado === 'pendiente' ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800' :
-                      p.estado === 'confirmado' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' :
-                      p.estado === 'en_proceso' ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800' :
-                      p.estado === 'en_camino' ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-800' :
-                      'bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${
+                      p.estado === 'pendiente' ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800' :
+                      p.estado === 'confirmado' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' :
+                      p.estado === 'en_proceso' ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800' :
+                      p.estado === 'en_camino' ? 'bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800' :
+                      p.estado === 'entregado' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' :
+                      'bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700'
                     }`}>
                       {p.estado === 'pendiente' ? 'Pendiente' :
                        p.estado === 'confirmado' ? 'Confirmado' :
@@ -643,15 +641,11 @@ export default function DashboardClient({ tiendaId, nombreTienda, whatsappNumero
               ))}
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-3 py-12 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">No hay pedidos todavía</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Cuando recibas tu primer pedido aparecerá aquí</p>
-              </div>
-            </div>
+            <EmptyState
+              icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>}
+              title="No hay pedidos todavía"
+              description="Cuando recibas tu primer pedido aparecerá aquí"
+            />
           )}
         </div>
       </section>

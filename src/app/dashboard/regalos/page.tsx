@@ -62,16 +62,16 @@ export default function RegalosPage() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex gap-1 -mt-4 mb-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+        <div className="flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-5 py-2.5 text-sm font-medium rounded-t-xl transition-colors ${
+              className={`flex-1 min-w-0 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200 ${
                 activeTab === tab.id
-                  ? 'bg-white text-violet-700 shadow-sm border border-slate-200 border-b-white'
-                  : 'bg-white/60 text-white/80 hover:text-white hover:bg-white/20'
+                  ? 'bg-white dark:bg-slate-700 text-[var(--primary)] dark:text-white shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
               }`}
             >
               {tab.label}
@@ -80,7 +80,7 @@ export default function RegalosPage() {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto pb-6 px-3 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto pb-8 px-4 sm:px-6 lg:px-8 mt-6">
         {activeTab === 'gifts' ? (
           <GiftDashboard storeId={storeId} />
         ) : (

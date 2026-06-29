@@ -16,6 +16,7 @@ import { usePermisos } from '@/context/PermisosContext'
 import { useToast } from '@/components/Toast'
 import { useDashboard } from '../DashboardContext'
 import type { TallaVariant } from '@/types/database'
+import EmptyState from '@/components/EmptyState'
 
 interface Producto {
   id: string
@@ -404,19 +405,11 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
               </div>
               )
             }) : (
-              <div className="flex flex-col items-center gap-3 py-14 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
-                    {productos.length === 0 ? 'No hay productos todavía' : 'No se encontraron productos'}
-                  </p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                    {productos.length === 0 ? 'Agrega tu primer producto para empezar a vender' : 'Intenta con otros filtros'}
-                  </p>
-                </div>
-              </div>
+              <EmptyState
+                icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>}
+                title={productos.length === 0 ? 'No hay productos todavía' : 'No se encontraron productos'}
+                description={productos.length === 0 ? 'Agrega tu primer producto para empezar a vender' : 'Intenta con otros filtros'}
+              />
             )}
           </div>
 
@@ -513,19 +506,11 @@ export default function InventarioClient({ tiendaId, tipoNegocio = 'estandar', p
               </table>
             </div>
             {filtrados.length === 0 && (
-              <div className="flex flex-col items-center gap-2 py-14 text-center">
-                <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
-                    {productos.length === 0 ? 'No hay productos todavía' : 'No se encontraron productos'}
-                  </p>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
-                    {productos.length === 0 ? 'Agrega tu primer producto para empezar a vender' : 'Intenta con otros filtros'}
-                  </p>
-                </div>
-              </div>
+              <EmptyState
+                icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>}
+                title={productos.length === 0 ? 'No hay productos todavía' : 'No se encontraron productos'}
+                description={productos.length === 0 ? 'Agrega tu primer producto para empezar a vender' : 'Intenta con otros filtros'}
+              />
             )}
           </div>
         </div>
