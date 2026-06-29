@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
       cliente_telefono: senderPhone.trim(),
       total,
       estado: 'pendiente',
-      notas: '🎁 Modo Regalo',
+      notas: `🎁 Modo Regalo - ${giftCode}`,
       metodo_pago: metodoPago || null,
       detalles_pedido: items.map((p: any) => {
         const costKey = p.variante_seleccionada ? `${p.product_id}-${p.variante_seleccionada}` : p.product_id

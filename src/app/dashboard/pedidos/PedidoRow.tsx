@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { actualizarEstado } from './actions'
 import { formatCurrency } from '@/lib/utils'
@@ -8,7 +8,9 @@ import TicketPedido from './TicketPedido'
 import { usePermisos } from '@/context/PermisosContext'
 import { useToast } from '@/components/Toast'
 import { useDashboard } from '../DashboardContext'
+import Link from 'next/link'
 import { reemplazarVars } from './PedidosLista'
+import GiftTimeline from '@/components/dashboard/GiftTimeline'
 
 interface DetallePedido {
   id: string
@@ -84,6 +86,7 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
   const [detalles, setDetalles] = useState<DetallePedido[] | null>(null)
   const [cargando, setCargando] = useState(false)
   const [accionando, setAccionando] = useState<string | null>(null)
+  const [giftStatusData, setGiftStatusData] = useState<{ status: string; delivery_step?: string | null; converted_to_giftcard_at?: string | null } | null>(null)
   const formResubmitRef = useRef(false)
   const { currencyCode } = useDashboard()
 
@@ -123,6 +126,21 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
     setAccionando(null)
     toast(`Pedido marcado como «${(STATUS_CONFIG as any)[estado]?.label || estado}»`, 'success')
   }
+
+  const isGift = pedido.notas?.includes('🎁 Modo Regalo') || pedido.is_gift
+  const giftCode = isGift ? pedido.notas?.match(/-\s*(\S+)/)?.[1] : undefined
+
+  useEffect(() => {
+    if (!abierto || !isGift || !giftCode || giftStatusData) return
+    const supabase = createClient()
+    supabase.from('gift_experiences')
+      .select('status, delivery_step, converted_to_giftcard_at')
+      .eq('gift_code', giftCode)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setGiftStatusData(data)
+      })
+  }, [abierto, isGift, giftCode])
 
   const action = (STATUS_ACTIONS as any)[pedido.estado]
 
@@ -192,8 +210,20 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
 
       {abierto && (
         <div className="px-4 sm:px-6 pb-5 border-t border-slate-100 dark:border-slate-700/50">
-          {/* ORDERS UX PASS: Progress timeline */}
-          {cfg.step >= 0 && (
+          {/* GIFT UX: Show GiftTimeline for gift pedidos */}
+          {isGift && (
+            <div className="pt-4 pb-2">
+              <GiftTimeline
+                status={giftStatusData?.status || 'pending'}
+                delivery_step={giftStatusData?.delivery_step}
+                converted_to_giftcard_at={giftStatusData?.converted_to_giftcard_at}
+                variant="dashboard"
+              />
+            </div>
+          )}
+
+          {/* Normal pedido timeline (hidden for gifts) */}
+          {!isGift && cfg.step >= 0 && (
             <div className="pt-4 pb-2">
               <div className="flex items-center justify-between px-1">
                 {STEPS.map((s, i) => {
@@ -226,8 +256,8 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
             </div>
           )}
 
-          {/* Terminal status (rechazado/cancelado/devuelto) indicator */}
-          {cfg.step === -1 && (
+          {/* Terminal status indicator (hidden for gifts) */}
+          {!isGift && cfg.step === -1 && (
             <div className="pt-4 pb-2 flex items-center justify-center">
               <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl ${cfg.bg} ${cfg.text} ${cfg.border} border`}>
                 <span className="text-lg">{cfg.icon}</span>
@@ -295,7 +325,21 @@ export default function PedidoRow({ pedido, plantillas, tiendaNombre }: { pedido
           {/* ORDERS UX PASS: Quick actions */}
           {(permisos === null || permisos.pedidos) && (
             <div className="flex gap-2 mt-4 flex-wrap">
-              {pedido.estado === 'pendiente' && pedido.metodo_pago ? (
+              {(pedido.notas?.includes('🎁 Modo Regalo') || pedido.is_gift) ? (
+                <div className="w-full p-4 bg-amber-50 dark:bg-amber-500/5 rounded-xl border border-amber-200/60 dark:border-amber-500/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">🎁</span>
+                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Este pedido pertenece a un regalo.</p>
+                  </div>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mb-3">Toda la gestión de este regalo se realiza desde el módulo Regalos.</p>
+                  <Link
+                    href="/dashboard/regalos"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl transition-all"
+                  >
+                    → Ir a Regalos
+                  </Link>
+                </div>
+              ) : pedido.estado === 'pendiente' && pedido.metodo_pago ? (
                 <>
                   <button
                     onClick={async () => {

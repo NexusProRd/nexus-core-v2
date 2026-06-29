@@ -63,6 +63,15 @@ interface GiftAlert {
   created_at: string
 }
 
+function buildGiftApprovedWaUrl(gift: { sender_name: string; sender_phone: string | null; receiver_name: string; gift_code: string; store_id: string }, storeName: string): { waUrl: string; link: string } | null {
+  if (!gift.sender_phone) return null
+  const giftUrl = `${window.location.origin}/canje?gift=${gift.gift_code}&id=${gift.store_id}`
+  const waUrl = `https://wa.me/${gift.sender_phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+    `Hola ${gift.sender_name} 👋\n\n¡Tu regalo ha sido aprobado! 🎉\n\nYa puedes compartir este enlace con ${gift.receiver_name} para que pueda reclamar y disfrutar el detalle que le preparaste con mucho cariño.\n\n🎁 Enlace del regalo:\n${giftUrl}\n\nCuando ${gift.receiver_name} abra el enlace podrá reclamar su regalo y nosotros nos encargaremos de coordinar la entrega.\n\nGracias por confiar en ${storeName}.`
+  )}`
+  return { waUrl, link: giftUrl }
+}
+
 interface OrderAlertContextType {
   showAlert: (pedido: Pedido) => void
 }
@@ -399,6 +408,7 @@ function DashboardLayoutInner({
   const [giftPendientes, setGiftPendientes] = useState<GiftAlert[]>([])
   const [showGiftModal, setShowGiftModal] = useState(false)
   const [approvedGift, setApprovedGift] = useState<GiftAlert | null>(null)
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1)
   const [silenciado, setSilenciado] = useState(false)
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false)
   const [showSettingsModal, setShowSettingsModal] = useState(false)
@@ -604,6 +614,9 @@ function DashboardLayoutInner({
               pedido.detalles_pedido = []
             }
 
+            // Skip gift pedidos — gestionados por el canal de regalos
+            if (pedido.notas?.includes('🎁 Modo Regalo') || pedido.is_gift) return
+
             // Disparar el modal global con la información sincronizada y tipada
             showAlert(pedido)
           }, 400)
@@ -639,6 +652,29 @@ function DashboardLayoutInner({
       getSupabase().removeChannel(canal)
     }
   }, [tiendaId])
+
+  useEffect(() => {
+    if (!showGiftModal || giftPendientes.length === 0) return
+    const giftId = giftPendientes[0].id
+    try {
+      const saved = localStorage.getItem(`gift-notification-step:${giftId}`)
+      if (saved === '1' || saved === '2' || saved === '3') {
+        setWizardStep(parseInt(saved) as 1 | 2 | 3)
+      } else {
+        setWizardStep(1)
+      }
+    } catch {
+      setWizardStep(1)
+    }
+  }, [showGiftModal, giftPendientes])
+
+  useEffect(() => {
+    if (!showGiftModal || giftPendientes.length === 0) return
+    const giftId = giftPendientes[0].id
+    try {
+      localStorage.setItem(`gift-notification-step:${giftId}`, String(wizardStep))
+    } catch {}
+  }, [wizardStep, showGiftModal, giftPendientes])
 
   useEffect(() => {
     const cargarAnuncios = async () => {
@@ -705,6 +741,51 @@ function DashboardLayoutInner({
     }
 
     await getSupabase().from('gift_experiences').update({ status: newStatus }).eq('id', giftId)
+    setGiftPendientes(prev => {
+      const updated = prev.filter(g => g.id !== giftId)
+      if (updated.length === 0) setShowGiftModal(false)
+      return updated
+    })
+  }
+
+  const handleGestionarCobro = useCallback((gift: typeof giftPendientes[0]) => {
+    if (!gift.sender_phone) {
+      toast('El comprador no tiene número de WhatsApp registrado.', 'warning')
+      return
+    }
+    setWizardStep(2)
+    const waUrl = `https://wa.me/${gift.sender_phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+      `Hola, tu regalo en **${nombreTienda}** está casi listo. 🎁\n\nPara continuar con la solicitud necesitamos confirmar el pago del regalo.\n\n¿Con cuál banco realizarás la transferencia?\n\nQuedamos atentos para continuar con el proceso.`
+    )}`
+    window.open(waUrl, '_blank')
+  }, [nombreTienda])
+
+  const handleWizardApprove = async (gift: GiftAlert) => {
+    const { data, error } = await getSupabase().rpc('aprobar_regalo_v2', { p_gift_id: gift.id })
+    if (error) {
+      console.error('[Gift] Error en RPC:', error)
+      toast('Error al aprobar el regalo. Intenta de nuevo.', 'error')
+      return
+    }
+    if (!data?.success) {
+      console.error('[Gift] aprobar_regalo_v2:', data?.error)
+      toast(data?.error || 'No se pudo aprobar el regalo.', 'error')
+      return
+    }
+    const wa = buildGiftApprovedWaUrl(gift, nombreTienda)
+    if (wa) {
+      window.open(wa.waUrl, '_blank')
+    } else {
+      const fallbackLink = `${window.location.origin}/canje?gift=${gift.gift_code}&id=${gift.store_id}`
+      navigator.clipboard.writeText(fallbackLink).catch(() => {})
+      toast('No se puede enviar: falta el número del comprador. Enlace copiado al portapapeles.', 'warning')
+    }
+    setWizardStep(3)
+    setGiftPendientes(prev => prev.filter(g => g.id !== gift.id))
+  }
+
+  const handleWizardReject = async (giftId: string) => {
+    await getSupabase().from('gift_experiences').update({ status: 'rejected' }).eq('id', giftId)
     setGiftPendientes(prev => {
       const updated = prev.filter(g => g.id !== giftId)
       if (updated.length === 0) setShowGiftModal(false)
@@ -911,7 +992,7 @@ function DashboardLayoutInner({
           </div>
         )}
 
-        {showGiftModal && giftPendientes.length > 0 && (
+        {showGiftModal && (giftPendientes.length > 0 || wizardStep === 3) && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4 animate-backdrop-in" onClick={() => setShowGiftModal(false)}>
             <div className="bg-white/90 dark:bg-[#121216]/90 backdrop-blur-2xl rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-white/30 dark:border-white/[0.06] animate-scale-in" onClick={e => e.stopPropagation()}>
               {/* Ticket header */}
@@ -929,7 +1010,8 @@ function DashboardLayoutInner({
                 <p className="text-xs text-white/80 mt-0.5">Código único de regalo</p>
               </div>
 
-              {/* Ticket body */}
+              {wizardStep !== 3 && (
+              /* Ticket body */
               <div className="px-5 py-4 space-y-3">
                 {(() => {
                   const g = giftPendientes[0]
@@ -996,23 +1078,83 @@ function DashboardLayoutInner({
                   )
                 })()}
               </div>
+              )}
 
-              {/* Actions */}
-              <div className="px-5 pb-4 flex gap-2.5">
-                <button onClick={() => handleGiftAction(giftPendientes[0].id, 'rejected')}
-                  className="flex-1 px-3 py-2.5 bg-rose-500/90 backdrop-blur-sm text-white rounded-xl text-sm font-medium hover:bg-rose-600 transition-all border border-white/10">
-                  Rechazar
-                </button>
-                <button onClick={() => handleGiftAction(giftPendientes[0].id, 'approved')}
-                  className="flex-1 px-3 py-2.5 bg-emerald-600/90 backdrop-blur-sm text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-all border border-white/10">
-                  Aprobar Ticket
-                </button>
+              {/* Wizard progress indicator */}
+              <div className="px-5 pt-1">
+                <div className="flex items-center justify-center gap-1.5">
+                  <div className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${wizardStep >= 1 ? 'bg-[var(--primary)]' : 'bg-slate-200 dark:bg-slate-700'}`} />
+                  <div className={`h-0.5 w-8 rounded transition-all duration-300 ${wizardStep >= 2 ? 'bg-[var(--primary)]' : 'bg-slate-200 dark:bg-slate-700'}`} />
+                  <div className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${wizardStep >= 2 ? 'bg-[var(--primary)]' : 'bg-slate-200 dark:bg-slate-700'}`} />
+                  <div className={`h-0.5 w-8 rounded transition-all duration-300 ${wizardStep >= 3 ? 'bg-[var(--primary)]' : 'bg-slate-200 dark:bg-slate-700'}`} />
+                  <div className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${wizardStep >= 3 ? 'bg-[var(--primary)]' : 'bg-slate-200 dark:bg-slate-700'}`} />
+                </div>
               </div>
-              <div className="px-5 pb-4">
-                <Link href="/dashboard/regalos" className="block text-center text-xs text-[var(--primary)] hover:underline font-medium" onClick={() => setShowGiftModal(false)}>
-                  Gestionar Regalo →
-                </Link>
-              </div>
+
+              {/* Wizard body */}
+              {(() => {
+                if (wizardStep === 3) {
+                  return (
+                    <div className="px-5 py-4 text-center space-y-3">
+                      <div className="w-14 h-14 mx-auto rounded-full bg-emerald-100/80 dark:bg-emerald-500/10 flex items-center justify-center">
+                        <svg className="w-7 h-7 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Paso 3 de 3</h3>
+                      <p className="text-sm text-slate-600 dark:text-slate-400">El regalo fue aprobado correctamente.<br />Ya puedes continuar con el proceso de entrega.</p>
+                      <button onClick={() => { setShowGiftModal(false); router.push('/dashboard/regalos') }}
+                        className="w-full px-3 py-2.5 bg-emerald-600/90 backdrop-blur-sm text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-all border border-white/10">
+                        ➡ Continuar gestión del regalo
+                      </button>
+                    </div>
+                  )
+                }
+                return (
+                  <>
+                    {/* Step info text */}
+                    <div className="px-5 pt-3 pb-1 text-center">
+                      <p className="text-xs font-bold text-slate-900 dark:text-white">Paso {wizardStep} de 3</p>
+                    </div>
+
+                    {wizardStep === 1 && (
+                      <>
+                        <div className="px-5 py-2">
+                          <p className="text-xs text-center text-slate-500 dark:text-slate-400">Gestiona el cobro con el comprador antes de aprobar el regalo.</p>
+                        </div>
+                        <div className="px-5 pb-4 space-y-2">
+                          <button onClick={() => handleGestionarCobro(giftPendientes[0])}
+                            className="w-full px-3 py-2.5 bg-emerald-600/90 backdrop-blur-sm text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-all border border-white/10">
+                            📲 Gestionar cobro
+                          </button>
+                          <button onClick={() => handleWizardReject(giftPendientes[0].id)}
+                            className="w-full px-3 py-2.5 bg-rose-500/90 backdrop-blur-sm text-white rounded-xl text-sm font-medium hover:bg-rose-600 transition-all border border-white/10">
+                            ❌ Rechazar
+                          </button>
+                        </div>
+                      </>
+                    )}
+
+                    {wizardStep === 2 && (
+                      <>
+                        <div className="px-5 py-2">
+                          <p className="text-xs text-center text-slate-500 dark:text-slate-400">¿Ya confirmaste el pago con el comprador?</p>
+                        </div>
+                        <div className="px-5 pb-4 space-y-2">
+                          <button onClick={() => handleWizardApprove(giftPendientes[0])}
+                            className="w-full px-3 py-2.5 bg-emerald-600/90 backdrop-blur-sm text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-all border border-white/10">
+                            ✅ Confirmar pago y aprobar
+                          </button>
+                          <button onClick={() => setWizardStep(1)}
+                            className="w-full px-3 py-2.5 bg-white/50 dark:bg-white/[0.03] text-slate-700 dark:text-slate-300 rounded-xl text-sm font-medium hover:bg-white/80 dark:hover:bg-white/[0.06] transition-all border border-white/30 dark:border-white/[0.06]">
+                            ← Volver al paso anterior
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )
+              })()}
             </div>
           </div>
         )}

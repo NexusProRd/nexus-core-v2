@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import { formatCurrency } from '@/lib/utils'
 import { useConfig } from '@/context/ConfigProvider'
+import GiftTimeline from '@/components/dashboard/GiftTimeline'
 
 interface Props {
   id_tienda: string
@@ -81,6 +82,7 @@ export default function TabPedidos({ id_tienda }: Props) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searching, setSearching] = useState(false)
   const [lastSearchedId, setLastSearchedId] = useState<string | null>(null)
+  const [giftData, setGiftData] = useState<{ status: string; delivery_step?: string | null; converted_to_giftcard_at?: string | null } | null>(null)
 
   const supabase = createClient()
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -114,12 +116,47 @@ export default function TabPedidos({ id_tienda }: Props) {
     if (err || !row) {
       setError('No encontramos un pedido con ese código. Verifica el número e intenta de nuevo.')
       setPedido(null)
+      setGiftData(null)
     } else {
       setPedido(row)
       setLastSearchedId(row.id)
       startPolling(row.id)
+      // Check if this pedido is a gift and fetch gift status
+      const { data: meta } = await supabase
+        .from('pedidos')
+        .select('notas')
+        .eq('id', row.id)
+        .maybeSingle()
+      const giftCode = meta?.notas?.match(/-\s*(\S+)/)?.[1]
+      if (giftCode) {
+        const { data: gift } = await supabase
+          .from('gift_experiences')
+          .select('status, delivery_step, converted_to_giftcard_at')
+          .eq('gift_code', giftCode)
+          .maybeSingle()
+        if (gift) setGiftData(gift)
+      } else {
+        setGiftData(null)
+      }
     }
     setLoading(false)
+  }
+
+  const fetchGiftData = async (pedidoId: string) => {
+    const { data: meta } = await supabase
+      .from('pedidos')
+      .select('notas')
+      .eq('id', pedidoId)
+      .maybeSingle()
+    const giftCode = meta?.notas?.match(/-\s*(\S+)/)?.[1]
+    if (giftCode) {
+      const { data: gift } = await supabase
+        .from('gift_experiences')
+        .select('status, delivery_step, converted_to_giftcard_at')
+        .eq('gift_code', giftCode)
+        .maybeSingle()
+      if (gift) setGiftData(gift)
+    }
   }
 
   const startPolling = (pedidoId: string) => {
@@ -128,7 +165,10 @@ export default function TabPedidos({ id_tienda }: Props) {
       const { data } = await supabase
         .rpc('track_pedido', { p_id_tienda: id_tienda, p_query: pedidoId })
         .maybeSingle()
-      if (data) setPedido(data as unknown as OrderData)
+      if (data) {
+        setPedido(data as unknown as OrderData)
+        fetchGiftData(pedidoId)
+      }
     }, 6000)
   }
 
@@ -344,51 +384,61 @@ export default function TabPedidos({ id_tienda }: Props) {
               </button>
             </div>
 
-            {/* Timeline */}
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-              <h4 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
-                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-                Estado del pedido
-              </h4>
+            {/* Timeline — GiftTimeline for gift orders, pedido timeline otherwise */}
+            {giftData ? (
+              <GiftTimeline
+                status={giftData.status}
+                delivery_step={giftData.delivery_step}
+                converted_to_giftcard_at={giftData.converted_to_giftcard_at}
+                variant="tracking"
+                showExplainer
+              />
+            ) : (
+              <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
+                <h4 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  Estado del pedido
+                </h4>
 
-              <div className="relative">
-                <div className="absolute left-5 top-2 bottom-2 w-0.5 bg-slate-200" />
+                <div className="relative">
+                  <div className="absolute left-5 top-2 bottom-2 w-0.5 bg-slate-200" />
 
-                <div className="space-y-0">
-                  {steps.map((step, idx) => {
-                    const isCompleted = idx <= currentIndex
-                    const isCurrent = idx === currentIndex
+                  <div className="space-y-0">
+                    {steps.map((step, idx) => {
+                      const isCompleted = idx <= currentIndex
+                      const isCurrent = idx === currentIndex
 
-                    return (
-                      <div key={step.key} className="relative flex items-start gap-4 pb-8 last:pb-0">
-                        <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all duration-500 ${
-                          isCompleted ? `${step.bg} ${step.color}` : 'bg-slate-100 text-slate-300'
-                        } ${isCurrent ? 'ring-4 ring-offset-2 ring-offset-white ' + step.bg : ''}`}>
-                          {step.icon(`w-5 h-5 ${isCompleted ? '' : 'text-slate-300'}`)}
+                      return (
+                        <div key={step.key} className="relative flex items-start gap-4 pb-8 last:pb-0">
+                          <div className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all duration-500 ${
+                            isCompleted ? `${step.bg} ${step.color}` : 'bg-slate-100 text-slate-300'
+                          } ${isCurrent ? 'ring-4 ring-offset-2 ring-offset-white ' + step.bg : ''}`}>
+                            {step.icon(`w-5 h-5 ${isCompleted ? '' : 'text-slate-300'}`)}
+                          </div>
+
+                          <div className="flex-1 min-w-0 pt-1.5">
+                            <p className={`text-sm font-bold ${isCompleted ? 'text-slate-900' : 'text-slate-400'}`}>
+                              {step.label}
+                            </p>
+                            {isCurrent && (
+                              <p className="text-xs text-slate-500 mt-0.5">{step.desc}</p>
+                            )}
+                            {isCurrent && step.key !== 'entregado' && (
+                              <div className="flex items-center gap-1.5 mt-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                <span className="text-[11px] font-medium text-emerald-600">En proceso</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-
-                        <div className="flex-1 min-w-0 pt-1.5">
-                          <p className={`text-sm font-bold ${isCompleted ? 'text-slate-900' : 'text-slate-400'}`}>
-                            {step.label}
-                          </p>
-                          {isCurrent && (
-                            <p className="text-xs text-slate-500 mt-0.5">{step.desc}</p>
-                          )}
-                          {isCurrent && step.key !== 'entregado' && (
-                            <div className="flex items-center gap-1.5 mt-2">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                              <span className="text-[11px] font-medium text-emerald-600">En proceso</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </>
         )}
 

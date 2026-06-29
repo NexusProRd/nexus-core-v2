@@ -1,8 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { convertGiftToGiftCard } from '@/lib/gift-cards'
+import { useToast } from '@/components/Toast'
+import GiftTimeline from '@/components/dashboard/GiftTimeline'
 
 interface Gift {
   id: string
@@ -66,6 +69,8 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
   const [configLoading, setConfigLoading] = useState(false)
   const [configSaving, setConfigSaving] = useState(false)
   const [configSaved, setConfigSaved] = useState(false)
+  const [cobroStep, setCobroStep] = useState<Record<string, 'gestionar' | 'confirmar' | 'aprobado'>>({})
+  const { toast } = useToast()
 
   const fetchConfig = useCallback(async () => {
     setConfigLoading(true)
@@ -170,7 +175,7 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
   }, [storeId])
 
   const updateStatus = useCallback(
-    async (gift: Gift, newStatus: 'approved' | 'rejected') => {
+    async (gift: Gift, newStatus: 'approved' | 'rejected'): Promise<boolean> => {
       setUpdatingId(gift.id)
       const supabase = createClient()
 
@@ -182,15 +187,17 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
           .eq('status', 'pending')
         if (error) console.error('[GiftDashboard] Error al rechazar:', error)
         setUpdatingId(null)
-        return
+        return !error
       }
 
       const { data, error } = await supabase.rpc('aprobar_regalo_v2', { p_gift_id: gift.id })
+      let success = false
       if (error) {
         console.error('[GiftDashboard] Error al aprobar:', error)
       } else if (!data?.success) {
         console.error('[GiftDashboard] aprobar_regalo_v2:', data?.error)
       } else {
+        success = true
         sendGiftPush(storeId, 'approved', gift.gift_code)
         if (gift.sender_phone) {
           const giftUrl = `${window.location.origin}/canje?gift=${gift.gift_code}&id=${gift.store_id}`
@@ -201,9 +208,21 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
         }
       }
       setUpdatingId(null)
+      return success
     },
     [storeName]
   )
+
+  const handleGestionarCobro = useCallback((gift: Gift) => {
+    if (!gift.sender_phone) {
+      toast('El comprador no tiene número de WhatsApp registrado.', 'warning')
+      return
+    }
+    const waUrl = `https://wa.me/${gift.sender_phone.replace(/\D/g, '')}?text=${encodeURIComponent(
+      `Hola ${gift.sender_name}. Soy ${storeName}. Estoy gestionando el cobro de tu regalo. Una vez confirme el pago aprobaré el regalo y recibirás automáticamente el enlace para compartirlo con el destinatario. Gracias.`
+    )}`
+    window.open(waUrl, '_blank')
+  }, [storeName])
 
   const markDelivered = useCallback(async (gift: Gift) => {
     setUpdatingId(gift.id)
@@ -667,50 +686,74 @@ export default function GiftDashboard({ storeId }: { storeId: string }) {
                       </button>
                     ) : null}
                   </td>
-                  <td className="py-3 px-4 space-y-1">
-                    <span
-                      className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${
-                        statusConfig[gift.status]?.bg || 'bg-slate-100'
-                      } ${statusConfig[gift.status]?.text || 'text-slate-500'}`}
-                    >
-                      {statusConfig[gift.status]?.label || gift.status}
-                    </span>
-                    {gift.status === 'CLAIMED' && gift.delivery_step === 'CONTACTED' && (
-                      <div className="text-xs font-medium text-teal-600 whitespace-nowrap">
-                        📞 Contactado
-                      </div>
-                    )}
-                    {gift.status === 'CLAIMED' && gift.delivery_step === 'SHIPPED' && (
-                      <div className="text-xs font-medium text-sky-600 whitespace-nowrap">
-                        🚚 En camino
-                      </div>
-                    )}
-                    {gift.converted_to_giftcard_at && (
-                      <div className="text-xs font-medium text-purple-700 whitespace-nowrap">
-                        🎁 Convertido a Gift Card
-                      </div>
-                    )}
+                  <td className="py-3 px-4">
+                    <GiftTimeline
+                      status={gift.status}
+                      delivery_step={gift.delivery_step}
+                      converted_to_giftcard_at={gift.converted_to_giftcard_at}
+                    />
                   </td>
                   <td className="py-3 px-4 text-right">
                     {gift.converted_to_giftcard_at ? (
                       <span className="text-xs font-medium text-purple-700 italic">Procesado</span>
                     ) : gift.status === 'pending' ? (
-                      <div className="flex gap-2 justify-end">
-                        <button
-                          onClick={() => updateStatus(gift, 'approved')}
-                          disabled={updatingId === gift.id}
-                          className="px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-                        >
-                          Aprobar
-                        </button>
-                        <button
-                          onClick={() => updateStatus(gift, 'rejected')}
-                          disabled={updatingId === gift.id}
-                          className="px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
-                        >
-                          Rechazar
-                        </button>
-                      </div>
+                      (() => {
+                        const step = cobroStep[gift.id] || 'gestionar'
+                        if (step === 'aprobado') return (
+                          <div className="flex flex-col items-end gap-2">
+                            <span className="text-xs font-semibold text-emerald-700">🎉 Regalo aprobado correctamente.</span>
+                            <Link
+                              href="/dashboard/regalos"
+                              className="px-3 py-1.5 bg-violet-600 text-white text-xs font-medium rounded-lg hover:bg-violet-700 transition-colors"
+                            >
+                              ➡ Continuar gestión del regalo →
+                            </Link>
+                          </div>
+                        )
+                        if (step === 'confirmar') return (
+                          <div className="flex flex-col items-end gap-1.5">
+                            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Paso 2 — Confirmar pago</span>
+                            <button
+                              onClick={async () => {
+                                const ok = await updateStatus(gift, 'approved')
+                                if (ok) setCobroStep(prev => ({ ...prev, [gift.id]: 'aprobado' }))
+                              }}
+                              disabled={updatingId === gift.id}
+                              className="w-full px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                            >
+                              ✅ Confirmar pago y aprobar
+                            </button>
+                            <button
+                              onClick={() => setCobroStep(prev => ({ ...prev, [gift.id]: 'gestionar' }))}
+                              className="text-[11px] text-slate-500 hover:text-slate-700 font-medium"
+                            >
+                              ⬅ Volver al paso anterior
+                            </button>
+                          </div>
+                        )
+                        return (
+                          <div className="flex flex-col items-end gap-1.5">
+                            <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Paso 1 — Pendiente de cobro</span>
+                            <button
+                              onClick={() => {
+                                handleGestionarCobro(gift)
+                                setCobroStep(prev => ({ ...prev, [gift.id]: 'confirmar' }))
+                              }}
+                              disabled={updatingId === gift.id}
+                              className="w-full px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                            >
+                              📲 Gestionar cobro
+                            </button>
+                            <button
+                              onClick={() => updateStatus(gift, 'rejected')}
+                              disabled={updatingId === gift.id}
+                              className="px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-lg hover:bg-red-600 disabled:opacity-50 transition-colors"
+                            >
+                              ❌ Rechazar
+                            </button>
+                          </div>
+                        )
+                      })()
                     ) : gift.status === 'RESERVED' ? (
                       <div className="flex gap-2 justify-end">
                         <button
